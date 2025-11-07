@@ -132,7 +132,9 @@ final class Mbc5 implements MbcInterface
         if ($address < 0x6000) {
             // RAM Bank Number (0x4000-0x5FFF)
             // If rumble is present, bit 3 controls rumble (not emulated)
-            $this->ramBank = $value & 0x0F;
+            // Mask out rumble bit if rumble is enabled
+            $mask = $this->hasRumble ? 0x07 : 0x0F;
+            $this->ramBank = $value & $mask;
             return;
         }
 

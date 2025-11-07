@@ -139,17 +139,6 @@ enum CartridgeType: int
     }
 
     /**
-     * Try to create CartridgeType from byte value.
-     *
-     * @param int $value Cartridge type byte
-     * @return self|null CartridgeType or null if unknown
-     */
-    public static function tryFrom(int $value): ?self
-    {
-        return self::tryFrom($value);
-    }
-
-    /**
      * Get a human-readable description of the cartridge type.
      *
      * @return string Description

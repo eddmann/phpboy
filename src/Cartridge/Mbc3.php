@@ -261,13 +261,18 @@ final class Mbc3 implements MbcInterface
         }
 
         match ($register) {
-            0x08 => $this->internalSeconds = $value & 0x3F, // 0-59
-            0x09 => $this->internalMinutes = $value & 0x3F, // 0-59
-            0x0A => $this->internalHours = $value & 0x1F,   // 0-23
+            0x08 => $this->internalSeconds = $this->rtcSeconds = $value & 0x3F, // 0-59
+            0x09 => $this->internalMinutes = $this->rtcMinutes = $value & 0x3F, // 0-59
+            0x0A => $this->internalHours = $this->rtcHours = $value & 0x1F,   // 0-23
             0x0B => $this->internalDays = ($this->internalDays & 0x100) | $value,
             0x0C => $this->handleRtcDayHigh($value),
             default => null,
         };
+
+        // Update latched day values when writing to day registers
+        if ($register === 0x0B) {
+            $this->rtcDayLow = $value;
+        }
     }
 
     /**

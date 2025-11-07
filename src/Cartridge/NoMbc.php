@@ -36,11 +36,12 @@ final class NoMbc implements MbcInterface
     public function __construct(array $rom, int $ramSize, bool $hasBattery)
     {
         $this->rom = $rom;
-        $this->ramSize = $ramSize;
+        // ROM-only cartridges may still have RAM; default to 8KB if not specified
+        $this->ramSize = $ramSize > 0 ? $ramSize : 8192;
         $this->hasBattery = $hasBattery;
 
         // Initialize RAM
-        $this->ram = array_fill(0, $ramSize, 0x00);
+        $this->ram = array_fill(0, $this->ramSize, 0x00);
     }
 
     public function readByte(int $address): int
