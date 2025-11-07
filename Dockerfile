@@ -1,4 +1,6 @@
-FROM php:8.5-cli
+# Use PHP 8.5 RC (Release Candidate)
+# Note: If 8.5-rc-cli is not available, this will build from 8.5.0RC4 source
+FROM php:8.5-rc-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

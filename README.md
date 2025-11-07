@@ -4,8 +4,8 @@ A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 th
 
 ## Features
 
-- **Modern PHP 8.5**: Leverages the latest PHP features including strict types, readonly properties, enums, and typed class constants
-- **Dockerized Development**: Consistent development environment across all platforms
+- **Modern PHP 8.5 RC**: Leverages the latest PHP 8.5 release candidate features including strict types, readonly properties, enums, typed class constants, and property hooks
+- **Fully Dockerized Development**: All PHP/Composer/testing tools run exclusively in Docker containers for consistency
 - **Comprehensive Testing**: PHPUnit 10 for unit and integration tests
 - **Static Analysis**: PHPStan at maximum level (9) for type safety
 - **Modular Architecture**: Clean separation of concerns with dedicated namespaces for CPU, PPU, APU, Bus, and Frontend
@@ -15,6 +15,8 @@ A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 th
 - Docker
 - Docker Compose
 - Make (for convenient task automation)
+
+**Important**: All PHP, Composer, PHPUnit, and PHPStan commands must run through Docker. Never run these tools directly on the host machine.
 
 ## Getting Started
 
@@ -43,13 +45,15 @@ All development tasks are managed through the Makefile and run inside Docker con
 #### Available Commands
 
 - `make help` - Show available commands
-- `make setup` - Build Docker image
-- `make install` - Install Composer dependencies
-- `make test` - Run PHPUnit tests
-- `make lint` - Run PHPStan static analysis
+- `make setup` - Build Docker image with PHP 8.5 RC4
+- `make rebuild` - Rebuild Docker image from scratch (no cache)
+- `make install` - Install Composer dependencies in Docker
+- `make test` - Run PHPUnit tests in Docker
+- `make lint` - Run PHPStan static analysis in Docker
 - `make shell` - Open bash shell in Docker container
-- `make run ROM=path/to/rom.gb` - Run emulator with specified ROM (coming soon)
+- `make run ROM=path/to/rom.gb` - Run emulator with specified ROM in Docker (coming soon)
 - `make clean` - Remove vendor directory and composer.lock
+- `make clean-docker` - Remove Docker containers and images
 
 #### Running Tests
 
