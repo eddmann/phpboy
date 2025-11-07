@@ -109,7 +109,7 @@ final class ColorPaletteTest extends TestCase
         // Write a 15-bit color to palette 0, color 1
         // Color: 0x7FFF (white: all bits set)
         // Index: palette 0, color 1 = byte 2-3
-        $this->palette->writeBgIndex(0x02);
+        $this->palette->writeBgIndex(0x82); // Enable auto-increment, start at index 2
         $this->palette->writeBgData(0xFF); // Low byte
         $this->palette->writeBgData(0x7F); // High byte
 
@@ -125,7 +125,7 @@ final class ColorPaletteTest extends TestCase
     {
         // Write black (0x0000) to palette 1, color 2
         // Index: palette 1, color 2 = (1*8) + (2*2) = 12
-        $this->palette->writeBgIndex(12);
+        $this->palette->writeBgIndex(0x80 | 12); // Enable auto-increment
         $this->palette->writeBgData(0x00); // Low byte
         $this->palette->writeBgData(0x00); // High byte
 
@@ -141,7 +141,7 @@ final class ColorPaletteTest extends TestCase
     {
         // Pure red: 0b0000000000011111 = 0x001F
         // Index: palette 2, color 3 = (2*8) + (3*2) = 22
-        $this->palette->writeBgIndex(22);
+        $this->palette->writeBgIndex(0x80 | 22); // Enable auto-increment
         $this->palette->writeBgData(0x1F); // Low byte
         $this->palette->writeBgData(0x00); // High byte
 
@@ -157,7 +157,7 @@ final class ColorPaletteTest extends TestCase
     {
         // Write a color to object palette 3, color 1
         // Index: palette 3, color 1 = (3*8) + (1*2) = 26
-        $this->palette->writeObjIndex(26);
+        $this->palette->writeObjIndex(0x80 | 26); // Enable auto-increment
         $this->palette->writeObjData(0xE0); // Low byte: 0b11100000 (green bits)
         $this->palette->writeObjData(0x03); // High byte: 0b00000011 (green bits)
 
