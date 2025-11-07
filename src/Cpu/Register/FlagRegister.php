@@ -157,4 +157,70 @@ final class FlagRegister
     {
         $this->value = 0x00;
     }
+
+    // Convenience aliases for shorter method names
+
+    /**
+     * Alias for getZero()
+     */
+    public function getZ(): bool
+    {
+        return $this->getZero();
+    }
+
+    /**
+     * Alias for setZero()
+     */
+    public function setZ(bool $value): void
+    {
+        $this->setZero($value);
+    }
+
+    /**
+     * Alias for getSubtract()
+     */
+    public function getN(): bool
+    {
+        return $this->getSubtract();
+    }
+
+    /**
+     * Alias for setSubtract()
+     */
+    public function setN(bool $value): void
+    {
+        $this->setSubtract($value);
+    }
+
+    /**
+     * Alias for getHalfCarry()
+     */
+    public function getH(): bool
+    {
+        return $this->getHalfCarry();
+    }
+
+    /**
+     * Alias for setHalfCarry()
+     */
+    public function setH(bool $value): void
+    {
+        $this->setHalfCarry($value);
+    }
+
+    /**
+     * Alias for getCarry()
+     */
+    public function getC(): bool
+    {
+        return $this->getCarry();
+    }
+
+    /**
+     * Alias for setCarry()
+     */
+    public function setC(bool $value): void
+    {
+        $this->setCarry($value);
+    }
 }

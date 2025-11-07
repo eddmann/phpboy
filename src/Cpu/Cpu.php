@@ -33,6 +33,11 @@ final class Cpu
     // Flag register (lower byte of AF)
     private FlagRegister $flags;
 
+    // CPU state
+    private bool $halted = false;
+    private bool $stopped = false;
+    private bool $ime = false; // Interrupt Master Enable
+
     /**
      * @param BusInterface $bus Memory bus for reading/writing memory
      */
@@ -292,5 +297,75 @@ final class Cpu
     public function setL(int $value): void
     {
         $this->hl->setLow($value);
+    }
+
+    /**
+     * Get the memory bus.
+     *
+     * @return BusInterface The memory bus
+     */
+    public function getBus(): BusInterface
+    {
+        return $this->bus;
+    }
+
+    /**
+     * Check if CPU is halted.
+     *
+     * @return bool True if halted
+     */
+    public function isHalted(): bool
+    {
+        return $this->halted;
+    }
+
+    /**
+     * Set the halted state.
+     *
+     * @param bool $halted True to halt, false to resume
+     */
+    public function setHalted(bool $halted): void
+    {
+        $this->halted = $halted;
+    }
+
+    /**
+     * Check if CPU is stopped.
+     *
+     * @return bool True if stopped
+     */
+    public function isStopped(): bool
+    {
+        return $this->stopped;
+    }
+
+    /**
+     * Set the stopped state.
+     *
+     * @param bool $stopped True to stop, false to resume
+     */
+    public function setStopped(bool $stopped): void
+    {
+        $this->stopped = $stopped;
+    }
+
+    /**
+     * Get the Interrupt Master Enable flag.
+     *
+     * @return bool True if interrupts are enabled
+     */
+    public function getIME(): bool
+    {
+        return $this->ime;
+    }
+
+    /**
+     * Set the Interrupt Master Enable flag.
+     *
+     * @param bool $ime True to enable interrupts, false to disable
+     */
+    public function setIME(bool $ime): void
+    {
+        $this->ime = $ime;
     }
 }
