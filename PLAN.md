@@ -1,0 +1,1501 @@
+# PHPBoy - Game Boy Color Emulator Plan
+
+This roadmap targets **PHPBoy**, a readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 that runs in the CLI and, via WebAssembly, in the browser. Each step layers new knowledge on top of the last, combining historical insight with practical emulator-building tasks.
+
+---
+
+## 🔧 MANDATORY DEVELOPMENT WORKFLOW - APPLIES TO ALL STEPS
+
+**ALL PHP/Composer/PHPUnit/PHPStan interactions MUST happen via Docker and Makefile:**
+- ❌ **NEVER** run `php`, `composer`, `phpunit`, or `phpstan` directly on the host machine
+- ✅ **ALWAYS** use `make` commands (e.g., `make test`, `make lint`, `make install`)
+- ✅ **ALWAYS** execute commands inside Docker containers
+- All development tooling is containerized in PHP 8.5 Docker environment
+- This ensures consistency across all development environments
+
+**CONVENTIONAL COMMITS REQUIRED AFTER EACH STEP:**
+- ✅ **ALWAYS** create a conventional commit when a step is completed
+- ✅ **ALWAYS** include detailed what/why in the commit body
+- ✅ Use the format: `<type>(scope): <subject>` followed by detailed body
+- Types: `feat` (new feature), `test` (tests), `docs` (documentation), `refactor`, `perf` (performance), `build` (build system)
+- Scope: The step number (e.g., `step-0`, `step-1`, `step-2`)
+- Each step's "Definition of Done" includes a commit requirement with a template
+
+**Conventional Commit Template:**
+```
+<type>(step-N): <brief summary of step completion>
+
+What was implemented:
+- Bullet point list of major components added
+- Key functionality implemented
+- Tests added
+
+Why this approach:
+- Technical decisions made
+- Trade-offs considered
+- Historical context applied
+
+Verification:
+- Tests passing: make test (X assertions, 100% pass)
+- Lint passing: make lint (0 errors)
+- [Step-specific verification criteria]
+
+References:
+- Pan Docs section X.Y
+- Blargg test ROM results
+- [Other relevant references]
+```
+
+**Example Commit:**
+```
+feat(step-2): implement bitwise operations and timing utilities
+
+What was implemented:
+- BitOps helper class with rotate, shift, and bit manipulation functions
+- Register8 and Register16 abstractions with automatic wrapping
+- FlagRegister with Z, N, H, C flag handling mapped to correct bit positions
+- Clock service for cycle tracking and accumulation
+- Comprehensive unit tests for all utilities (35 assertions)
+
+Why this approach:
+- Static methods in BitOps for performance (no object allocation overhead)
+- Separate register classes ensure type safety and automatic masking
+- Flag register maps to hardware bit positions (Z=7, N=6, H=5, C=4)
+- Clock service designed to be shared across CPU/PPU/APU for synchronization
+
+Verification:
+- Tests passing: make test (35 assertions, 100% pass rate)
+- Lint passing: make lint (0 errors, PHPStan level 9)
+- All bitwise operations match Game Boy CPU manual examples
+- Flag operations verified against Pan Docs specifications
+
+References:
+- Pan Docs: CPU Registers & Flags
+- Game Boy CPU Manual: Arithmetic & Logic Instructions
+```
+
+---
+
+## Step 0 – Curate Primary References
+
+- **Historical context**: Nintendo's 1998 GBC iterated on the 1989 Game Boy by adding a double-speed mode, a richer palette pipeline, and backward compatibility with monochrome titles. Documentation lives in fan-maintained archives because official manuals were internal to Sharp and Nintendo.
+- **Tasks**
+  - [ ] Gather the latest Pan Docs (https://gbdev.io/pandocs/), Gekkio's research notes, and SameBoy's accuracy reports.
+  - [ ] Collect test ROM suites: Blargg's `cpu_instrs`, Mooneye's acceptance tests, and Gekkio's `dmg-acid2`/`cgb-acid2`.
+  - [ ] Create a `/docs/research.md` summarizing findings and bibliographic references for quick lookup.
+- **✅ Definition of Done**:
+  - [ ] `docs/research.md` exists and contains at least 2000 words covering:
+    - LR35902 CPU architecture (instruction set, timing, registers)
+    - Memory map ($0000-$FFFF with all region descriptions)
+    - PPU operation (modes, timing, VRAM layout)
+    - APU channels and register descriptions
+    - MBC types (at minimum: no-MBC, MBC1, MBC3, MBC5)
+    - Bibliography with at least 5 reference links
+  - [ ] `third_party/references/` directory exists and contains downloaded copies of:
+    - Pan Docs (HTML or PDF)
+    - At least one reference emulator source for comparison (e.g., SameBoy)
+  - [ ] `third_party/roms/` directory exists and contains:
+    - All 11 Blargg `cpu_instrs` test ROMs (01-special.gb through 11-op a,(hl).gb)
+    - `instr_timing.gb` ROM
+    - At least 3 Mooneye test ROMs
+    - `dmg-acid2.gb` and/or `cgb-acid2.gb`
+  - [ ] `docs/research.md` includes a "Test ROM Catalog" section listing each test ROM's purpose and expected pass criteria
+  - [ ] Can answer these questions from research.md:
+    - How many CPU cycles does one PPU mode 3 (pixel transfer) scanline take?
+    - What is the memory range for VRAM bank 0?
+    - Which MBC supports Real-Time Clock functionality?
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `docs(step-0):`
+    - What: Documentation gathered, research compiled, test ROMs collected
+    - Why: Establish foundational knowledge and reference materials for emulator development
+    - Verification: All directories exist, research.md complete, can answer validation questions
+    - References: Links to Pan Docs, test ROM sources, emulator references used
+- **Learning outcome**: Understand the LR35902 CPU lineage (a hybrid between Intel 8080 and Z80) and the split responsibilities of CPU, PPU, APU, and cartridge MBCs.
+- **Artifacts**: `docs/research.md`, `third_party/references/`, `third_party/roms/`
+
+## Step 1 – Project Skeleton & Tooling (PHPBoy Setup)
+
+- **Historical context**: Commercial emulators often separated "core" and "frontend" to target multiple platforms—this separation enabled projects like VisualBoyAdvance to live on for decades.
+- **Development environment requirements**:
+  - **Project name**: PHPBoy - the name of this Game Boy Color emulator
+  - **Makefile**: Task automation for building, testing, and running the emulator - ALL PHP/Composer/test/lint interactions MUST happen via Makefile commands
+  - **Docker**: Containerized PHP 8.5 environment for consistent development and testing - ALL commands MUST run inside Docker containers
+  - **PHP 8.5**: Latest stable PHP version utilizing modern language features (readonly classes, typed properties, enums, fibers, and performance improvements)
+  - **PHPUnit 10**: Modern testing framework for comprehensive unit and integration tests
+  - **PHPStan**: Static analysis at maximum level to ensure type safety and catch errors early
+  - **Best practices**: Leverage PHP 8.5 features including strict types, property hooks, readonly properties, enums for opcodes/states, and typed class constants
+  - **Workflow**: Never run PHP, Composer, PHPUnit, or PHPStan directly on the host machine - always use `make` commands that execute inside Docker containers
+- **Tasks**
+  - [ ] Initialize a Composer project with PSR-4 autoloading for PHPBoy; create namespaces such as `Gb\Bus`, `Gb\Cpu`, `Gb\Ppu`, and `Gb\Frontend`.
+  - [ ] Add PHPUnit for unit tests; configure static analysis (PHPStan) to keep types disciplined while tooling catches up with PHP 8.5.
+  - [ ] Lay out directories for CLI runner, WebAssembly adapter, ROM fixtures, and documentation.
+  - [ ] Set up Dockerfile with PHP 8.5, Composer, PHPUnit 10, and PHPStan
+  - [ ] Create Makefile with common tasks (build, test, lint, run)
+- **✅ Definition of Done**:
+  - [ ] `composer.json` exists with:
+    - Package name: `phpboy/emulator`
+    - PHP version requirement: `^8.5`
+    - PSR-4 autoload mapping: `"Gb\\"` → `"src/"`
+    - PHPUnit dev dependency: `^10.0`
+    - PHPStan dev dependency with configuration
+  - [ ] Directory structure exists:
+    - `src/` (with subdirectories: `Bus/`, `Cpu/`, `Ppu/`, `Apu/`, `Cartridge/`, `Frontend/`, `Support/`)
+    - `tests/` (with subdirectories: `Unit/`, `Integration/`)
+    - `bin/` (for CLI entry point)
+    - `docs/`
+    - `third_party/`
+  - [ ] `Dockerfile` exists and:
+    - Uses PHP 8.5 base image
+    - Installs Composer
+    - Installs PHPUnit and PHPStan
+    - Sets working directory to `/app`
+  - [ ] `docker-compose.yml` exists and defines service for PHPBoy container
+  - [ ] `Makefile` exists with these working targets:
+    - `make setup` - builds Docker image
+    - `make install` - runs `composer install` in Docker
+    - `make test` - runs PHPUnit in Docker
+    - `make lint` - runs PHPStan in Docker
+    - `make shell` - opens bash shell in Docker container
+    - `make run ROM=path/to/rom.gb` - runs emulator (stub for now)
+  - [ ] `phpstan.neon` exists with level 9 or max configured
+  - [ ] `phpunit.xml` exists with test suites configured
+  - [ ] `make setup && make install` completes successfully
+  - [ ] `make test` runs (even if no tests exist yet, should show 0 tests executed)
+  - [ ] `make lint` runs (even if no source exists, should show 0 errors)
+  - [ ] `README.md` exists with basic setup instructions using Makefile commands
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `build(step-1):`
+    - What: Docker environment, Makefile, Composer project, directory structure, PHPStan/PHPUnit configuration
+    - Why: Establish containerized PHP 8.5 development environment ensuring consistency and modern tooling
+    - Verification: `make setup && make install && make test && make lint` all succeed
+    - References: PHP 8.5 features to leverage, PSR-4 autoloading standards
+- **Learning outcome**: Appreciate why clean modular boundaries are critical when the same core must serve both CLI and WASM frontends. Establish a modern PHP 8.5 development workflow with Docker containerization and comprehensive tooling.
+- **Artifacts**: `Dockerfile`, `docker-compose.yml`, `Makefile`, `composer.json`, `phpstan.neon`
+
+## Step 2 – Bitwise & Timing Utilities
+
+- **Historical context**: The LR35902 exposes an 8-bit data bus with frequent bit fiddling; original developers relied on assembler macros for masking, rotation, and flag handling.
+- **Tasks**
+  - [ ] Implement `BitOps` helpers (rotate, shift, parity) and 8/16-bit register abstractions.
+  - [ ] Design a `Clock` service to track CPU cycles and PPU/APU step alignment.
+  - [ ] Write doctests and unit tests mirroring the Game Boy CPU manual's examples.
+- **✅ Definition of Done**:
+  - [ ] `src/Support/BitOps.php` exists with static methods:
+    - `getBit(int $byte, int $position): bool` - extract bit at position
+    - `setBit(int $byte, int $position, bool $value): int` - set bit at position
+    - `rotateLeft(int $byte, bool $carry): array` - returns [result, newCarry]
+    - `rotateRight(int $byte, bool $carry): array` - returns [result, newCarry]
+    - `shiftLeft(int $byte): array` - arithmetic shift left
+    - `shiftRight(int $byte, bool $signed): array` - shift right (arithmetic if $signed)
+    - `swap(int $byte): int` - swap nibbles (0xF4 → 0x4F)
+  - [ ] `src/Cpu/Register/Register8.php` exists representing 8-bit register with:
+    - `get(): int` and `set(int $value): void` methods
+    - Automatic masking to 8-bit range (0x00-0xFF)
+  - [ ] `src/Cpu/Register/Register16.php` exists representing 16-bit register with:
+    - `get(): int` and `set(int $value): void` methods
+    - Automatic masking to 16-bit range (0x0000-0xFFFF)
+  - [ ] `src/Cpu/Register/FlagRegister.php` exists with methods:
+    - `getZero()`, `setZero(bool)` - zero flag
+    - `getSubtract()`, `setSubtract(bool)` - subtract flag
+    - `getHalfCarry()`, `setHalfCarry(bool)` - half carry flag
+    - `getCarry()`, `setCarry(bool)` - carry flag
+    - Flags mapped to correct bit positions (Z=7, N=6, H=5, C=4)
+  - [ ] `src/Clock/Clock.php` exists with:
+    - `tick(int $cycles): void` - advance clock by cycles
+    - `getCycles(): int` - get total cycle count
+    - `reset(): void` - reset to zero
+  - [ ] `tests/Unit/Support/BitOpsTest.php` exists with tests covering:
+    - All bitwise operations with known inputs/outputs
+    - Edge cases (bit 0, bit 7, all zeros, all ones)
+    - At least 15 test methods total
+  - [ ] `tests/Unit/Cpu/Register/Register8Test.php` exists testing:
+    - Getting and setting values
+    - Overflow wrapping (0xFF + 1 = 0x00)
+    - Underflow wrapping (0x00 - 1 = 0xFF)
+  - [ ] `tests/Unit/Cpu/Register/Register16Test.php` exists with similar wrapping tests
+  - [ ] `tests/Unit/Cpu/Register/FlagRegisterTest.php` exists testing:
+    - Individual flag get/set operations
+    - Flag bit positions (0x80 = Z flag set, others clear)
+  - [ ] `tests/Unit/Clock/ClockTest.php` exists testing:
+    - Tick increments
+    - Cycle accumulation
+    - Reset behavior
+  - [ ] `make test` passes with 100% success rate (minimum 30 assertions)
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-2):`
+    - What: BitOps utility class, Register8/Register16/FlagRegister abstractions, Clock service, comprehensive unit tests (30+ assertions)
+    - Why: Establish low-level primitives for bitwise operations and cycle-accurate timing needed throughout emulator
+    - Verification: `make test` shows 100% pass rate, all flag positions match hardware (Z=7, N=6, H=5, C=4)
+    - References: Pan Docs CPU Registers section, Game Boy CPU manual flag behavior
+- **⚠️ Workflow reminder**: Run tests using `make test` (NOT `phpunit` directly) - all testing must happen inside Docker containers.
+- **Learning outcome**: See how precise cycle accounting underpins accurate emulation.
+- **Artifacts**: `src/Support/BitOps.php`, `src/Cpu/Register/`, `src/Clock/Clock.php`, `tests/Unit/Support/BitOpsTest.php`, `tests/Unit/Cpu/RegisterTest.php`, `tests/Unit/Clock/ClockTest.php`
+
+## Step 3 – CPU Core Skeleton
+
+- **Historical context**: Nintendo's CPU combined Z80 instruction semantics with 8080 timing quirks; instructions like `DAA` rely on BCD adjustments dating back to calculators.
+- **Tasks**
+  - [ ] Model register file (`AF`, `BC`, `DE`, `HL`, `SP`, `PC`) and flag manipulation.
+  - [ ] Create an instruction decoder table keyed by opcode, storing metadata (mnemonic, length, cycle cost, handler).
+  - [ ] Implement fetch/decode/execute loop stub with cycle counting hooks.
+- **✅ Definition of Done**:
+  - [ ] `src/Cpu/Cpu.php` exists with:
+    - Properties for all registers: AF, BC, DE, HL, SP, PC (using Register16/FlagRegister)
+    - `step(): int` method that executes one instruction and returns cycles consumed
+    - `fetch(): int` method that reads opcode at PC and increments PC
+    - `decode(int $opcode): Instruction` method (can return stub for now)
+    - `execute(Instruction $instruction): void` method (can be stub)
+  - [ ] `src/Cpu/Instruction.php` exists as a class/struct with properties:
+    - `opcode: int` - the opcode byte
+    - `mnemonic: string` - human-readable name (e.g., "LD A,B")
+    - `length: int` - instruction length in bytes (1-3)
+    - `cycles: int` - base cycle cost (4, 8, 12, 16, 20, 24)
+    - `handler: callable` - function to execute instruction
+  - [ ] `src/Cpu/InstructionSet.php` exists with:
+    - Static method `getInstruction(int $opcode): Instruction`
+    - At minimum, NOP (0x00) instruction fully defined
+    - Stub entries for at least 10 more common opcodes (e.g., LD instructions)
+  - [ ] Constructor for `Cpu` accepts a `BusInterface` parameter (define interface if needed)
+  - [ ] `tests/Unit/Cpu/CpuTest.php` exists with tests:
+    - Register initialization (PC=0x0100, SP=0xFFFE, others=0x0000)
+    - NOP execution: verify PC increments by 1, returns 4 cycles
+    - Fetch reads from bus at PC address
+    - Flag register operations work correctly
+  - [ ] `src/Bus/BusInterface.php` exists with methods:
+    - `readByte(int $address): int`
+    - `writeByte(int $address, int $value): void`
+  - [ ] Mock/stub bus implementation for testing exists
+  - [ ] `make test` passes with all CPU skeleton tests green
+  - [ ] `make lint` reports 0 errors
+  - [ ] Can instantiate `Cpu`, call `step()`, and it executes NOP without crashing
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-3):`
+    - What: CPU class with register file (AF/BC/DE/HL/SP/PC), fetch-decode-execute loop, Instruction/InstructionSet classes, BusInterface
+    - Why: Establish CPU core architecture and instruction execution pipeline foundation for implementing full instruction set
+    - Verification: `make test` passes, NOP execution verified (PC increments, 4 cycles returned), CPU can be instantiated with mock bus
+    - References: Z80/8080 architecture, LR35902 instruction format
+- **⚠️ Workflow reminder**: Use `make test` and `make lint` for all PHP tooling interactions via Docker.
+- **Learning outcome**: Understand the fetch-decode-execute pipeline and how opcodes map to micro-operations.
+
+## Step 4 – Implement Core Instruction Set
+
+- **Historical context**: Of 512 possible opcodes (including CB-prefix), many came from the Z80 but trimmed to save silicon. Accurate flag behaviour is vital; early emulators often failed Blargg tests due to `HALT` and `STOP`.
+- **Tasks**
+  - [ ] Implement base opcodes grouped by category (loads, ALU, control flow, bit operations).
+  - [ ] Add CB-prefixed instruction decoding.
+  - [ ] Validate with Blargg's `cpu_instrs` (individual suites) and `instr_timing` ROMs (timing suite blocked until timer hardware arrives in Step 6).
+- **✅ Definition of Done**:
+  - [ ] All 256 base opcodes implemented in `src/Cpu/InstructionSet.php`:
+    - 0x00-0xFF: Full instruction table with no "unimplemented" placeholders
+    - Each opcode has correct mnemonic, length, and base cycle count
+  - [ ] CB-prefixed instructions implemented:
+    - `src/Cpu/InstructionSetCB.php` or within main instruction set
+    - All 256 CB opcodes (0xCB00-0xCBFF) implemented
+    - Bit operations: BIT, SET, RES (test, set, reset bit)
+    - Rotates and shifts: RLC, RRC, RL, RR, SLA, SRA, SRL, SWAP
+  - [ ] Instruction categories implemented:
+    - **Loads**: LD r,r | LD r,n | LD r,(HL) | LD (HL),r | LD A,(BC)|(DE)|(nn) | LDH | LDI | LDD
+    - **ALU**: ADD, ADC, SUB, SBC, AND, OR, XOR, CP, INC, DEC
+    - **16-bit**: ADD HL,rr | INC rr | DEC rr | LD rr,nn | PUSH | POP
+    - **Jumps**: JP, JR, CALL, RET, RST (with conditions)
+    - **Special**: NOP, HALT, STOP, DI, EI, DAA, CPL, CCF, SCF
+  - [ ] Flag handling implemented correctly for:
+    - Zero flag (Z) set when result is 0x00
+    - Subtract flag (N) set for SUB/SBC/CP/DEC operations
+    - Half-carry flag (H) set when carry from bit 3 to bit 4
+    - Carry flag (C) set when carry from bit 7 or borrow occurred
+    - DAA (Decimal Adjust) correctly adjusts for BCD arithmetic
+  - [ ] Test ROM results:
+    - `make test-rom ROM=third_party/roms/cpu_instrs/01-special.gb` passes (or shows "Passed" in output)
+    - `make test-rom ROM=third_party/roms/cpu_instrs/02-interrupts.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/03-op sp,hl.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/04-op r,imm.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/05-op rp.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/06-ld r,r.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/07-jr,jp,call,ret,rst.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/08-misc instrs.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/09-op r,r.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/10-bit ops.gb` passes
+    - `make test-rom ROM=third_party/roms/cpu_instrs/11-op a,(hl).gb` passes
+  - [ ] Unit tests exist for complex instructions:
+    - DAA with various flag combinations (at least 8 test cases)
+    - Half-carry detection for ADD/SUB
+    - 16-bit arithmetic (ADD HL,BC with carry propagation)
+    - Conditional jumps taken vs not taken
+  - [ ] `make lint` passes with 0 errors
+  - [ ] HALT instruction properly implemented (CPU waits until interrupt)
+  - [ ] STOP instruction implemented (even if simplified for now)
+  - [ ] Cycle counting accurate (verified against reference emulator for 10 random instructions)
+  - [ ] **Note**: `instr_timing.gb` may fail - this is expected and will be addressed in Step 6
+- **Notes**
+  - `cpu_instrs` individual ROMs now run under `make test` via the Docker container; `instr_timing` reports failure because timer registers are not yet implemented (scheduled for Step 6).
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-4):`
+    - What: Complete instruction set (256 base + 256 CB opcodes), all instruction categories (loads, ALU, 16-bit, jumps, special)
+    - Why: Core CPU functionality for running Game Boy programs, accurate flag handling critical for test ROM compatibility
+    - Verification: All 11 Blargg cpu_instrs test ROMs pass, `make test` shows 100% pass rate
+    - References: LR35902 opcode map, Z80 instruction set, Blargg test ROM documentation
+- **⚠️ Workflow reminder**: ROM tests must run via `make test` inside Docker containers.
+- **Learning outcome**: Master how each instruction manipulates registers, memory, and flags.
+
+## Step 5 – Memory Map & Bus
+
+- **Historical context**: The Game Boy's 16-bit address space multiplexes cartridge ROM/RAM, VRAM, I/O registers, and working RAM; MBC hardware switched banks to extend beyond 32 KB.
+- **Tasks**
+  - [ ] Implement a `Bus` abstraction routing reads/writes to devices (cartridge, VRAM, WRAM, HRAM, I/O).
+  - [ ] Emulate echo RAM behaviour and unmapped open bus reads using documented values.
+  - [ ] Introduce a `MemoryView` concept to simplify PPU/CPU shared VRAM access.
+- **✅ Definition of Done**:
+  - [ ] `src/Bus/SystemBus.php` exists implementing `BusInterface` with:
+    - `readByte(int $address): int` - routes to correct device
+    - `writeByte(int $address, int $value): void` - routes to correct device
+    - `attachDevice(string $name, DeviceInterface $device, int $startAddr, int $endAddr): void`
+  - [ ] Memory map correctly implemented:
+    - `0x0000-0x3FFF`: ROM Bank 0 (cartridge)
+    - `0x4000-0x7FFF`: ROM Bank N (cartridge, switchable)
+    - `0x8000-0x9FFF`: VRAM
+    - `0xA000-0xBFFF`: External RAM (cartridge)
+    - `0xC000-0xCFFF`: WRAM Bank 0
+    - `0xD000-0xDFFF`: WRAM Bank 1 (switchable in CGB mode)
+    - `0xE000-0xFDFF`: Echo RAM (mirrors 0xC000-0xDDFF)
+    - `0xFE00-0xFE9F`: OAM (Sprite Attribute Table)
+    - `0xFEA0-0xFEFF`: Prohibited area (open bus)
+    - `0xFF00-0xFF7F`: I/O Registers
+    - `0xFF80-0xFFFE`: HRAM (High RAM)
+    - `0xFFFF`: IE Register (Interrupt Enable)
+  - [ ] Echo RAM correctly mirrors WRAM:
+    - Read from 0xE000 returns same value as 0xC000
+    - Write to 0xE000 writes to 0xC000
+  - [ ] Prohibited area (0xFEA0-0xFEFF) returns open bus value (0xFF or last read value)
+  - [ ] `src/Bus/DeviceInterface.php` exists with:
+    - `readByte(int $address): int`
+    - `writeByte(int $address, int $value): void`
+  - [ ] `src/Bus/MemoryView.php` exists providing:
+    - Offset-based access to a region of bus memory
+    - Used for VRAM access from PPU
+  - [ ] Basic device implementations exist:
+    - `src/Cartridge/Cartridge.php` - ROM/RAM storage
+    - `src/Memory/Vram.php` - 8KB video RAM
+    - `src/Memory/Wram.php` - 8KB working RAM
+    - `src/Memory/Hram.php` - 127-byte high RAM
+    - `src/Ppu/Oam.php` - 160-byte sprite table
+  - [ ] `tests/Unit/Bus/SystemBusTest.php` exists with tests:
+    - Reading/writing to each memory region
+    - Echo RAM mirroring verified
+    - Open bus behavior in prohibited area
+    - Device attachment and routing
+    - Out-of-bounds access handling (if applicable)
+  - [ ] `tests/Unit/Bus/MemoryViewTest.php` exists
+  - [ ] `tests/Unit/Cartridge/CartridgeTest.php` tests ROM/RAM access
+  - [ ] `make test` passes all bus and memory tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] Integration test: CPU can read from ROM, execute instruction that writes to WRAM, read back from WRAM and verify value
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-5):`
+    - What: SystemBus with full memory map routing, device interface, echo RAM, open bus behavior, MemoryView, VRAM/WRAM/HRAM/OAM
+    - Why: Memory management foundation enabling CPU/PPU component access to correct memory regions
+    - Verification: CPU can read ROM/write WRAM, echo RAM mirrors correctly, `make test` passes all bus tests
+    - References: Pan Docs memory map, Game Boy address space documentation
+- **Notes**: `SystemBus` now mirrors the DMG/CGB map, including echo RAM (0xE000–0xFDFF), unusable ranges that return the last "open bus" value, and an interrupt enable latch at 0xFFFF. Tests cover cartridge ROM, echo RAM mirroring, open bus semantics, and VRAM sharing via `MemoryView`.
+- **Artifacts**: `src/Bus/SystemBus.php`, `src/Bus/MemoryView.php`, `src/Cartridge/Cartridge.php`, `tests/Unit/Bus/`
+- **Learning outcome**: Appreciate how MMU logic enables modular devices to coexist on the same address space.
+
+## Step 6 – Interrupts, Timers, DMA
+
+- **Historical context**: Hardware interrupt design inherited from 8080-era systems; the GBC added double-speed mode and more precise timers to support color titles.
+- **Tasks**
+  - [ ] Emulate IF/IE registers, interrupt priorities, and HALT/STOP edge cases.
+  - [ ] Implement timer registers (DIV, TIMA, TMA, TAC) with cycle-accurate increments.
+  - [ ] Add DMA: both OAM DMA (160-byte transfers) and H-Blank DMA for CGB.
+- **✅ Definition of Done**:
+  - [ ] `src/Interrupts/InterruptController.php` exists with:
+    - `IF` register at 0xFF0F (Interrupt Flags): VBlank, LCD, Timer, Serial, Joypad
+    - `IE` register at 0xFFFF (Interrupt Enable)
+    - `requestInterrupt(InterruptType $type): void`
+    - `getPendingInterrupt(): ?InterruptType` - returns highest priority pending interrupt
+    - `acknowledgeInterrupt(InterruptType $type): void`
+    - Priority order: VBlank (bit 0) > LCD (bit 1) > Timer (bit 2) > Serial (bit 3) > Joypad (bit 4)
+  - [ ] CPU interrupt handling implemented:
+    - `IME` flag (Interrupt Master Enable) tracked
+    - `EI` instruction sets IME (with 1-instruction delay)
+    - `DI` instruction clears IME
+    - When interrupt occurs: push PC, jump to vector, clear IME
+    - Interrupt vectors: VBlank=0x40, LCD=0x48, Timer=0x50, Serial=0x58, Joypad=0x60
+    - HALT ends when interrupt requested (even if IME=0)
+    - HALT bug emulated (if PC doesn't increment when HALT executed with IME=0 and pending interrupt)
+  - [ ] `src/Timer/Timer.php` exists implementing:
+    - DIV register (0xFF04): increments at 16384 Hz, write resets to 0x00
+    - TIMA register (0xFF05): programmable timer counter
+    - TMA register (0xFF06): timer modulo (reload value)
+    - TAC register (0xFF07): timer control (enable bit, frequency select)
+    - Frequencies: 4096 Hz (TAC=00), 262144 Hz (TAC=01), 65536 Hz (TAC=10), 16384 Hz (TAC=11)
+    - TIMA overflow triggers timer interrupt
+    - TIMA reload behavior on overflow
+  - [ ] Timer cycle accuracy:
+    - DIV increments every 256 M-cycles (1024 T-cycles)
+    - TIMA increments at selected frequency
+    - Verified against reference emulator for at least 10000 cycles
+  - [ ] `src/Dma/OamDma.php` exists implementing:
+    - DMA register at 0xFF46
+    - Writing starts 160-byte transfer from XX00-XX9F to OAM (0xFE00-0xFE9F)
+    - Takes 160 M-cycles to complete
+    - CPU stalled during DMA (cannot access most memory)
+    - Only HRAM accessible during DMA
+  - [ ] `src/Dma/HdmaController.php` exists for CGB:
+    - HDMA registers: HDMA1-HDMA5 (0xFF51-0xFF55)
+    - General-purpose DMA (immediate transfer)
+    - H-Blank DMA (transfers during H-Blank)
+    - Transfer length and status tracking
+  - [ ] STOP instruction behavior:
+    - Stops CPU and LCD until button pressed (simplified: just halt for now)
+    - Handles speed switching when KEY1 (0xFF4D) prepared
+  - [ ] `tests/Unit/Interrupts/InterruptControllerTest.php` exists with tests:
+    - IF/IE register read/write
+    - Interrupt priority resolution
+    - Multiple pending interrupts
+    - Masking via IE register
+  - [ ] `tests/Unit/Timer/TimerTest.php` exists with tests:
+    - DIV increment and reset
+    - TIMA increment at each frequency
+    - TIMA overflow and reload from TMA
+    - Timer interrupt request
+    - TAC enable/disable
+  - [ ] `tests/Unit/Dma/OamDmaTest.php` exists testing transfer behavior
+  - [ ] Integration test: Timer interrupt can trigger and execute ISR
+  - [ ] `make test-rom ROM=third_party/roms/instr_timing.gb` now passes
+  - [ ] `make test` passes all interrupt and timer tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-6):`
+    - What: Interrupt controller (IF/IE, priorities), Timer (DIV/TIMA/TMA/TAC), OAM DMA, H-Blank DMA, HALT/STOP behavior
+    - Why: Hardware timing synchronization essential for accurate emulation, timers needed for game logic
+    - Verification: `instr_timing.gb` passes, timer interrupts fire correctly, DMA transfers accurate
+    - References: Pan Docs interrupts/timers, GBC double-speed mode documentation
+- **⚠️ Workflow reminder**: Use `make test` to validate timer functionality via Docker.
+- **Learning outcome**: See how hardware scheduling keeps CPU, timers, and PPU synchronized.
+- **Notes**: Timer-driven instruction timing tests (`instr_timing.gb`) now pass under `make test`, and DMA controllers integrate with the CPU's stall mechanism for accurate cycle accounting.
+
+## Step 7 – Pixel Processing Unit (PPU) Pipeline
+
+- **Historical context**: The original DMG PPU followed a tile fetcher pipeline (Mode 2/3/0 cycle) reminiscent of home consoles like the NES; the GBC added background attributes and extra palettes.
+- **Tasks**
+  - [ ] Model PPU modes (OAM search, pixel transfer, H-Blank, V-Blank) and corresponding cycle counts.
+  - [ ] Implement background/window tile fetch, sprite evaluation, and FIFO pixel mixing.
+  - [ ] Set up a framebuffer abstraction that can be consumed by CLI (ASCII framebuffer) and browser (Canvas) renderers.
+- **✅ Definition of Done**:
+  - [ ] `src/Ppu/Ppu.php` exists with:
+    - `step(int $cycles): void` - advances PPU state
+    - State machine for modes: OAM Search (mode 2), Pixel Transfer (mode 3), H-Blank (mode 0), V-Blank (mode 1)
+    - STAT register (0xFF41): mode bits, LYC=LY coincidence, STAT interrupts
+    - LY register (0xFF44): current scanline (0-153)
+    - LYC register (0xFF45): LY compare for coincidence interrupt
+  - [ ] LCD Control register (LCDC at 0xFF40) fully implemented:
+    - Bit 7: LCD/PPU enable
+    - Bit 6: Window tile map area (0=9800-9BFF, 1=9C00-9FFF)
+    - Bit 5: Window enable
+    - Bit 4: BG/Window tile data area (0=8800-97FF signed, 1=8000-8FFF unsigned)
+    - Bit 3: BG tile map area (0=9800-9BFF, 1=9C00-9FFF)
+    - Bit 2: OBJ size (0=8x8, 1=8x16)
+    - Bit 1: OBJ enable
+    - Bit 0: BG/Window enable (priority on DMG)
+  - [ ] Scroll registers implemented:
+    - SCY (0xFF42): Background vertical scroll
+    - SCX (0xFF43): Background horizontal scroll
+    - WY (0xFF4A): Window Y position
+    - WX (0xFF4B): Window X position + 7
+  - [ ] Palette registers (DMG mode):
+    - BGP (0xFF47): Background palette
+    - OBP0 (0xFF48): Object palette 0
+    - OBP1 (0xFF49): Object palette 1
+    - Palette encoding: 2 bits per color, 4 colors per palette
+  - [ ] PPU timing accurately implemented:
+    - Mode 2 (OAM Search): 80 dots (20 M-cycles)
+    - Mode 3 (Pixel Transfer): 168-291 dots depending on sprites/scrolling
+    - Mode 0 (H-Blank): remaining dots to reach 456 total per scanline
+    - Mode 1 (V-Blank): 10 scanlines (LY 144-153)
+    - One frame: 154 scanlines × 456 dots = 70224 dots ≈ 59.7 Hz
+  - [ ] Background rendering implemented:
+    - Tile fetcher reads tile map, fetches tile data
+    - Applies SCX/SCY scrolling
+    - Handles both unsigned (0x8000 base) and signed (0x9000 base) tile addressing
+    - Renders to internal scanline buffer
+  - [ ] Window rendering implemented:
+    - Window appears at WX-7, WY
+    - Window internal line counter
+    - Overlays background
+  - [ ] Sprite rendering implemented:
+    - OAM search finds up to 10 sprites on current scanline
+    - Sprite priority: smaller X coordinate wins, then smaller OAM index
+    - Sprite attributes: Y pos, X pos, tile number, flags (priority, Y-flip, X-flip, palette)
+    - Background vs sprite priority handling
+    - 8x8 and 8x16 sprite modes
+  - [ ] `src/Ppu/Framebuffer/FramebufferInterface.php` exists:
+    - `setPixel(int $x, int $y, Color $color): void`
+    - `getFramebuffer(): array` - returns 160×144 pixel array
+    - `clear(): void`
+  - [ ] `src/Ppu/Framebuffer/Color.php` represents RGB color
+  - [ ] V-Blank interrupt triggered when entering mode 1
+  - [ ] STAT interrupts triggered for:
+    - Mode 0 (H-Blank) if enabled
+    - Mode 1 (V-Blank) if enabled (separate from V-Blank interrupt)
+    - Mode 2 (OAM) if enabled
+    - LYC=LY coincidence if enabled
+  - [ ] `tests/Unit/Ppu/PpuTest.php` exists with tests:
+    - Mode transitions at correct cycle counts
+    - LY increment per scanline
+    - V-Blank at LY=144
+    - STAT register flags
+    - LYC=LY coincidence detection
+  - [ ] `tests/Unit/Ppu/TileFetcherTest.php` tests tile data reading
+  - [ ] `tests/Unit/Ppu/SpriteEvaluatorTest.php` tests OAM search and sprite selection
+  - [ ] Integration test: Render a simple test pattern to framebuffer
+    - Create ROM/test that writes tile data and tile map
+    - Verify expected pixel colors in framebuffer
+  - [ ] Visual verification:
+    - Load a simple DMG ROM (e.g., `dmg-acid2.gb` or Tetris)
+    - Export framebuffer to PNG or display in CLI as ASCII art
+    - Verify recognizable graphics appear (Nintendo logo, title screen, etc.)
+  - [ ] `make test` passes all PPU tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **Benchmark**: Can render 60 frames per second or document current FPS
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-7):`
+    - What: PPU with mode state machine, LCDC/STAT registers, background/window/sprite rendering, tile fetcher, FIFO pixel mixer, framebuffer
+    - Why: Graphics rendering core enabling visual output, accurate timing prevents screen tearing
+    - Verification: Renders recognizable graphics from Tetris/dmg-acid2, PPU timing matches specs, `make test` passes
+    - References: Pan Docs PPU, tile map/data formats, sprite evaluation algorithm
+- **⚠️ Workflow reminder**: All PPU tests must run via `make test` in Docker.
+- **Learning outcome**: Understand how scanline rendering works and how timing affects visual correctness (tearing, sprite flicker).
+- **Artifacts**: `src/Ppu/`, `src/Ppu/Framebuffer/`, `tests/Unit/Ppu/`
+
+## Step 8 – Color Features & Palettes (GBC Enhancements)
+
+- **Historical context**: The GBC introduced programmable palettes and VRAM bank switching; fade effects leveraged the color RAM (CRAM) and attribute tables.
+- **Tasks**
+  - [ ] Support VRAM bank switching, background attributes, and sprite palettes.
+  - [ ] Handle Color Game Boy exclusive registers (KEY1 for speed switch, VBK, HDMA, RP for infrared).
+  - [ ] Validate rendering logic with automated tests that mirror `cgb-acid2` attribute expectations (full ROM pass still recommended when harness lands).
+- **✅ Definition of Done**:
+  - [ ] VRAM bank switching implemented:
+    - VBK register (0xFF4F): VRAM bank select (0 or 1)
+    - Bank 0: tile data (same as DMG)
+    - Bank 1: tile attributes (CGB only)
+    - 8KB per bank (16KB total)
+  - [ ] Background attribute map implemented (VRAM bank 1):
+    - Bit 7: BG-to-OAM priority
+    - Bit 6: Vertical flip
+    - Bit 5: Horizontal flip
+    - Bit 4: Not used
+    - Bit 3: Tile VRAM bank (0 or 1)
+    - Bit 2-0: Background palette number (0-7)
+  - [ ] Color palette system implemented:
+    - BCPS/BGPI (0xFF68): Background palette index/control
+    - BCPD/BGPD (0xFF69): Background palette data
+    - OCPS/OBPI (0xFF6A): Object palette index/control
+    - OCPD/OBPD (0xFF6B): Object palette data
+    - 8 background palettes × 4 colors × 2 bytes = 64 bytes
+    - 8 object palettes × 4 colors × 2 bytes = 64 bytes
+    - Color format: 15-bit RGB (5 bits per channel): `0bbbbbgggggrrrrr`
+    - Auto-increment functionality
+  - [ ] Object attributes extended for CGB:
+    - Bit 0-2 of OAM attribute byte: object palette number (CGB only)
+    - Bit 3: VRAM bank select
+  - [ ] Speed switching implemented:
+    - KEY1 register (0xFF4D): speed switch control
+    - Bit 7: current speed (0=normal, 1=double)
+    - Bit 0: prepare speed switch
+    - STOP instruction with bit 0 set triggers switch
+    - Double speed: CPU runs 2× faster, timers run 2× faster, PPU unchanged
+  - [ ] DMG compatibility mode detection:
+    - Check CGB flag in cartridge header (0x0143)
+    - Bit 7 set: CGB enhanced/only
+    - If DMG ROM: use DMG mode (no color palettes)
+    - If CGB ROM: use CGB mode (color palettes, VRAM bank 1)
+  - [ ] Infrared register stub:
+    - RP register (0xFF56): infrared communications port
+    - Stubbed for completeness (read returns 0xFF)
+  - [ ] `src/Ppu/ColorPalette.php` exists managing:
+    - Palette memory (128 bytes total)
+    - Index pointer with auto-increment
+    - Color conversion from 15-bit to RGB24/RGB888
+  - [ ] `src/Cartridge/CartridgeHeader.php` parses:
+    - CGB flag (0x0143)
+    - Returns isCgbSupported() and isCgbOnly()
+  - [ ] PPU rendering updated:
+    - Applies background attributes (flip, palette, priority)
+    - Uses color palettes in CGB mode
+    - Uses DMG palettes in DMG mode
+    - Respects BG-to-OAM priority bit
+  - [ ] `tests/Unit/Ppu/ColorPaletteTest.php` exists with tests:
+    - Palette writes via BCPD/OCPD
+    - Auto-increment behavior
+    - Index wrapping
+    - Color format conversion
+  - [ ] `tests/Unit/Ppu/VramBankTest.php` tests bank switching
+  - [ ] `tests/Unit/Cpu/SpeedSwitchTest.php` tests KEY1 and double-speed mode
+  - [ ] Integration test: Render CGB ROM with multiple palettes
+    - Verify different palette colors appear
+    - Test attribute flip functionality
+  - [ ] Visual verification:
+    - Load a CGB-enhanced ROM (e.g., Tetris DX, Zelda: Link's Awakening DX)
+    - Verify colors display correctly (not monochrome)
+    - Export framebuffer to PNG to verify RGB values
+  - [ ] `cgb-acid2.gb` test ROM rendering produces expected output (visual comparison acceptable)
+  - [ ] `make test` passes all CGB feature tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-8):`
+    - What: GBC color features - VRAM banking, background attributes, color palettes (BCPS/OCPS), speed switching (KEY1), CGB detection
+    - Why: Color Game Boy support enabling enhanced graphics and backward compatibility
+    - Verification: CGB ROMs display colors, `cgb-acid2.gb` renders expected output, palette operations work
+    - References: Pan Docs CGB registers, 15-bit color format, attribute map specification
+- **⚠️ Workflow reminder**: Test color features using `make test` via Docker.
+- **Learning outcome**: Discover how backward compatibility was maintained while expanding color depth.
+
+## Step 9 – Audio Processing Unit (APU)
+
+- **Historical context**: The 4-channel APU (two square waves, wave channel, noise generator) stems from NEC's 1980s sound synthesis; accurate envelope and sweep emulation differentiates quality emulators.
+- **Tasks**
+  - [ ] Implement channel state machines, length counters, volume envelopes, and sweep units.
+  - [ ] Mix audio samples into a buffer; provide adapters for CLI (Null/WAV) and browser (AudioWorklet message bridge).
+  - [ ] Cover the behaviour with automated unit tests for channels, sinks, and bus/APU integration (ROM coverage scheduled for Step 13).
+- **✅ Definition of Done**:
+  - [ ] `src/Apu/Apu.php` exists with:
+    - `step(int $cycles): void` - advances APU state
+    - `getSample(): float` - returns mixed audio sample (-1.0 to 1.0)
+    - Frame sequencer running at 512 Hz (every 8192 M-cycles)
+  - [ ] Channel 1 (square with sweep) implemented:
+    - NR10 (0xFF10): Sweep register (period, direction, shift)
+    - NR11 (0xFF11): Length/duty (wave duty, length load)
+    - NR12 (0xFF12): Volume envelope (initial volume, direction, period)
+    - NR13 (0xFF13): Frequency low
+    - NR14 (0xFF14): Frequency high, trigger, length enable
+    - Sweep calculation with overflow check
+    - 4 duty cycles: 12.5%, 25%, 50%, 75%
+  - [ ] Channel 2 (square without sweep) implemented:
+    - NR21 (0xFF16): Length/duty
+    - NR22 (0xFF17): Volume envelope
+    - NR23 (0xFF18): Frequency low
+    - NR24 (0xFF19): Frequency high, trigger, length enable
+    - Same duty cycles as channel 1
+  - [ ] Channel 3 (wave) implemented:
+    - NR30 (0xFF1A): DAC enable
+    - NR31 (0xFF1B): Length load
+    - NR32 (0xFF1C): Output level (volume)
+    - NR33 (0xFF1D): Frequency low
+    - NR34 (0xFF1E): Frequency high, trigger, length enable
+    - Wave RAM (0xFF30-0xFF3F): 16 bytes (32 4-bit samples)
+    - Sample playback from wave RAM
+  - [ ] Channel 4 (noise) implemented:
+    - NR41 (0xFF20): Length load
+    - NR42 (0xFF21): Volume envelope
+    - NR43 (0xFF22): Frequency/randomness (clock shift, LFSR width, divisor)
+    - NR44 (0xFF23): Trigger, length enable
+    - LFSR (Linear Feedback Shift Register) for noise generation
+    - 15-bit and 7-bit LFSR modes
+  - [ ] Master control registers:
+    - NR50 (0xFF24): Master volume & VIN panning
+    - NR51 (0xFF25): Sound panning (L/R output per channel)
+    - NR52 (0xFF26): Sound on/off, channel status
+    - Writing 0 to bit 7 of NR52 disables all sound
+  - [ ] Frame sequencer implemented:
+    - Step 0: Length counter (256 Hz)
+    - Step 1: Nothing
+    - Step 2: Length counter + Sweep (128 Hz)
+    - Step 3: Nothing
+    - Step 4: Length counter (256 Hz)
+    - Step 5: Nothing
+    - Step 6: Length counter + Sweep (128 Hz)
+    - Step 7: Volume envelope (64 Hz)
+  - [ ] Audio mixing:
+    - Each channel produces -1.0 to 1.0 sample
+    - Mixed with proper volume scaling
+    - L/R panning applied
+    - Master volume applied
+  - [ ] `src/Apu/AudioSinkInterface.php` exists:
+    - `pushSample(float $left, float $right): void`
+    - `flush(): void`
+  - [ ] Audio sink implementations:
+    - `src/Apu/Sink/NullSink.php` - discards audio (for headless testing)
+    - `src/Apu/Sink/WavSink.php` - writes WAV file
+    - `src/Apu/Sink/BufferSink.php` - stores in memory buffer for WASM bridging
+  - [ ] `tests/Unit/Apu/Channel1Test.php` exists with tests:
+    - Frequency generation
+    - Sweep calculation
+    - Volume envelope
+    - Length counter
+    - Trigger behavior
+  - [ ] `tests/Unit/Apu/Channel2Test.php` tests square wave generation
+  - [ ] `tests/Unit/Apu/Channel3Test.php` tests wave channel
+  - [ ] `tests/Unit/Apu/Channel4Test.php` tests noise generation and LFSR
+  - [ ] `tests/Unit/Apu/FrameSequencerTest.php` tests sequencer timing
+  - [ ] `tests/Unit/Apu/AudioMixerTest.php` tests channel mixing
+  - [ ] Integration test: Generate known waveform
+    - Configure channel to produce 440 Hz square wave
+    - Capture 1 second of audio
+    - Verify frequency via FFT or zero-crossing count
+  - [ ] `make test` passes all APU tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] Can run emulator and export audio to WAV file
+  - [ ] Load a ROM with known audio (e.g., Tetris theme) and verify sound is recognizable
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-9):`
+    - What: APU with 4 channels (square+sweep, square, wave, noise), frame sequencer, volume envelopes, audio mixing, audio sinks
+    - Why: Sound synthesis completing core emulation, audio feedback enhances gameplay experience
+    - Verification: 440Hz square wave correct, Tetris theme recognizable, `make test` passes all APU tests
+    - References: Pan Docs APU registers, NR10-NR52 specifications, frame sequencer timing
+- **⚠️ Workflow reminder**: APU testing and linting must use Makefile commands in Docker.
+- **Learning outcome**: Understand digital sound synthesis primitives and timing interplay with frame sequencer.
+- **Artifacts**: `src/Apu/`, `tests/Unit/Apu/`, `bin/phpboy`
+
+## Step 10 – Cartridge & MBC Support
+
+- **Historical context**: Nintendo released multiple Memory Bank Controllers (MBC1/2/3/5, HuC1) to expand ROM/RAM and add RTC; accurate emulation preserves save compatibility.
+- **Tasks**
+  - Build cartridge parser handling header validation, checksum, and metadata extraction.
+  - Implement MBC controllers incrementally (start with no-MBC, then MBC1, MBC3 with RTC, MBC5).
+  - Provide battery-backed RAM persistence (SRAM dumps).
+- **✅ Definition of Done**:
+  - [ ] `src/Cartridge/CartridgeHeader.php` parses all header fields:
+    - 0x0100-0x0103: Entry point
+    - 0x0104-0x0133: Nintendo logo (verify for valid ROM)
+    - 0x0134-0x0143: Title (15 bytes)
+    - 0x0143: CGB flag
+    - 0x0144-0x0145: New licensee code
+    - 0x0146: SGB flag
+    - 0x0147: Cartridge type (MBC type)
+    - 0x0148: ROM size
+    - 0x0149: RAM size
+    - 0x014A: Destination code
+    - 0x014B: Old licensee code
+    - 0x014C: Mask ROM version
+    - 0x014D: Header checksum
+    - 0x014E-0x014F: Global checksum
+  - [ ] Header validation:
+    - Nintendo logo checksum verified
+    - Header checksum verified (sum of 0x0134-0x014C should be 0 when added to 0x014D)
+    - Warn/log if checksums fail but continue (some homebrew has incorrect checksums)
+  - [ ] `src/Cartridge/CartridgeType.php` enum with values:
+    - ROM_ONLY (0x00)
+    - MBC1, MBC1_RAM, MBC1_RAM_BATTERY (0x01-0x03)
+    - MBC2, MBC2_BATTERY (0x05-0x06)
+    - ROM_RAM, ROM_RAM_BATTERY (0x08-0x09)
+    - MBC3_TIMER_BATTERY, MBC3_TIMER_RAM_BATTERY, MBC3, MBC3_RAM, MBC3_RAM_BATTERY (0x0F-0x13)
+    - MBC5, MBC5_RAM, MBC5_RAM_BATTERY, MBC5_RUMBLE, MBC5_RUMBLE_RAM, MBC5_RUMBLE_RAM_BATTERY (0x19-0x1E)
+  - [ ] ROM/RAM size calculation from header values
+  - [ ] No-MBC cartridge (ROM only) implemented:
+    - 32KB ROM, no banking
+    - Reads from 0x0000-0x7FFF return ROM data
+    - Writes ignored (or logged)
+  - [ ] MBC1 implemented:
+    - ROM banking: up to 125 banks (2MB)
+    - RAM banking: up to 4 banks (32KB)
+    - Mode register: ROM banking mode vs RAM banking mode
+    - Write to 0x0000-0x1FFF: Enable/disable RAM
+    - Write to 0x2000-0x3FFF: Select lower 5 bits of ROM bank
+    - Write to 0x4000-0x5FFF: Select upper 2 bits of ROM bank OR RAM bank (depending on mode)
+    - Write to 0x6000-0x7FFF: Select banking mode
+    - ROM bank 0 special handling (bank 0x00 → 0x01, 0x20 → 0x21, etc.)
+  - [ ] MBC3 implemented:
+    - ROM banking: up to 127 banks
+    - RAM banking: up to 4 banks (32KB)
+    - RTC registers: seconds, minutes, hours, day counter (low/high), latch
+    - Write to 0x0000-0x1FFF: Enable/disable RAM and RTC
+    - Write to 0x2000-0x3FFF: Select ROM bank
+    - Write to 0x4000-0x5FFF: Select RAM bank or RTC register
+    - Write to 0x6000-0x7FFF: Latch RTC data (write 0x00 then 0x01)
+    - RTC ticks in real-time when latched
+  - [ ] MBC5 implemented:
+    - ROM banking: up to 512 banks (8MB)
+    - RAM banking: up to 16 banks (128KB)
+    - Write to 0x0000-0x1FFF: Enable/disable RAM
+    - Write to 0x2000-0x2FFF: Select lower 8 bits of ROM bank
+    - Write to 0x3000-0x3FFF: Select 9th bit of ROM bank
+    - Write to 0x4000-0x5FFF: Select RAM bank (0-15)
+    - No bank 0 special case (bank 0 is valid)
+  - [ ] Battery-backed RAM persistence:
+    - `src/Cartridge/SaveManager.php` handles .sav files
+    - `save(string $path): void` - writes RAM to file
+    - `load(string $path): void` - loads RAM from file
+    - Auto-save on exit or periodic saves
+  - [ ] RTC persistence for MBC3:
+    - Save RTC state to .rtc file
+    - Restore RTC and calculate elapsed time since last save
+  - [ ] `tests/Unit/Cartridge/CartridgeHeaderTest.php` tests:
+    - Header parsing
+    - Checksum validation
+    - ROM/RAM size calculation
+    - Cartridge type detection
+  - [ ] `tests/Unit/Cartridge/Mbc1Test.php` tests:
+    - ROM bank switching (all modes)
+    - RAM enable/disable
+    - RAM bank switching
+    - Banking mode behavior
+  - [ ] `tests/Unit/Cartridge/Mbc3Test.php` tests:
+    - ROM/RAM banking
+    - RTC register access
+    - RTC latching
+    - RTC increment over time
+  - [ ] `tests/Unit/Cartridge/Mbc5Test.php` tests banking with 9-bit bank number
+  - [ ] `tests/Unit/Cartridge/SaveManagerTest.php` tests save/load functionality
+  - [ ] Integration tests:
+    - Load ROM with MBC1, perform bank switches, verify correct data read
+    - Load ROM with MBC3, access RTC, verify time advances
+    - Save and restore RAM, verify data persists
+  - [ ] Test with real ROMs:
+    - Tetris (no MBC): loads and runs
+    - Pokémon Red (MBC3): loads and runs, can save/load
+    - Pokémon Crystal (MBC3 + RTC): RTC functions
+  - [ ] `make test` passes all cartridge tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-10):`
+    - What: Cartridge header parsing, MBC implementations (none, MBC1, MBC3+RTC, MBC5), battery-backed RAM persistence
+    - Why: Cartridge banking enables full game library, save support preserves game progress
+    - Verification: Pokémon Red loads/saves, MBC3 RTC advances, test ROMs with different MBCs work
+    - References: Pan Docs cartridge header format, MBC1/3/5 specifications
+- **⚠️ Workflow reminder**: Test MBC implementations via `make test` in Docker.
+- **Learning outcome**: Learn how bank switching hardware extended the console's lifetime.
+
+## Step 11 – Joypad Input & System Events
+
+- **Historical context**: The joypad register multiplexed buttons on a 2x4 matrix to minimize pins; scan lines were sampled every frame.
+- **Tasks**
+  - Emulate `JOYP` register behaviour and interrupt generation.
+  - Map CLI keyboard input to joypad states; plan browser `keydown` bridging.
+  - Handle infrared (RP) stub for completeness.
+- **✅ Definition of Done**:
+  - [ ] `src/Input/Joypad.php` exists with:
+    - JOYP register (0xFF00) implementation
+    - Button state tracking: A, B, Start, Select, Up, Down, Left, Right
+    - `pressButton(Button $button): void`
+    - `releaseButton(Button $button): void`
+    - `readRegister(): int` - returns JOYP value
+    - `writeRegister(int $value): void` - selects button/direction mode
+  - [ ] JOYP register behavior:
+    - Bit 5: Select direction keys (0=selected)
+    - Bit 4: Select button keys (0=selected)
+    - Bits 3-0: Input lines (0=pressed, 1=not pressed)
+    - When bit 5 clear: bits 3-0 = Down, Up, Left, Right
+    - When bit 4 clear: bits 3-0 = Start, Select, B, A
+    - Unused bits read as 1
+  - [ ] Joypad interrupt:
+    - Pressing any button requests joypad interrupt
+    - Transition from high to low (button press) triggers interrupt
+  - [ ] `src/Input/Button.php` enum with values:
+    - A, B, Start, Select, Up, Down, Left, Right
+  - [ ] `src/Input/InputInterface.php` exists:
+    - `poll(): array` - returns array of currently pressed buttons
+  - [ ] CLI input implementation:
+    - `src/Frontend/Cli/CliInput.php` implements `InputInterface`
+    - Maps keyboard keys to buttons (e.g., Z=A, X=B, Enter=Start, Shift=Select, arrows=directions)
+    - Non-blocking input reading (if feasible) or per-frame polling
+  - [ ] Browser input planning:
+    - `src/Frontend/Wasm/WasmInput.php` stub with interface for JS bridge
+    - Document how keydown/keyup events will be passed from JavaScript
+  - [ ] `tests/Unit/Input/JoypadTest.php` exists with tests:
+    - Register read/write
+    - Button state matrix (direction mode vs button mode)
+    - Multiple buttons pressed simultaneously
+    - Button press triggers interrupt
+    - Released buttons show as unpressed
+  - [ ] Integration test:
+    - Press button in test harness
+    - Verify JOYP reads correct value
+    - Verify joypad interrupt requested
+    - CPU executes interrupt handler
+  - [ ] Manual test (CLI):
+    - Run emulator with Tetris
+    - Press arrow keys to move piece
+    - Press A/B to rotate
+    - Verify game responds to input
+  - [ ] `make test` passes all input tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-11):`
+    - What: Joypad controller (JOYP register), input interface abstraction, CLI keyboard mapping, joypad interrupt
+    - Why: User input system completing playable emulator, abstraction enables multiple frontends
+    - Verification: Tetris responds to input, joypad interrupt fires on button press, `make test` passes
+    - References: Pan Docs JOYP register, button matrix multiplexing
+- **⚠️ Workflow reminder**: Use `make test` for input system validation via Docker.
+- **Learning outcome**: See how low-level input scanning translates to high-level events.
+
+## Step 12 – Command-Line Frontend & Tooling (PHPBoy CLI)
+
+- **Historical context**: Early homebrew developers relied on debuggers and disassemblers; replicating these tools aids learning.
+- **Tasks**
+  - Implement a CLI runner for PHPBoy (`php bin/phpboy` or `make run`) that loads a ROM, runs the emulation loop, and renders framebuffer/audio.
+  - Add optional debugger shell with breakpoints, memory inspection, and step execution.
+  - Provide logging hooks for tracing CPU/PPU state.
+- **✅ Definition of Done**:
+  - [ ] `bin/phpboy` CLI entry point exists
+  - [ ] Command-line argument parsing:
+    - `--rom=<path>` or positional argument: ROM file to load
+    - `--debug`: Enable debugger mode
+    - `--trace`: Enable CPU instruction tracing
+    - `--headless`: Run without display (for testing)
+    - `--speed=<factor>`: Speed multiplier (1.0 = normal, 2.0 = 2x, 0.5 = half-speed)
+    - `--save=<path>`: Save file location
+    - `--audio-out=<path>`: WAV file to record audio
+  - [ ] `src/Emulator.php` main emulator coordinator:
+    - `loadRom(string $path): void`
+    - `run(): void` - main emulation loop
+    - `step(): void` - single frame step
+    - `reset(): void`
+    - Coordinates CPU, PPU, APU, timers, input
+  - [ ] Main emulation loop:
+    - Runs at 59.7 Hz (one frame = 70224 CPU cycles)
+    - Polls input each frame
+    - Renders framebuffer each frame
+    - Pushes audio samples each frame
+    - Frame timing/throttling to real-time speed
+  - [ ] CLI framebuffer renderer:
+    - `src/Frontend/Cli/CliRenderer.php` implements `RendererInterface`
+    - Outputs ASCII art representation of screen (optional: use terminal colors)
+    - Or outputs to image file (PNG) for visual verification
+  - [ ] Debugger implementation:
+    - `src/Debug/Debugger.php` with interactive shell
+    - Commands:
+      - `step` / `s` - execute one instruction
+      - `continue` / `c` - run until breakpoint
+      - `break <address>` / `b <addr>` - set breakpoint (e.g., `b 0x0100`)
+      - `delete <n>` - remove breakpoint
+      - `registers` / `r` - display CPU registers
+      - `memory <address>` / `m <addr>` - display memory (16 bytes)
+      - `disassemble <address>` / `d <addr>` - disassemble instructions
+      - `stack` - display stack contents
+      - `frame` - display PPU state (mode, LY, scroll registers)
+      - `reset` - reset emulator
+      - `quit` / `q` - exit
+    - Breakpoint management (address-based)
+    - Single-step execution
+    - Register and memory inspection
+  - [ ] CPU instruction tracing:
+    - `src/Debug/Trace.php` logs each instruction
+    - Format: `[PC:0x0100] LD A,0x42 | AF:0042 BC:0000 DE:0000 HL:0000 SP:FFFE | Cycles: 8`
+    - Can output to stdout or file
+    - Enable/disable via command-line flag
+  - [ ] Disassembler:
+    - `src/Debug/Disassembler.php`
+    - `disassemble(int $address, int $count = 10): array` - returns array of disassembled instructions
+    - Displays opcode, mnemonic, operands
+  - [ ] Logging system:
+    - PSR-3 compatible logger
+    - Log levels: debug, info, warning, error
+    - Optional log to file
+  - [ ] `tests/Integration/EmulatorTest.php` exists:
+    - Load ROM and run for 1000 frames
+    - Verify no crashes
+    - Verify expected state (e.g., passed certain PC address)
+  - [ ] Makefile target `make run` works:
+    - `make run ROM=path/to/rom.gb` runs emulator
+    - `make debug ROM=path/to/rom.gb` runs with debugger
+    - `make trace ROM=path/to/rom.gb` runs with instruction trace
+  - [ ] Documentation exists:
+    - `docs/cli-usage.md` with examples of all command-line options
+    - `docs/debugger.md` with debugger command reference
+  - [ ] Manual verification:
+    - Load Tetris and play for 30 seconds - game responds to input
+    - Load with debugger, set breakpoint, verify it stops at correct address
+    - Enable trace, verify instruction log shows correct PC/opcodes
+    - Export audio to WAV, verify it's audible and recognizable
+  - [ ] `make test` passes all integration tests
+  - [ ] `make lint` passes with 0 errors
+  - [ ] README updated with usage examples
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-12):`
+    - What: CLI frontend (bin/phpboy), emulator coordinator, main loop with frame timing, debugger with breakpoints, tracer, disassembler
+    - Why: Playable command-line emulator with development/debugging tools
+    - Verification: `make run ROM=tetris.gb` plays game, debugger commands work, trace logs correctly
+    - References: Traditional emulator debugger designs, GDB command conventions
+- **⚠️ Workflow reminder**: Run the CLI emulator via `make run` - never execute PHP directly on host.
+- **Learning outcome**: Experience emulator development workflows and debugging techniques reminiscent of 1990s reverse engineering.
+
+## Step 13 – Verification with Test ROMs & Real Games
+
+- **Historical context**: Homebrew test suites became the de facto standard because Nintendo's official diagnostics never leaked.
+- **Tasks**
+  - Integrate automated runs of Blargg, Mooneye, and other acceptance ROMs, capturing pass/fail status.
+  - Document known incompatibilities and plan fixes.
+  - Smoke-test with commercial ROMs (Tetris DX, Zelda: Link's Awakening DX) for full-system validation.
+- **✅ Definition of Done**:
+  - [ ] Test ROM harness implemented:
+    - `tests/Integration/TestRomRunner.php` can run test ROMs automatically
+    - Detects pass/fail by reading serial output or magic memory value
+    - Timeout handling (abort after configurable time, e.g., 10 seconds)
+  - [ ] Blargg CPU tests passing:
+    - `cpu_instrs/01-special.gb`: ✅ Pass
+    - `cpu_instrs/02-interrupts.gb`: ✅ Pass
+    - `cpu_instrs/03-op sp,hl.gb`: ✅ Pass
+    - `cpu_instrs/04-op r,imm.gb`: ✅ Pass
+    - `cpu_instrs/05-op rp.gb`: ✅ Pass
+    - `cpu_instrs/06-ld r,r.gb`: ✅ Pass
+    - `cpu_instrs/07-jr,jp,call,ret,rst.gb`: ✅ Pass
+    - `cpu_instrs/08-misc instrs.gb`: ✅ Pass
+    - `cpu_instrs/09-op r,r.gb`: ✅ Pass
+    - `cpu_instrs/10-bit ops.gb`: ✅ Pass
+    - `cpu_instrs/11-op a,(hl).gb`: ✅ Pass
+  - [ ] Blargg timing test:
+    - `instr_timing.gb`: ✅ Pass
+  - [ ] Mooneye test suite results documented:
+    - At least 10 Mooneye tests run
+    - Pass/fail status recorded in `docs/test-results.md`
+    - Known failures documented with explanation
+  - [ ] Acid tests:
+    - `dmg-acid2.gb`: Run and capture output image
+    - Visual comparison to reference image (manual verification acceptable)
+    - `cgb-acid2.gb`: Run and capture output (if CGB rendering implemented)
+  - [ ] Commercial ROM testing:
+    - **Tetris (DMG)**: Loads, displays title screen, gameplay works
+    - **Tetris DX (CGB)**: Loads, colors display, gameplay works
+    - **Dr. Mario**: Loads and plays
+    - **Super Mario Land**: Loads, player can move and jump
+    - **Pokémon Red/Blue**: Loads, intro plays, can navigate menus
+    - **The Legend of Zelda: Link's Awakening**: Loads, intro plays
+    - **Zelda: Link's Awakening DX (CGB)**: Colors display correctly
+  - [ ] Test results documentation:
+    - `docs/test-results.md` exists with table of test ROM results
+    - Format: | Test ROM | Status | Notes |
+    - Known failures/issues documented
+    - Compatibility percentage calculated (e.g., "95% of Blargg tests pass")
+  - [ ] Compatibility issues documented:
+    - `docs/known-issues.md` lists known incompatibilities
+    - Each issue includes: game/ROM affected, symptom, suspected cause, priority
+  - [ ] Make target for automated testing:
+    - `make test-roms` - runs all test ROMs and reports results
+    - Exit code 0 if all pass, non-zero if any fail
+    - CI-friendly output
+  - [ ] Regression test suite:
+    - Test ROMs integrated into `make test` suite
+    - Automated on every commit (if CI configured)
+  - [ ] Performance metrics:
+    - Measure frames per second (FPS) with Tetris running
+    - Target: 60 FPS minimum (since real hardware is 59.7 Hz)
+    - Document in `docs/performance.md`
+  - [ ] `make test-roms` passes with documented results
+  - [ ] At least 90% of Blargg tests pass
+  - [ ] At least 3 commercial ROMs fully playable for 5 minutes without crashes
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `test(step-13):`
+    - What: Test ROM harness, automated Blargg/Mooneye integration, test results documentation, commercial ROM verification
+    - Why: Systematic validation ensuring emulator accuracy and compatibility
+    - Verification: 90%+ Blargg tests pass, 3+ commercial ROMs playable 5min, test-results.md complete
+    - References: Test ROM pass criteria, expected outputs, known issues
+- **⚠️ Workflow reminder**: All ROM test automation must use `make test` via Docker.
+- **Learning outcome**: Appreciate disciplined testing in emulator accuracy chasing.
+
+## Step 14 – Performance Profiling & Optimisation
+
+- **Historical context**: PHP is not traditionally used for emulators; squeezing performance mirrors how original devs optimized for 4 MHz hardware.
+- **Tasks**
+  - Profile using Xdebug or Blackfire to locate hotspots (e.g., instruction dispatch).
+  - Experiment with lookup tables, pre-decoded instructions, or PHP 8.2 `readonly` classes to reduce overhead.
+  - Explore FFI extensions or native helpers if necessary while keeping pure-PHP fallback.
+- **✅ Definition of Done**:
+  - [ ] Profiling infrastructure set up:
+    - Makefile target `make profile ROM=<rom>` runs emulator with Xdebug profiling enabled
+    - Cachegrind output generated in `var/profiling/`
+    - KCachegrind or QCacheGrind can open the profile data
+  - [ ] Baseline performance measured:
+    - Run Tetris for 3600 frames (60 seconds at 60 FPS)
+    - Measure actual time taken
+    - Calculate FPS: 3600 / actual_time
+    - Document in `docs/performance.md`
+  - [ ] Profiling analysis completed:
+    - Identify top 10 hotspots (functions consuming most time)
+    - Document in `docs/profiling-results.md`
+    - Typical suspects: instruction dispatch, memory read/write, PPU pixel pushing
+  - [ ] Optimization techniques applied (at least 3):
+    - **Instruction dispatch optimization**: switch statement vs array of closures vs match expression
+    - **Opcode caching**: pre-decode instruction metadata
+    - **Lookup tables**: flag calculations, bit operations
+    - **Reduce object allocation**: reuse objects, use primitives where possible
+    - **Lazy evaluation**: defer calculations until needed
+    - **Property caching**: cache frequently accessed computed values
+  - [ ] Optimizations measured:
+    - Re-run benchmark after each optimization
+    - Document performance delta (e.g., "10% faster")
+    - Keep log of changes in `docs/optimizations.md`
+  - [ ] Memory profiling:
+    - Measure memory usage during emulation
+    - Target: <100MB for typical ROM
+    - Identify memory leaks (if any)
+  - [ ] Optional: Native extensions exploration:
+    - Document feasibility of FFI for critical paths
+    - Implement proof-of-concept if beneficial (e.g., FFI for instruction dispatch)
+    - Keep pure-PHP fallback
+    - Only pursue if <50 FPS achieved with pure PHP
+  - [ ] PHP opcode cache verification:
+    - Ensure OPcache enabled in Docker
+    - Measure impact on performance
+  - [ ] JIT exploration (PHP 8.5):
+    - Enable JIT in php.ini
+    - Measure performance impact
+    - Document findings
+  - [ ] Performance targets achieved:
+    - **Minimum**: 30 FPS (half speed, but playable)
+    - **Target**: 60 FPS (full speed)
+    - **Stretch**: 120+ FPS (2x speed for fast-forward)
+  - [ ] `docs/performance.md` updated with:
+    - Baseline performance
+    - Optimization history
+    - Current performance
+    - Bottlenecks remaining
+    - Recommendations for future improvements
+  - [ ] `make test` still passes (no regressions from optimizations)
+  - [ ] `make lint` passes with 0 errors
+  - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `perf(step-14):`
+    - What: Performance profiling infrastructure, optimizations (dispatch, lookup tables, caching), memory profiling, JIT evaluation
+    - Why: Performance optimization achieving playable frame rates in PHP
+    - Verification: Performance.md documents baseline/optimized FPS, achieves 30+ FPS target
+    - References: PHP 8.5 JIT, OPcache configuration, profiling hotspot analysis
+- **⚠️ Workflow reminder**: Profiling tools must run inside Docker via Makefile targets.
+- **Learning outcome**: Contrast high-level language trade-offs with hardware cycle budgets.
+
+## Step 15 – WebAssembly Target & Browser Frontend
+
+- **Historical context**: Modern projects bundle interpreters into WebAssembly; this echoes how the Game Boy hardware itself was a compact virtual machine for 8-bit games.
+- **Tasks**
+  - Evaluate PHP-to-WASM options: `wasmerio/php-wasm` (Zend in WASM), `wasmphp`, or transpiling via Uniter (PHP→JS→WASM).
+  - Abstract I/O (framebuffer, audio, input) behind interfaces so the browser layer can supply implementations via JavaScript.
+  - Build a minimal web UI loading ROM files, rendering via `<canvas>`, and piping audio through WebAudio.
+- **✅ Definition of Done**:
+  - [ ] WASM feasibility research completed:
+    - Document evaluated options in `docs/wasm-options.md`
+    - Selected approach documented with pros/cons
+    - Proof-of-concept created: "Hello World" PHP running in browser
+  - [ ] PHP-to-WASM build working:
+    - Makefile target `make build-wasm` compiles PHPBoy to WASM
+    - Output: `dist/phpboy.wasm` and JavaScript loader
+    - Build completes successfully
+  - [ ] I/O interfaces abstracted:
+    - `FramebufferInterface` already defined (Step 7)
+    - `AudioSinkInterface` already defined (Step 9)
+    - `InputInterface` already defined (Step 11)
+    - Emulator core has no direct dependencies on CLI/filesystem
+  - [ ] Browser framebuffer implementation:
+    - `src/Frontend/Wasm/WasmFramebuffer.php` implements `FramebufferInterface`
+    - Buffers pixels in memory
+    - `getPixels(): array` returns pixel data for JS to render
+  - [ ] Browser audio implementation:
+    - `src/Frontend/Wasm/WasmAudioSink.php` implements `AudioSinkInterface`
+    - Buffers audio samples in memory
+    - `getSamples(): array` returns sample data for JS WebAudio
+  - [ ] JavaScript bridge:
+    - `web/js/phpboy.js` handles WASM/PHP interaction
+    - Calls PHP emulator step function per frame
+    - Retrieves framebuffer data and renders to Canvas
+    - Retrieves audio samples and queues to WebAudio
+    - Passes input events to PHP
+  - [ ] Web UI implemented:
+    - `web/index.html` - main page
+    - File picker to load ROM
+    - `<canvas id="screen">` for rendering (160×144, scaled up)
+    - Audio context setup
+    - Keyboard event listeners (map keys to Game Boy buttons)
+    - UI controls: Play/Pause, Reset, Speed control, Volume
+  - [ ] Canvas rendering:
+    - JavaScript draws framebuffer to Canvas using ImageData
+    - Scales up (e.g., 4× → 640×576)
+    - Runs at 60 FPS via requestAnimationFrame
+  - [ ] WebAudio integration:
+    - Audio samples pushed to AudioContext
+    - Buffer management to prevent underruns/overruns
+    - Volume control working
+  - [ ] Browser input handling:
+    - Keyboard events captured (Arrow keys, Z, X, Enter, Shift)
+    - Mapped to Game Boy buttons
+    - Passed to WASM/PHP layer
+    - On-screen button overlay (optional, for mobile)
+  - [ ] ROM loading:
+    - User selects .gb file via input element
+    - File read as ArrayBuffer
+    - Passed to WASM/PHP emulator
+    - Emulator initializes and starts
+  - [ ] Build artifacts:
+    - `make build-wasm` produces `dist/` directory with:
+      - `phpboy.wasm`
+      - `phpboy.js` (WASM loader)
+      - `index.html`
+      - `styles.css`
+      - All necessary JavaScript files
+  - [ ] Testing:
+    - Load web page in browser (Chrome, Firefox, Safari)
+    - Load Tetris ROM
+    - Verify game renders correctly
+    - Verify audio plays
+    - Verify keyboard input works
+    - Play for 60 seconds without crashes
+  - [ ] Performance:
+    - Runs at full speed (60 FPS) in browser
+    - Monitor FPS display in UI
+    - Document performance characteristics per browser
+  - [ ] Documentation:
+    - `docs/wasm-build.md` - how to build WASM version
+    - `docs/browser-usage.md` - how to use browser version
+    - `README.md` updated with browser demo link/instructions
+  - [ ] Deployment:
+    - `dist/` directory can be served by static web server
+    - Optional: Deploy to GitHub Pages or similar
+    - Include link in README
+  - [ ] `make build-wasm` completes successfully
+  - [ ] Can load and play Tetris in browser with audio and input
+-   - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-15):`
+    - What: WASM build system, browser frontend (HTML/JS/Canvas), WebAudio integration, WASM I/O bridges, web UI
+    - Why: Browser deployment enabling widespread accessibility without installation
+    - Verification: Tetris runs in browser at 60 FPS with audio/input, `make build-wasm` succeeds
+    - References: PHP-WASM options evaluation, WebAssembly integration patterns
+**Learning outcome**: Learn how to adapt server-oriented PHP code to a WASM sandbox and reconcile synchronous PHP execution with browser event loops.
+
+## Step 16 – Persistence, Savestates, and Quality-of-Life
+
+- **Historical context**: Emulators popularized features like savestates and fast-forward—capabilities the original hardware never offered.
+- **Tasks**
+  - Implement serialization for CPU/PPU/APU state to support savestates.
+  - Provide rewind buffers and configurable speed throttling.
+  - Add recording/playback of input macros for TAS experimentation.
+- **✅ Definition of Done**:
+  - [ ] Savestate serialization implemented:
+    - `src/Savestate/SavestateManager.php` with `save(string $path): void` and `load(string $path): void`
+    - Serializes all emulator state:
+      - CPU registers (AF, BC, DE, HL, SP, PC, IME, halted, stopped)
+      - Memory: VRAM, WRAM, HRAM, OAM, cartridge RAM
+      - PPU state: mode, cycle count, LY, scroll registers, palettes
+      - APU state: channel registers, frame sequencer position
+      - Timer state: DIV, TIMA, TMA, TAC
+      - Interrupt state: IF, IE
+      - Cartridge state: current ROM/RAM banks
+      - RTC state (if MBC3)
+    - Format: JSON or binary (document choice)
+    - Savestate includes version number for compatibility
+  - [ ] Savestate deserialization:
+    - Restores all state from file
+    - Validates savestate format
+    - Checks version compatibility
+    - Handles missing/corrupted files gracefully
+  - [ ] CLI savestate commands:
+    - `--savestate-save=<path>` command-line option
+    - `--savestate-load=<path>` command-line option
+    - Debugger commands: `savestate <path>` and `loadstate <path>`
+  - [ ] Browser savestate support:
+    - Save to LocalStorage or IndexedDB
+    - UI buttons: "Save State" and "Load State"
+    - Multiple savestate slots (e.g., 10 slots)
+    - Slot management UI
+  - [ ] Fast-forward implemented:
+    - `--speed=<multiplier>` command-line option
+    - Debugger command: `speed <multiplier>`
+    - Browser UI: Fast-forward button (2× speed)
+    - Disables frame throttling
+    - Maintains audio pitch (or mutes audio during fast-forward)
+  - [ ] Rewind buffer implemented:
+    - `src/Rewind/RewindBuffer.php` stores recent savestates
+    - Circular buffer: stores 1 state per second for last 60 seconds (configurable)
+    - `rewind(int $seconds): void` - rewind by N seconds
+    - Efficient incremental snapshots (only store diffs if possible)
+  - [ ] Rewind controls:
+    - Debugger command: `rewind <seconds>`
+    - Browser UI: Rewind button (rewind 10 seconds)
+    - Keyboard shortcut (e.g., Backspace)
+  - [ ] Input recording/playback (TAS support):
+    - `src/Tas/InputRecorder.php` records input per frame
+    - `record(string $path): void` - start recording
+    - `stopRecording(): void` - stop recording
+    - `playback(string $path): void` - replay recorded input
+    - Format: JSON with frame-by-frame button states
+  - [ ] TAS controls:
+    - `--record=<path>` command-line option
+    - `--playback=<path>` command-line option
+    - Debugger commands: `record`, `stoprecord`, `playback`
+  - [ ] Frame advance (TAS):
+    - Debugger command: `frame` or `f` - advance one frame
+    - Browser UI: Frame advance button (when paused)
+    - Useful for precise input timing
+  - [ ] Configuration system:
+    - `config/phpboy.ini` or `~/.phpboy.conf`
+    - Settings: audio volume, video scale, key bindings, rewind buffer size, autosave interval
+    - `src/Config/Config.php` loads configuration
+  - [ ] Quality-of-life features:
+    - Autosave: periodically save battery RAM (every 60 seconds)
+    - Pause/resume (Space key)
+    - Screenshot capture (save framebuffer to PNG)
+    - Reset button/command
+  - [ ] `tests/Unit/Savestate/SavestateManagerTest.php` exists:
+    - Save and load state, verify all registers restored
+    - Save state during gameplay, load and continue
+    - Test savestate compatibility (version check)
+  - [ ] `tests/Unit/Rewind/RewindBufferTest.php` tests buffer management
+  - [ ] `tests/Unit/Tas/InputRecorderTest.php` tests recording/playback
+  - [ ] Integration test:
+    - Play Tetris for 30 seconds
+    - Save state
+    - Continue playing for 30 seconds more
+    - Load state
+    - Verify game returns to earlier point
+  - [ ] Rewind test:
+    - Play for 60 seconds
+    - Rewind 30 seconds
+    - Verify game state is 30 seconds earlier
+  - [ ] TAS test:
+    - Record input for 10 seconds
+    - Playback recording
+    - Verify identical gameplay (deterministic)
+  - [ ] Documentation:
+    - `docs/savestate-format.md` - savestate file format specification
+    - `docs/tas-guide.md` - how to use TAS features
+    - `docs/configuration.md` - configuration options reference
+  - [ ] `make test` passes all savestate and rewind tests
+  - [ ] `make lint` passes with 0 errors
+-   - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `feat(step-16):`
+    - What: Savestate serialization, rewind buffer, fast-forward, input recording/playback (TAS), configuration system, QOL features
+    - Why: Enhanced emulator features beyond hardware authenticity improving user experience
+    - Verification: Save/load state works, rewind functional, TAS playback deterministic, config file loaded
+    - References: Savestate format design, rewind buffer algorithms, TAS input formats
+**Learning outcome**: Understand emulator extensions beyond hardware authenticity.
+
+## Step 17 – Documentation, Tutorials, and Release Readiness
+
+- **Historical context**: Open-source emulator communities thrived because maintainers shared deep technical write-ups.
+- **Tasks**
+  - Document modules, data flows, and noteworthy algorithms in `/docs`.
+  - Write tutorial-style blog posts (or README sections) narrating the development journey with historical anecdotes.
+  - Package CLI binaries (PHAR) and produce WebAssembly build artifacts for easy distribution.
+- **✅ Definition of Done**:
+  - [ ] Code documentation:
+    - All public classes have PHPDoc blocks
+    - All public methods have @param and @return annotations
+    - Complex algorithms have inline comments explaining logic
+    - `make docs` generates API documentation (using phpDocumentor or similar)
+  - [ ] Architecture documentation:
+    - `docs/architecture.md` exists with:
+      - High-level system diagram
+      - Component descriptions (CPU, PPU, APU, Bus, Cartridge, etc.)
+      - Data flow diagrams
+      - Thread/execution model
+      - Design decisions and rationale
+    - `docs/memory-map.md` - complete memory map reference
+    - `docs/timing.md` - cycle timing documentation
+  - [ ] Algorithm documentation:
+    - `docs/cpu-instructions.md` - instruction set reference
+    - `docs/ppu-rendering.md` - PPU pipeline and rendering algorithm
+    - `docs/apu-synthesis.md` - APU channel synthesis details
+    - `docs/mbc-controllers.md` - MBC implementations
+  - [ ] Development guides:
+    - `docs/getting-started.md` - setup for new contributors
+    - `docs/contributing.md` - contribution guidelines
+    - `docs/testing-guide.md` - how to run and write tests
+    - `docs/debugging-guide.md` - debugging tips and tools
+  - [ ] User documentation:
+    - `README.md` - comprehensive project overview with:
+      - Project description and goals
+      - Features list
+      - Screenshots/demo GIFs
+      - Quick start guide
+      - Build instructions
+      - Usage examples
+      - License information
+    - `docs/user-guide.md` - complete user manual
+    - `docs/faq.md` - frequently asked questions
+    - `docs/troubleshooting.md` - common issues and solutions
+  - [ ] Tutorial content:
+    - `docs/tutorials/` directory with at least 3 tutorials:
+      - "Building a Game Boy Emulator: Part 1 - CPU"
+      - "Building a Game Boy Emulator: Part 2 - Graphics"
+      - "Building a Game Boy Emulator: Part 3 - Audio"
+    - Each tutorial includes historical context and technical details
+    - Code examples and diagrams
+  - [ ] Test results published:
+    - `docs/compatibility.md` - compatibility with commercial games
+    - `docs/test-results.md` - test ROM results (from Step 13)
+    - Compatibility percentage and game compatibility list
+  - [ ] Release packaging:
+    - `make build-phar` creates standalone PHAR executable
+    - PHAR includes all dependencies
+    - Can run as `./phpboy.phar path/to/rom.gb`
+    - PHAR is executable on any system with PHP 8.5+
+  - [ ] Web release:
+    - `make build-web` creates web distribution in `dist/`
+    - Includes all necessary files for hosting
+    - Minified JavaScript/CSS
+    - Deployment instructions in `docs/deployment.md`
+  - [ ] Release artifacts:
+    - GitHub Releases with:
+      - Source code (zip/tar.gz)
+      - `phpboy.phar` (CLI executable)
+      - `phpboy-web.zip` (browser version)
+      - Release notes with changelog
+  - [ ] Version numbering:
+    - Semantic versioning (e.g., v1.0.0)
+    - Version recorded in `src/Version.php`
+    - Git tags for releases
+  - [ ] Changelog:
+    - `CHANGELOG.md` following Keep a Changelog format
+    - Entries for all steps/milestones
+    - Grouped by Added, Changed, Fixed, Removed
+  - [ ] License:
+    - `LICENSE` file in repository root
+    - Choose appropriate open-source license (e.g., MIT, GPL-3.0)
+    - License headers in all source files
+  - [ ] CI/CD pipeline:
+    - GitHub Actions or similar configured
+    - Runs on every commit: `make test`, `make lint`
+    - Builds PHAR and web artifacts
+    - Optional: Automated releases on git tag
+  - [ ] Demo site:
+    - Browser version deployed to public URL
+    - Includes sample ROMs (homebrew/public domain)
+    - Link in README
+  - [ ] Screenshots and media:
+    - At least 5 screenshots showing:
+      - Tetris gameplay
+      - Pokémon Red/Blue
+      - Zelda: Link's Awakening
+      - Debugger interface
+      - Browser UI
+    - Optional: Demo video/GIF
+  - [ ] README badges:
+    - Build status
+    - Test coverage (if measured)
+    - License
+    - PHP version
+  - [ ] Community setup:
+    - GitHub Issues enabled with issue templates
+    - Pull request template
+    - Code of Conduct (CODE_OF_CONDUCT.md)
+    - Contributing guidelines (CONTRIBUTING.md)
+  - [ ] Blog post/announcement:
+    - Write project announcement blog post or README section
+    - Explain motivation, challenges, learnings
+    - Include technical highlights and historical anecdotes
+    - Share on relevant communities (Reddit /r/EmuDev, Hacker News, etc.)
+  - [ ] All documentation reviewed for:
+    - Spelling and grammar
+    - Accuracy
+    - Completeness
+    - Clarity
+  - [ ] Release checklist completed:
+    - [ ] All tests passing
+    - [ ] No linting errors
+    - [ ] Documentation complete
+    - [ ] Artifacts built and tested
+    - [ ] Changelog updated
+    - [ ] Version tagged
+    - [ ] GitHub Release published
+  - [ ] Post-release:
+    - Monitor issues and feedback
+    - Plan v1.1 roadmap based on feedback
+-   - [ ] **COMMIT REQUIRED** - Create conventional commit with:
+    - Type: `docs(step-17):`
+    - What: Complete documentation (architecture, algorithms, user guide, tutorials), PHAR packaging, web distribution, CI/CD, release
+    - Why: Production-ready release with comprehensive documentation enabling users and contributors
+    - Verification: All docs complete, PHAR executable, web demo deployed, GitHub release published
+    - References: PHPDocumentor output, semantic versioning, Keep a Changelog format
+**Learning outcome**: Solidify knowledge by teaching it, mirroring the community-driven preservation of Game Boy technical lore.
+
+---
+
+By following these steps sequentially, we move from foundational research to a feature-complete, well-tested **PHPBoy** emulator core that is portable across CLI and browser environments, while gaining a deep appreciation for the historical and architectural design of the Game Boy Color.
