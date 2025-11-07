@@ -23,6 +23,7 @@ use Gb\Ppu\ArrayFramebuffer;
 use Gb\Ppu\FramebufferInterface;
 use Gb\Ppu\Oam;
 use Gb\Ppu\Ppu;
+use Gb\Serial\Serial;
 use Gb\System\CgbController;
 use Gb\Timer\Timer;
 
@@ -68,6 +69,7 @@ final class Emulator
     private ?HdmaController $hdma = null;
     private ?CgbController $cgb = null;
     private ?Joypad $joypad = null;
+    private ?Serial $serial = null;
 
     public function __construct()
     {
@@ -183,6 +185,11 @@ final class Emulator
         // Create joypad
         $this->joypad = new Joypad($this->interruptController);
         $this->bus->attachIoDevice($this->joypad, 0xFF00); // JOYP register
+
+        // Create serial
+        $this->serial = new Serial($this->interruptController);
+        // Serial registers: SB, SC
+        $this->bus->attachIoDevice($this->serial, 0xFF01, 0xFF02);
 
         // Attach interrupt controller
         $this->bus->attachIoDevice($this->interruptController, 0xFF0F, 0xFFFF); // IF and IE registers
@@ -428,5 +435,13 @@ final class Emulator
     public function getCartridge(): ?Cartridge
     {
         return $this->cartridge;
+    }
+
+    /**
+     * Get the serial device.
+     */
+    public function getSerial(): ?Serial
+    {
+        return $this->serial;
     }
 }
