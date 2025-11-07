@@ -48,25 +48,27 @@ final class Mbc5Test extends TestCase
 
     public function test9BitBankNumber(): void
     {
-        $rom = $this->createRom(512);
+        // Use 300 banks to test 9-bit addressing without excessive memory usage
+        $rom = $this->createRom(300);
         $mbc = new Mbc5($rom, count($rom), 0, false, false);
 
-        // Set lower 8 bits to 0xFF
+        // Set lower 8 bits to 0xFF (bank 255)
         $mbc->writeByte(0x2000, 0xFF);
         $this->assertSame(255, $mbc->readByte(0x4000));
 
-        // Set 9th bit to 1 (bank 0x1FF = 511)
-        $mbc->writeByte(0x3000, 0x01);
-        $this->assertSame(511, $mbc->readByte(0x4000));
-
-        // Clear 9th bit (back to bank 0xFF = 255)
-        $mbc->writeByte(0x3000, 0x00);
-        $this->assertSame(255, $mbc->readByte(0x4000));
-
-        // Set both for bank 0x100 = 256
+        // Set 9th bit to 1 (bank 0x100 = 256)
         $mbc->writeByte(0x2000, 0x00);
         $mbc->writeByte(0x3000, 0x01);
         $this->assertSame(256, $mbc->readByte(0x4000));
+
+        // Test bank 299 (close to limit)
+        $mbc->writeByte(0x2000, 0x2B); // 299 = 0x12B, lower 8 bits = 0x2B
+        $mbc->writeByte(0x3000, 0x01); // upper bit = 1
+        $this->assertSame(299, $mbc->readByte(0x4000));
+
+        // Clear 9th bit (back to bank 0x2B = 43)
+        $mbc->writeByte(0x3000, 0x00);
+        $this->assertSame(43, $mbc->readByte(0x4000));
     }
 
     public function testBank0IsValid(): void
