@@ -68,6 +68,7 @@ final class TestRomRunner
         $startTime = microtime(true);
         $frames = 0;
         $serial = $this->emulator->getSerial();
+        $cpu = $this->emulator->getCpu();
 
         // Run until timeout or max frames
         while ($frames < self::MAX_FRAMES) {
@@ -95,7 +96,46 @@ final class TestRomRunner
                 );
             }
 
-            // Check serial output for pass/fail
+            // Check for Mooneye test ROM pass/fail (register-based detection)
+            // Mooneye tests use LD B,B (0x40) as a breakpoint and set registers to Fibonacci or 0x42
+            if ($cpu !== null) {
+                $b = $cpu->getB();
+                $c = $cpu->getC();
+                $d = $cpu->getD();
+                $e = $cpu->getE();
+                $h = $cpu->getH();
+                $l = $cpu->getL();
+
+                // Check for Mooneye pass signature: Fibonacci sequence 3, 5, 8, 13, 21, 34
+                if ($b === 3 && $c === 5 && $d === 8 && $e === 13 && $h === 21 && $l === 34) {
+                    return new TestRomResult(
+                        status: TestRomStatus::Pass,
+                        output: sprintf(
+                            "Mooneye test passed (registers: B=%02X C=%02X D=%02X E=%02X H=%02X L=%02X)\nSerial: %s",
+                            $b, $c, $d, $e, $h, $l,
+                            $serial?->getOutput() ?? ''
+                        ),
+                        frames: $frames,
+                        duration: microtime(true) - $startTime
+                    );
+                }
+
+                // Check for Mooneye fail signature: all registers = 0x42
+                if ($b === 0x42 && $c === 0x42 && $d === 0x42 && $e === 0x42 && $h === 0x42 && $l === 0x42) {
+                    return new TestRomResult(
+                        status: TestRomStatus::Fail,
+                        output: sprintf(
+                            "Mooneye test failed (registers: B=%02X C=%02X D=%02X E=%02X H=%02X L=%02X)\nSerial: %s",
+                            $b, $c, $d, $e, $h, $l,
+                            $serial?->getOutput() ?? ''
+                        ),
+                        frames: $frames,
+                        duration: microtime(true) - $startTime
+                    );
+                }
+            }
+
+            // Check serial output for pass/fail (Blargg method)
             if ($serial !== null) {
                 $output = $serial->getOutput();
 
