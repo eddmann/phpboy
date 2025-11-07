@@ -4108,6 +4108,7 @@ final class InstructionSet
             5 => $cpu->getL(),
             6 => $cpu->getBus()->readByte($cpu->getHL()->get()),
             7 => $cpu->getA(),
+            default => throw new \InvalidArgumentException("Invalid register index: {$index}"),
         };
     }
 
@@ -4125,6 +4126,7 @@ final class InstructionSet
             5 => $cpu->setL($value),
             6 => $cpu->getBus()->writeByte($cpu->getHL()->get(), $value),
             7 => $cpu->setA($value),
+            default => throw new \InvalidArgumentException("Invalid register index: {$index}"),
         };
     }
 }
