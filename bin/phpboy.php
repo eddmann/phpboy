@@ -61,6 +61,10 @@ Examples:
 HELP;
 }
 
+/**
+ * @param array<int, string> $argv
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, help: bool}
+ */
 function parseArguments(array $argv): array
 {
     $options = [
@@ -110,7 +114,9 @@ function parseArguments(array $argv): array
 
 // Main execution
 try {
-    $options = parseArguments($_SERVER['argv']);
+    /** @var array<int, string> $argv */
+    $argv = $_SERVER['argv'] ?? [];
+    $options = parseArguments($argv);
 
     if ($options['help']) {
         showHelp();
