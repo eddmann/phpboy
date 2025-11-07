@@ -84,7 +84,6 @@ final class Ppu implements DeviceInterface
 
     // Window internal line counter
     private int $windowLineCounter = 0;
-    private bool $windowRenderedThisFrame = false;
 
     // Scanline buffer for current rendering
     /** @var array<int, Color> */
@@ -96,6 +95,8 @@ final class Ppu implements DeviceInterface
         private readonly FramebufferInterface $framebuffer,
         private readonly InterruptController $interruptController,
     ) {
+        // Initialize STAT register with initial mode bits
+        $this->stat = $this->mode->getStatBits();
     }
 
     /**
@@ -112,13 +113,23 @@ final class Ppu implements DeviceInterface
 
         $this->dots += $cycles;
 
-        // State machine for PPU modes
-        match ($this->mode) {
-            PpuMode::OamSearch => $this->stepOamSearch(),
-            PpuMode::PixelTransfer => $this->stepPixelTransfer(),
-            PpuMode::HBlank => $this->stepHBlank(),
-            PpuMode::VBlank => $this->stepVBlank(),
-        };
+        // Keep processing state transitions until all cycles are consumed
+        while ($this->dots > 0) {
+            $dotsBeforeStep = $this->dots;
+
+            // State machine for PPU modes
+            match ($this->mode) {
+                PpuMode::OamSearch => $this->stepOamSearch(),
+                PpuMode::PixelTransfer => $this->stepPixelTransfer(),
+                PpuMode::HBlank => $this->stepHBlank(),
+                PpuMode::VBlank => $this->stepVBlank(),
+            };
+
+            // If no dots were consumed, break to avoid infinite loop
+            if ($this->dots === $dotsBeforeStep) {
+                break;
+            }
+        }
     }
 
     private function stepOamSearch(): void
@@ -149,7 +160,6 @@ final class Ppu implements DeviceInterface
             if ($this->ly >= self::VBLANK_SCANLINE) {
                 $this->setMode(PpuMode::VBlank);
                 $this->interruptController->requestInterrupt(InterruptType::VBlank);
-                $this->windowRenderedThisFrame = false;
                 $this->windowLineCounter = 0;
             } else {
                 $this->setMode(PpuMode::OamSearch);
@@ -269,7 +279,6 @@ final class Ppu implements DeviceInterface
         $tileMapBase = (($this->lcdc & self::LCDC_WINDOW_TILEMAP) !== 0) ? 0x1C00 : 0x1800;
         $tileDataMode = (($this->lcdc & self::LCDC_TILE_DATA) !== 0) ? 0 : 1;
 
-        $this->windowRenderedThisFrame = true;
         $tileRow = $this->windowLineCounter >> 3;
         $tileY = $this->windowLineCounter & 7;
 

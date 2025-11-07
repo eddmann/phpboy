@@ -54,9 +54,9 @@ final readonly class Color
 
         // Scale 5-bit values (0-31) to 8-bit values (0-255)
         return new self(
-            ($r * 255) / 31,
-            ($g * 255) / 31,
-            ($b * 255) / 31,
+            (int) (($r * 255) / 31),
+            (int) (($g * 255) / 31),
+            (int) (($b * 255) / 31),
         );
     }
 
