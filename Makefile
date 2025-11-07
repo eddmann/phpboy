@@ -31,6 +31,20 @@ run: ## Run emulator with ROM in Docker (usage: make run ROM=path/to/rom.gb)
 	fi
 	docker compose run --rm phpboy php bin/phpboy.php $(ROM)
 
+debug: ## Run emulator in debug mode (usage: make debug ROM=path/to/rom.gb)
+	@if [ -z "$(ROM)" ]; then \
+		echo "Error: ROM parameter is required. Usage: make debug ROM=path/to/rom.gb"; \
+		exit 1; \
+	fi
+	docker compose run --rm phpboy php bin/phpboy.php $(ROM) --debug
+
+trace: ## Run emulator with CPU trace (usage: make trace ROM=path/to/rom.gb)
+	@if [ -z "$(ROM)" ]; then \
+		echo "Error: ROM parameter is required. Usage: make trace ROM=path/to/rom.gb"; \
+		exit 1; \
+	fi
+	docker compose run --rm phpboy php bin/phpboy.php $(ROM) --trace --headless
+
 clean: ## Remove vendor directory and composer.lock
 	rm -rf vendor composer.lock
 
