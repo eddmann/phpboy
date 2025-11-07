@@ -57,7 +57,8 @@ final class Cpu
         $this->sp = new Register16(0xFFFE); // Stack grows downward from 0xFFFE
         $this->pc = new Register16(0x0100); // Start of cartridge ROM
 
-        $this->flags = new FlagRegister();
+        // Link flags register to AF register for automatic synchronization
+        $this->flags = new FlagRegister(0x00, $this->af);
     }
 
     /**
