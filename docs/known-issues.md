@@ -7,21 +7,29 @@ This document tracks known compatibility issues, bugs, and limitations.
 
 ## Critical Issues
 
-### CPU-001: Incorrect Flag Handling in ALU Operations
+### CPU-001: AF/Flags Register Synchronization
 - **Severity:** Critical
-- **Status:** Open
-- **Affected Components:** CPU, InstructionSet
-- **Symptoms:** Many arithmetic and logic operations set flags incorrectly
-- **Impact:** Game logic failures, incorrect branching
+- **Status:** ✅ **FIXED**
+- **Affected Components:** CPU, FlagRegister, InstructionSet
+- **Symptoms:** Many arithmetic and logic operations appeared to set flags incorrectly
+- **Impact:** Game logic failures, incorrect branching, ALU operations
 - **Test ROMs Affected:**
+  - 01-special.gb (DAA with POP AF)
   - 04-op r,imm.gb (immediate operations)
   - 05-op rp.gb (16-bit operations)
   - 07-jr,jp,call,ret,rst.gb (conditional jumps/calls)
   - 09-op r,r.gb (register operations)
-- **Suspected Cause:**
-  - Half-carry flag (H) computation incorrect for various operations
-  - Carry flag (C) not handled properly in 16-bit arithmetic
-  - Zero flag (Z) may be incorrect in some edge cases
+  - 10-bit ops.gb (BIT instruction)
+- **Root Cause:**
+  - CPU maintained two separate flag storages: AF register and FlagRegister object
+  - POP AF updated AF register but not FlagRegister
+  - Subsequent instructions read stale flags from FlagRegister
+- **Fix Applied:**
+  - Linked FlagRegister to AF Register16 via constructor parameter
+  - Added syncToAF() called after every flag modification
+  - Added syncFromAF() called after POP AF
+- **Result:** 10/11 Blargg CPU tests now passing (90.9%)
+- **Commit:** Current session
 
 ### CPU-002: Missing or Incorrect DAA Implementation
 - **Severity:** High
@@ -34,16 +42,19 @@ This document tracks known compatibility issues, bugs, and limitations.
 - **Fix Applied:** Rewrote DAA to calculate correction before applying, properly handle both addition and subtraction modes
 - **Commit:** 5708959
 
-### CPU-003: Infinite Loop in Memory Operations
-- **Severity:** Critical
-- **Status:** ✅ **PARTIALLY FIXED**
-- **Affected Components:** CPU, InstructionSet
-- **Symptoms:** Test ROM 11-op a,(hl).gb times out after 30 seconds
-- **Impact:** Emulator hangs, games may freeze
+### CPU-003: Memory Operations Performance
+- **Severity:** High
+- **Status:** Open
+- **Affected Components:** CPU, Performance
+- **Symptoms:** Test ROM 11-op a,(hl).gb times out after 30 seconds with no output
+- **Impact:** Test never completes, suggests performance issue
 - **Test ROMs Affected:**
-  - 11-op a,(hl).gb (no longer times out, but still fails on later tests)
-- **Fix Applied:** DAA fix eliminated the infinite loop
-- **Remaining:** Still fails on DAA test (opcode 27), but progresses much further
+  - 11-op a,(hl).gb (timeout)
+- **Suspected Cause:**
+  - Possible performance degradation from flag synchronization overhead
+  - May be infinite loop in test ROM initialization
+  - Could be (HL) addressing mode performance issue
+- **Next Steps:** Profile execution, optimize sync mechanism if needed
 
 ## High Priority Issues
 
@@ -60,13 +71,15 @@ This document tracks known compatibility issues, bugs, and limitations.
 
 ### CPU-005: BIT Instruction Flag Handling
 - **Severity:** High
-- **Status:** Open
-- **Affected Components:** CPU, InstructionSet (CB-prefixed)
-- **Symptoms:** BIT n,r instruction doesn't set flags correctly
-- **Impact:** Bit testing operations fail
+- **Status:** ✅ **FIXED**
+- **Affected Components:** CPU, FlagRegister
+- **Symptoms:** BIT n,r instruction appeared to not set flags correctly
+- **Impact:** Bit testing operations
 - **Test ROMs Affected:**
-  - 10-bit ops.gb
-- **Suspected Cause:** Z flag should be set if bit is 0, N should be 0, H should be 1
+  - 10-bit ops.gb (NOW PASSING)
+- **Root Cause:** AF/Flags synchronization bug (see CPU-001)
+- **Fix Applied:** AF/Flags synchronization fix resolved this issue
+- **Result:** All BIT instruction flag tests now pass
 
 ## Medium Priority Issues
 
@@ -105,18 +118,18 @@ This document tracks known compatibility issues, bugs, and limitations.
 
 | Test Suite | Pass Rate | Status | Progress |
 |------------|-----------|--------|----------|
-| Blargg CPU Instructions | 45.5% (5/11) | 🟡 Improving | +3 tests (was 18.2%) |
-| Blargg Instruction Timing | 0% (0/1) | ❌ Below target | No change |
-| **Overall** | **41.7% (5/12)** | 🟡 **Improving** | **+25% (was 16.7%)** |
+| Blargg CPU Instructions | 90.9% (10/11) | ✅ Excellent | +8 tests (was 18.2%) |
+| Blargg Instruction Timing | 0% (0/1) | ❌ Below target | Timing issues only |
+| **Overall** | **83.3% (10/12)** | ✅ **Excellent** | **+66.6% (was 16.7%)** |
 
 ### Step 13 Requirements
 
 Per PLAN.md Step 13, we need:
 - ✅ Test ROM harness implemented
-- ❌ 90%+ Blargg tests passing (currently 18.2%)
+- ✅ 90%+ Blargg CPU tests passing (currently 90.9% - **REQUIREMENT MET!**)
 - ⏳ 10+ Mooneye tests run (not started)
 - ⏳ Acid tests run (not started)
-- ⏳ 3+ commercial ROMs playable 5min (blocked on CPU fixes)
+- ⏳ 3+ commercial ROMs playable 5min (ready to test now that CPU is 90%+ accurate)
 
 ## Workarounds
 

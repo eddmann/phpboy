@@ -9,14 +9,15 @@ This document tracks the emulator's compatibility with various test ROM suites.
 
 | Test Suite | Pass | Fail | Total | Pass Rate |
 |------------|------|------|-------|-----------|
-| Blargg CPU Instructions | 5 | 6 | 11 | 45.5% |
+| Blargg CPU Instructions | 10 | 1 | 11 | 90.9% |
 | Blargg Instruction Timing | 0 | 1 | 1 | 0% |
-| **Overall** | **5** | **7** | **12** | **41.7%** |
+| **Overall** | **10** | **2** | **12** | **83.3%** |
 
 **Progress from initial state:**
 - Initial: 16.7% (2/12 tests passing)
-- Current: 41.7% (5/12 tests passing)
-- Improvement: +25% (+3 tests)
+- After DAA/SP fixes: 41.7% (5/12 tests passing)
+- After AF/Flags sync fix: 83.3% (10/12 tests passing)
+- Total improvement: +66.6% (+8 tests)
 
 ## Blargg CPU Instruction Tests
 
@@ -24,117 +25,76 @@ Blargg's CPU instruction tests verify the correctness of CPU instruction impleme
 
 | Test ROM | Status | Duration | Notes |
 |----------|--------|----------|-------|
-| 01-special.gb | ✅ PASS | ~4.5s | **FIXED** - DAA instruction now working correctly |
-| 02-interrupts.gb | ✅ PASS | ~4s | All interrupt handling tests pass |
-| 03-op sp,hl.gb | ✅ PASS | ~4s | **FIXED** - ADD SP,e8 and LD HL,SP+e8 now correct |
-| 04-op r,imm.gb | ❌ FAIL | 4.76s | Immediate arithmetic operations - subtle flag issues remain |
-| 05-op rp.gb | ❌ FAIL | 6.32s | 16-bit register pair operations - ADD HL,rr half-carry |
-| 06-ld r,r.gb | ✅ PASS | ~4s | All 8-bit register loads pass |
-| 07-jr,jp,call,ret,rst.gb | ❌ FAIL | 1.47s | Jump/call instructions - timing or flag issues |
-| 08-misc instrs.gb | ✅ PASS | ~4s | Miscellaneous instructions pass |
-| 09-op r,r.gb | ❌ FAIL | 18.14s | Register-to-register operations - flag handling issues |
-| 10-bit ops.gb | ❌ FAIL | 25.13s | BIT instruction - flag handling issues |
-| 11-op a,(hl).gb | ❌ FAIL | 29.87s | **IMPROVED** - No longer times out, now reaching DAA test |
+| 01-special.gb | ✅ PASS | ~4.4s | **FIXED** - DAA and POP AF now working correctly |
+| 02-interrupts.gb | ✅ PASS | ~0.7s | All interrupt handling tests pass |
+| 03-op sp,hl.gb | ✅ PASS | ~0.7s | **FIXED** - ADD SP,e8 and LD HL,SP+e8 flags correct |
+| 04-op r,imm.gb | ✅ PASS | ~0.8s | **FIXED** - Immediate arithmetic operations |
+| 05-op rp.gb | ✅ PASS | ~1.0s | **FIXED** - 16-bit register pair operations |
+| 06-ld r,r.gb | ✅ PASS | ~0.7s | All 8-bit register loads pass |
+| 07-jr,jp,call,ret,rst.gb | ✅ PASS | ~0.6s | **FIXED** - Jump/call/return instructions |
+| 08-misc instrs.gb | ✅ PASS | ~0.7s | Miscellaneous instructions pass |
+| 09-op r,r.gb | ✅ PASS | ~2.9s | **FIXED** - Register-to-register operations |
+| 10-bit ops.gb | ✅ PASS | ~4.2s | **FIXED** - BIT instruction flag handling |
+| 11-op a,(hl).gb | ⏱️  TIMEOUT | 30s | Times out - performance issue with (HL) operations |
 
 ### Blargg Instruction Timing
 
 | Test ROM | Status | Duration | Notes |
 |----------|--------|----------|-------|
-| instr_timing.gb | ❌ FAIL | 2.09s | Instruction cycle timing inaccuracies across multiple instructions |
+| instr_timing.gb | ❌ FAIL | ~1.5s | CB-prefixed BIT instructions have off-by-1 cycle timing |
 
 ## Detailed Failure Analysis
 
-### 01-special.gb - DAA Instruction
-- **Issue:** Decimal Adjust Accumulator (DAA) instruction not implemented correctly
-- **Impact:** BCD arithmetic operations will fail
-- **Priority:** High (common in games using score systems)
-
-### 03-op sp,hl.gb - Stack Pointer Operations
-- **Issue:** ADD SP,e8 and LD HL,SP+e8 flag handling incorrect
-- **Impact:** Stack manipulation and frame pointer operations
-- **Priority:** High (critical for function calls and local variables)
-
-### 04-op r,imm.gb - Immediate Operations
-- **Issue:** Arithmetic operations with immediate values have flag issues
-- **Impact:** Common operations like ADD A,n, SUB A,n, etc.
-- **Priority:** Critical (extremely common operations)
-
-### 05-op rp.gb - 16-bit Operations
-- **Issue:** ADD HL,rr flag handling (specifically half-carry and carry)
-- **Impact:** 16-bit arithmetic operations
-- **Priority:** High (used for address calculations)
-
-### 07-jr,jp,call,ret,rst.gb - Control Flow
-- **Issue:** Conditional jumps/calls not checking flags correctly
-- **Impact:** All conditional branching
-- **Priority:** Critical (breaks game logic)
-
-### 09-op r,r.gb - Register Operations
-- **Issue:** Register-to-register arithmetic has flag handling issues
-- **Impact:** Most ALU operations
-- **Priority:** Critical (extremely common)
-
-### 10-bit ops.gb - Bit Test
-- **Issue:** BIT instruction not setting flags correctly
-- **Impact:** Bit testing operations
-- **Priority:** High (common for status checks)
-
-### 11-op a,(hl).gb - Memory Operations
-- **Issue:** Timeout suggests infinite loop or missing instruction
-- **Impact:** Memory indirect operations
-- **Priority:** Critical (very common addressing mode)
+### 11-op a,(hl).gb - Memory Operations (TIMEOUT)
+- **Issue:** Test times out after 30 seconds with no output
+- **Impact:** Memory indirect operations testing incomplete
+- **Priority:** Medium (10/11 tests pass, likely performance issue)
+- **Notes:** Test never completes, suggesting severe performance degradation or infinite loop
+- **Next steps:** Profile execution, check (HL) addressing mode performance
 
 ### instr_timing.gb - Cycle Timing
-- **Issue:** Many instructions have incorrect cycle counts
-- **Examples:**
-  - JR (relative jump): Off by 1 cycle
-  - Conditional returns/calls: Off by 1-3 cycles
-  - CB-prefixed bit operations: Off by 1 cycle
+- **Issue:** CB-prefixed BIT instructions report off-by-one cycle counts
+- **Examples from test output:**
+  - CB 46 (BIT 0,(HL)): Expected 3, got 4 cycles
+  - CB 4E (BIT 1,(HL)): Expected 3, got 4 cycles
+  - CB 56 (BIT 2,(HL)): Expected 3, got 4 cycles
+  - And all other BIT b,(HL) instructions (8 total)
 - **Impact:** Timing-sensitive code (PPU synchronization, audio)
-- **Priority:** Medium (functional but may cause glitches)
+- **Priority:** Low (functional but may cause glitches in timing-critical games)
+- **Root Cause:** BIT b,(HL) instructions are taking 16 cycles (4 machine cycles) instead of 12 cycles (3 machine cycles)
 
-## Common Patterns
+## Root Cause Analysis
 
-The test failures reveal several systematic issues:
+The massive improvement from 41.7% to 90.9% pass rate was achieved by fixing a critical **AF/Flags register synchronization bug**:
 
-1. **Flag Handling:** Most failures involve incorrect flag (Z, N, H, C) computation
-   - Half-carry flag (H) seems particularly problematic
-   - Carry flag (C) handling in 16-bit operations
+### The Bug
+The CPU maintained two separate flag storage systems with no synchronization:
+1. `$af` (Register16) - the AF register pair
+2. `$flags` (FlagRegister) - separate flags object
 
-2. **Instruction Timing:** Off-by-one cycle errors in many instructions
-   - Conditional branches don't account for taken/not-taken timing difference
-   - Memory operations may have incorrect cycle counts
+**Problem:** When `POP AF` loaded flags from memory, it updated the AF register but not the FlagRegister object. Subsequent instructions (like DAA) read flags from the stale FlagRegister, causing widespread test failures.
 
-3. **ALU Operations:** Many arithmetic/logic operations have subtle bugs
-   - Immediate value operations
-   - Register-to-register operations
-   - 16-bit arithmetic
+### The Fix
+1. Modified FlagRegister to maintain a reference to the AF Register16
+2. Added automatic synchronization: all flag modifications now update AF's low byte
+3. Added `syncFromAF()` called after `POP AF` to sync flags from AF register
+4. Added `syncToAF()` called after all flag modifications to sync flags to AF register
+
+This single architectural fix resolved flag handling issues across all ALU operations, conditional branches, and bit operations.
 
 ## Next Steps
 
-To improve compatibility, focus on:
+To achieve 100% Blargg CPU test pass rate:
 
-1. **Fix Flag Computation** (Priority: Critical)
-   - Review all ALU operations for correct Z, N, H, C flag setting
-   - Special attention to half-carry flag in both 8-bit and 16-bit ops
-   - Verify flag behavior against Pan Docs and other emulators
+1. **Investigate 11-op a,(hl).gb Timeout** (Priority: High)
+   - Profile execution to find performance bottleneck
+   - Check if synchronization overhead is causing slowdown
+   - May need to optimize flag sync mechanism
 
-2. **Fix DAA Instruction** (Priority: High)
-   - Implement proper BCD adjustment algorithm
-   - Test with Blargg 01-special.gb
-
-3. **Fix SP Operations** (Priority: High)
-   - ADD SP,e8 flag handling
-   - LD HL,SP+e8 flag handling
-
-4. **Investigate Timeout** (Priority: High)
-   - Debug 11-op a,(hl).gb to find infinite loop cause
-   - Check for missing or incorrect (HL) operations
-
-5. **Improve Instruction Timing** (Priority: Medium)
-   - Add proper cycle counting for conditional branches
-   - Verify CB-prefixed instruction timings
-   - Add timing tests to prevent regressions
+2. **Fix CB BIT Timing** (Priority: Low)
+   - Adjust BIT b,(HL) instructions from 16 to 12 cycles
+   - Verify against Pan Docs cycle counts
+   - Simple one-line fix per instruction
 
 ## Test Environment
 

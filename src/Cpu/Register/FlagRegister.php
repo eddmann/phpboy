@@ -23,14 +23,18 @@ final class FlagRegister
     private const int FLAG_CARRY = 0x10;       // Bit 4
 
     private int $value;
+    private ?Register16 $afRegister = null;
 
     /**
      * @param int $initialValue Initial flag register value (default: 0x00)
+     * @param Register16|null $afRegister Optional AF register to keep in sync
      */
-    public function __construct(int $initialValue = 0x00)
+    public function __construct(int $initialValue = 0x00, ?Register16 $afRegister = null)
     {
         // Mask to only keep flag bits (bits 4-7)
         $this->value = $initialValue & 0xF0;
+        $this->afRegister = $afRegister;
+        $this->syncToAF();
     }
 
     /**
@@ -52,6 +56,27 @@ final class FlagRegister
     {
         // Mask to only keep flag bits (bits 4-7)
         $this->value = $value & 0xF0;
+        $this->syncToAF();
+    }
+
+    /**
+     * Synchronize flags to AF register (if linked)
+     */
+    private function syncToAF(): void
+    {
+        if ($this->afRegister !== null) {
+            $this->afRegister->setLow($this->value);
+        }
+    }
+
+    /**
+     * Synchronize flags from AF register (if linked)
+     */
+    public function syncFromAF(): void
+    {
+        if ($this->afRegister !== null) {
+            $this->value = $this->afRegister->getLow() & 0xF0;
+        }
     }
 
     /**
@@ -76,6 +101,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_ZERO;
         }
+        $this->syncToAF();
     }
 
     /**
@@ -100,6 +126,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_SUBTRACT;
         }
+        $this->syncToAF();
     }
 
     /**
@@ -124,6 +151,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_HALF_CARRY;
         }
+        $this->syncToAF();
     }
 
     /**
@@ -148,6 +176,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_CARRY;
         }
+        $this->syncToAF();
     }
 
     /**
@@ -156,6 +185,7 @@ final class FlagRegister
     public function clear(): void
     {
         $this->value = 0x00;
+        $this->syncToAF();
     }
 
     // Convenience aliases for shorter method names
