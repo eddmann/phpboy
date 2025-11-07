@@ -6,6 +6,7 @@ namespace Tests\Unit\Cpu;
 
 use Gb\Bus\MockBus;
 use Gb\Cpu\Cpu;
+use Gb\Interrupts\InterruptController;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,7 +26,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x47, // LD B,A
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x42);
 
         $cpu->step();
@@ -39,7 +40,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x06, // LD B,n
             0x0101 => 0x37,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -52,7 +53,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x46, // LD B,(HL)
             0x1234 => 0xAB,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getHL()->set(0x1234);
 
         $cpu->step();
@@ -65,7 +66,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x70, // LD (HL),B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getHL()->set(0x1234);
         $cpu->setB(0xCD);
 
@@ -85,7 +86,7 @@ final class InstructionSetTest extends TestCase
             0x0101 => 0x34,
             0x0102 => 0x12,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -98,7 +99,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x22, // LD (HL+),A
             0x0101 => 0x32, // LD (HL-),A
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getHL()->set(0x1000);
         $cpu->setA(0x42);
 
@@ -120,7 +121,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x3A);
         $cpu->setB(0x12);
 
@@ -138,7 +139,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0xFF);
         $cpu->setB(0x01);
 
@@ -156,7 +157,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x0F);
         $cpu->setB(0x01);
 
@@ -173,7 +174,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x88, // ADC A,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x10);
         $cpu->setB(0x05);
         $cpu->getFlags()->setC(true);
@@ -188,7 +189,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x90, // SUB B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x3E);
         $cpu->setB(0x0E);
 
@@ -206,7 +207,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x90, // SUB B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x00);
         $cpu->setB(0x01);
 
@@ -224,7 +225,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x97, // SUB A
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x42);
 
         $cpu->step();
@@ -241,7 +242,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xA0, // AND B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b11110000);
         $cpu->setB(0b10101010);
 
@@ -259,7 +260,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xB0, // OR B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b11110000);
         $cpu->setB(0b00001111);
 
@@ -277,7 +278,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xA8, // XOR B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b11110000);
         $cpu->setB(0b10101010);
 
@@ -292,7 +293,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xAF, // XOR A
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x42);
 
         $cpu->step();
@@ -309,7 +310,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xB8, // CP B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x3C);
         $cpu->setB(0x2F);
 
@@ -327,7 +328,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xB8, // CP B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x42);
         $cpu->setB(0x42);
 
@@ -346,7 +347,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x04, // INC B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0x0F);
 
         $cpu->step();
@@ -362,7 +363,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x04, // INC B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0xFF);
 
         $cpu->step();
@@ -378,7 +379,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x05, // DEC B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0x10);
 
         $cpu->step();
@@ -394,7 +395,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x05, // DEC B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0x01);
 
         $cpu->step();
@@ -413,7 +414,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x09, // ADD HL,BC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getHL()->set(0x8A23);
         $cpu->getBC()->set(0x0605);
 
@@ -430,7 +431,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x09, // ADD HL,BC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getHL()->set(0xFFFF);
         $cpu->getBC()->set(0x0001);
 
@@ -447,7 +448,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x03, // INC BC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getBC()->set(0x235F);
 
         $cpu->step();
@@ -461,7 +462,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x0B, // DEC BC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getBC()->set(0x235F);
 
         $cpu->step();
@@ -479,7 +480,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x80, // ADD A,B
             0x0101 => 0x27, // DAA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x09); // BCD 09
         $cpu->setB(0x08); // BCD 08
 
@@ -495,7 +496,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x80, // ADD A,B
             0x0101 => 0x27, // DAA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x99); // BCD 99
         $cpu->setB(0x01); // BCD 01
 
@@ -512,7 +513,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x90, // SUB B
             0x0101 => 0x27, // DAA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0x46); // BCD 46
         $cpu->setB(0x08); // BCD 08
 
@@ -531,7 +532,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x2F, // CPL
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b10101010);
 
         $cpu->step();
@@ -546,7 +547,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x37, // SCF
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -561,7 +562,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x3F, // CCF
             0x0101 => 0x3F, // CCF
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getFlags()->setC(false);
 
         $cpu->step();
@@ -580,7 +581,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x07, // RLCA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b10000101);
 
         $cpu->step();
@@ -597,7 +598,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x0F, // RRCA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b10000101);
 
         $cpu->step();
@@ -611,7 +612,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x17, // RLA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b10000101);
         $cpu->getFlags()->setC(true);
 
@@ -626,7 +627,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x1F, // RRA
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b10000101);
         $cpu->getFlags()->setC(true);
 
@@ -646,7 +647,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xC5, // PUSH BC
             0x0101 => 0xC1, // POP BC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getBC()->set(0x1234);
         $cpu->getSP()->set(0xFFFE);
 
@@ -672,7 +673,7 @@ final class InstructionSetTest extends TestCase
             0x0101 => 0x50,
             0x0102 => 0x01,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -685,7 +686,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x18, // JR e
             0x0101 => 0x05,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -698,7 +699,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x18, // JR e
             0x0101 => 0xFE, // -2 in two's complement
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -711,7 +712,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x20, // JR NZ,e
             0x0101 => 0x05,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getFlags()->setZ(false); // Not zero
 
         $cycles = $cpu->step();
@@ -726,7 +727,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x20, // JR NZ,e
             0x0101 => 0x05,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getFlags()->setZ(true); // Zero set
 
         $cycles = $cpu->step();
@@ -747,7 +748,7 @@ final class InstructionSetTest extends TestCase
             0x0102 => 0x01,
             0x0150 => 0xC9, // RET at target
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getSP()->set(0xFFFE);
 
         $cpu->step(); // CALL
@@ -764,7 +765,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xC7, // RST 00H
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->getSP()->set(0xFFFE);
 
         $cpu->step();
@@ -783,7 +784,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0x10, // RL B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0b10000001);
         $cpu->getFlags()->setC(false);
 
@@ -799,7 +800,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0x47, // BIT 0,A
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setA(0b00000001);
 
         $cpu->step();
@@ -814,7 +815,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0x40, // BIT 0,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0b11111110);
 
         $cpu->step();
@@ -828,7 +829,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0xC0, // SET 0,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0b11111110);
 
         $cpu->step();
@@ -842,7 +843,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0x80, // RES 0,B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0b11111111);
 
         $cpu->step();
@@ -856,7 +857,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0xCB, // CB prefix
             0x0101 => 0x30, // SWAP B
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setB(0x12);
 
         $cpu->step();
@@ -874,7 +875,7 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x76, // HALT
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -887,7 +888,7 @@ final class InstructionSetTest extends TestCase
             0x0100 => 0x10, // STOP
             0x0101 => 0x00,
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $cpu->step();
 
@@ -904,14 +905,18 @@ final class InstructionSetTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0xF3, // DI
             0x0101 => 0xFB, // EI
+            0x0102 => 0x00, // NOP (for EI delay)
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
         $cpu->setIME(true);
 
         $cpu->step(); // DI
         $this->assertFalse($cpu->getIME());
 
-        $cpu->step(); // EI
+        $cpu->step(); // EI (IME still false due to 1-instruction delay)
+        $this->assertFalse($cpu->getIME());
+
+        $cpu->step(); // NOP (IME becomes true at start of this instruction)
         $this->assertTrue($cpu->getIME());
     }
 }
