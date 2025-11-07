@@ -75,6 +75,9 @@ final class PpuTest extends TestCase
 
     public function testVBlankEntry(): void
     {
+        // Enable V-Blank interrupt in IE register
+        $this->interruptController->writeByte(0xFFFF, 0x01); // Enable VBlank interrupt
+
         // Step through 144 scanlines to reach V-Blank
         for ($i = 0; $i < 144; $i++) {
             $this->ppu->step(456);
@@ -138,6 +141,9 @@ final class PpuTest extends TestCase
 
     public function testLycCoincidenceInterrupt(): void
     {
+        // Enable LCD STAT interrupt in IE register
+        $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
+
         // Enable LYC=LY interrupt
         $this->ppu->writeByte(0xFF41, 0x40); // Set bit 6
 
@@ -156,6 +162,9 @@ final class PpuTest extends TestCase
 
     public function testStatMode0Interrupt(): void
     {
+        // Enable LCD STAT interrupt in IE register
+        $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
+
         // Enable Mode 0 (H-Blank) interrupt
         $this->ppu->writeByte(0xFF41, 0x08); // Set bit 3
 
@@ -171,6 +180,9 @@ final class PpuTest extends TestCase
 
     public function testStatMode1Interrupt(): void
     {
+        // Enable LCD STAT interrupt in IE register
+        $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
+
         // Enable Mode 1 (V-Blank) interrupt
         $this->ppu->writeByte(0xFF41, 0x10); // Set bit 4
 
@@ -186,6 +198,9 @@ final class PpuTest extends TestCase
 
     public function testStatMode2Interrupt(): void
     {
+        // Enable LCD STAT interrupt in IE register
+        $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
+
         // Clear any pending interrupts first by completing a scanline
         $this->ppu->step(456);
 

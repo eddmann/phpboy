@@ -47,8 +47,8 @@ final class TileRenderingTest extends TestCase
         // Set tile map to use tile 0
         $this->vram->writeByte(0x1800, 0x00);
 
-        // Enable LCD and background
-        $this->ppu->writeByte(0xFF40, 0x81); // LCD on, BG on
+        // Enable LCD and background with unsigned addressing
+        $this->ppu->writeByte(0xFF40, 0x91); // LCD on, BG on, unsigned tile data mode
 
         // Use default palette: 0xFC = 11 11 10 01 00
         // Color 3 maps to shade 3 (black)
@@ -82,7 +82,7 @@ final class TileRenderingTest extends TestCase
 
         $this->vram->writeByte(0x1800, 0x00);
 
-        $this->ppu->writeByte(0xFF40, 0x81);
+        $this->ppu->writeByte(0xFF40, 0x91); // LCD on, BG on, unsigned mode
         $this->ppu->writeByte(0xFF47, 0xE4); // Map color 3 to black
 
         $this->ppu->step(456);
@@ -122,7 +122,7 @@ final class TileRenderingTest extends TestCase
         $this->vram->writeByte(0x1800, 0x00); // First tile
         $this->vram->writeByte(0x1801, 0x01); // Second tile
 
-        $this->ppu->writeByte(0xFF40, 0x81);
+        $this->ppu->writeByte(0xFF40, 0x91); // LCD on, BG on, unsigned mode
         $this->ppu->writeByte(0xFF47, 0xE4);
 
         // No scrolling first
@@ -198,11 +198,13 @@ final class TileRenderingTest extends TestCase
         // BG tile map uses tile 0
         $this->vram->writeByte(0x1800, 0x00);
 
-        // Window tile map uses tile 1
-        $this->vram->writeByte(0x1C00, 0x01);
+        // Window tile map uses tile 1 for entire first row (20 tiles to cover 160 pixels)
+        for ($i = 0; $i < 20; $i++) {
+            $this->vram->writeByte(0x1C00 + $i, 0x01);
+        }
 
-        // Enable LCD, BG, and Window
-        $this->ppu->writeByte(0xFF40, 0xE1); // LCD on, Window on (tilemap 1), BG on
+        // Enable LCD, BG, and Window with unsigned tile data mode
+        $this->ppu->writeByte(0xFF40, 0xF1); // LCD on, Window on (tilemap 1), BG on, unsigned mode
 
         // Set window position to X=7, Y=0 (WX is offset by 7)
         $this->ppu->writeByte(0xFF4A, 0);  // WY = 0
