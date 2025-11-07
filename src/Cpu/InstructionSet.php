@@ -3185,7 +3185,7 @@ final class InstructionSet
                 cycles: 4,
                 handler: static function (Cpu $cpu): int {
                     $cb = self::readImm8($cpu);
-                    return self::getCBInstruction($cb)->handler($cpu);
+                    return (self::getCBInstruction($cb)->handler)($cpu);
                 },
             ),
 
