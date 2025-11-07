@@ -9,6 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 final class Mbc5Test extends TestCase
 {
+    /**
+     * @return array<int, int>
+     */
     private function createRom(int $banks = 4): array
     {
         $rom = [];

@@ -64,7 +64,7 @@ final class Mbc5 implements MbcInterface
     public function __construct(array $rom, int $romSize, int $ramSize, bool $hasBattery, bool $hasRumble)
     {
         $this->rom = $rom;
-        $this->romBankCount = max(2, $romSize / (16 * 1024));
+        $this->romBankCount = max(2, (int)($romSize / (16 * 1024)));
         $this->ramSize = $ramSize;
         $this->hasBattery = $hasBattery;
         $this->hasRumble = $hasRumble;
