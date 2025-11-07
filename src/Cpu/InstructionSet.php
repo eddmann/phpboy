@@ -4044,8 +4044,8 @@ final class InstructionSet
                 opcode: 0xCB00 | $opcode,
                 mnemonic: sprintf('BIT %d,%s', ($opcode - 0x40) >> 3, $regName),
                 length: 2,
-                cycles: $cycles,
-                handler: static function (Cpu $cpu) use ($opcode, $regIndex, $cycles): int {
+                cycles: ($regIndex === 6) ? 12 : 8, // BIT b,(HL) is 12 cycles, not 16
+                handler: static function (Cpu $cpu) use ($opcode, $regIndex): int {
                     $bit = ($opcode - 0x40) >> 3;
                     $value = self::getRegByIndex($cpu, $regIndex);
                     $bitValue = BitOps::getBit($value, $bit);
@@ -4055,7 +4055,7 @@ final class InstructionSet
                     $cpu->getFlags()->setH(true);
                     // C flag unchanged
 
-                    return $cycles;
+                    return ($regIndex === 6) ? 12 : 8;
                 },
             ),
 
