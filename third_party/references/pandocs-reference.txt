@@ -1,0 +1,2 @@
+Pan Docs HTML Reference - https://gbdev.io/pandocs/
+Complete online documentation available at the URL above
