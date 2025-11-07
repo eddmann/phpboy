@@ -19,20 +19,27 @@ use Gb\Bus\DeviceInterface;
  * - 0x8000-0x87FF: Tile data block 0
  * - 0x8800-0x8FFF: Tile data block 1
  * - 0x9000-0x97FF: Tile data block 2
- * - 0x9800-0x9BFF: Tile map 0
- * - 0x9C00-0x9FFF: Tile map 1
+ * - 0x9800-0x9BFF: Tile map 0 (Bank 0: tile indices, Bank 1: tile attributes in CGB)
+ * - 0x9C00-0x9FFF: Tile map 1 (Bank 0: tile indices, Bank 1: tile attributes in CGB)
  *
- * For now, implements DMG-style 8KB VRAM. CGB bank switching will be added later.
+ * Bank 0: Tile data (same as DMG)
+ * Bank 1: Tile attributes (CGB only) for tile maps
  */
 final class Vram implements DeviceInterface
 {
-    /** @var array<int, int> Video RAM storage (8KB = 8192 bytes) */
-    private array $ram;
+    /** @var array<int, array<int, int>> Video RAM storage (2 banks × 8KB) */
+    private array $banks;
+
+    /** @var int Current VRAM bank (0 or 1) */
+    private int $currentBank = 0;
 
     public function __construct()
     {
-        // Initialize 8KB of VRAM with 0x00
-        $this->ram = array_fill(0, 8192, 0x00);
+        // Initialize 2 banks of 8KB VRAM with 0x00
+        $this->banks = [
+            0 => array_fill(0, 8192, 0x00),
+            1 => array_fill(0, 8192, 0x00),
+        ];
     }
 
     /**
@@ -44,7 +51,7 @@ final class Vram implements DeviceInterface
     public function readByte(int $address): int
     {
         $offset = $address & 0x1FFF; // Mask to 8KB
-        return $this->ram[$offset];
+        return $this->banks[$this->currentBank][$offset];
     }
 
     /**
@@ -56,17 +63,38 @@ final class Vram implements DeviceInterface
     public function writeByte(int $address, int $value): void
     {
         $offset = $address & 0x1FFF; // Mask to 8KB
-        $this->ram[$offset] = $value & 0xFF;
+        $this->banks[$this->currentBank][$offset] = $value & 0xFF;
     }
 
     /**
-     * Get direct access to VRAM data (for PPU access).
+     * Get direct access to VRAM bank data (for PPU access).
      * This allows the PPU to read VRAM efficiently without going through the bus.
      *
-     * @return array<int, int> Reference to VRAM array
+     * @param int $bank Bank number (0 or 1)
+     * @return array<int, int> Reference to VRAM bank array
      */
-    public function getData(): array
+    public function getData(int $bank = 0): array
     {
-        return $this->ram;
+        return $this->banks[$bank];
+    }
+
+    /**
+     * Set the current VRAM bank (CGB only).
+     *
+     * @param int $bank Bank number (0 or 1)
+     */
+    public function setBank(int $bank): void
+    {
+        $this->currentBank = $bank & 0x01; // Only bit 0 is used
+    }
+
+    /**
+     * Get the current VRAM bank.
+     *
+     * @return int Current bank number (0 or 1)
+     */
+    public function getBank(): int
+    {
+        return $this->currentBank;
     }
 }
