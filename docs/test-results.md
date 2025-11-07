@@ -3,15 +3,20 @@
 This document tracks the emulator's compatibility with various test ROM suites.
 
 **Last Updated:** 2025-11-07
-**PHPBoy Version:** Step 13 (Test ROM Integration)
+**PHPBoy Version:** Step 13 (Test ROM Integration - In Progress)
 
 ## Summary
 
 | Test Suite | Pass | Fail | Total | Pass Rate |
 |------------|------|------|-------|-----------|
-| Blargg CPU Instructions | 2 | 9 | 11 | 18.2% |
+| Blargg CPU Instructions | 5 | 6 | 11 | 45.5% |
 | Blargg Instruction Timing | 0 | 1 | 1 | 0% |
-| **Overall** | **2** | **10** | **12** | **16.7%** |
+| **Overall** | **5** | **7** | **12** | **41.7%** |
+
+**Progress from initial state:**
+- Initial: 16.7% (2/12 tests passing)
+- Current: 41.7% (5/12 tests passing)
+- Improvement: +25% (+3 tests)
 
 ## Blargg CPU Instruction Tests
 
@@ -19,17 +24,17 @@ Blargg's CPU instruction tests verify the correctness of CPU instruction impleme
 
 | Test ROM | Status | Duration | Notes |
 |----------|--------|----------|-------|
-| 01-special.gb | ❌ FAIL | 4.47s | Failed test #6: DAA (Decimal Adjust Accumulator) instruction |
+| 01-special.gb | ✅ PASS | ~4.5s | **FIXED** - DAA instruction now working correctly |
 | 02-interrupts.gb | ✅ PASS | ~4s | All interrupt handling tests pass |
-| 03-op sp,hl.gb | ❌ FAIL | 4.04s | ADD SP,e8 and LD HL,SP+e8 instructions fail |
-| 04-op r,imm.gb | ❌ FAIL | 4.84s | Immediate arithmetic operations fail |
-| 05-op rp.gb | ❌ FAIL | 6.50s | 16-bit register pair operations fail (ADD HL,rr) |
+| 03-op sp,hl.gb | ✅ PASS | ~4s | **FIXED** - ADD SP,e8 and LD HL,SP+e8 now correct |
+| 04-op r,imm.gb | ❌ FAIL | 4.76s | Immediate arithmetic operations - subtle flag issues remain |
+| 05-op rp.gb | ❌ FAIL | 6.32s | 16-bit register pair operations - ADD HL,rr half-carry |
 | 06-ld r,r.gb | ✅ PASS | ~4s | All 8-bit register loads pass |
-| 07-jr,jp,call,ret,rst.gb | ❌ FAIL | 1.37s | Jump and call condition flag handling fails |
+| 07-jr,jp,call,ret,rst.gb | ❌ FAIL | 1.47s | Jump/call instructions - timing or flag issues |
 | 08-misc instrs.gb | ✅ PASS | ~4s | Miscellaneous instructions pass |
-| 09-op r,r.gb | ❌ FAIL | 18.30s | Register-to-register operations fail |
-| 10-bit ops.gb | ❌ FAIL | 25.62s | BIT instruction (test bit) fails |
-| 11-op a,(hl).gb | ⏱️ TIMEOUT | 30.01s | Timed out - likely infinite loop or missing instruction |
+| 09-op r,r.gb | ❌ FAIL | 18.14s | Register-to-register operations - flag handling issues |
+| 10-bit ops.gb | ❌ FAIL | 25.13s | BIT instruction - flag handling issues |
+| 11-op a,(hl).gb | ❌ FAIL | 29.87s | **IMPROVED** - No longer times out, now reaching DAA test |
 
 ### Blargg Instruction Timing
 
