@@ -46,6 +46,10 @@ final class Ppu implements DeviceInterface
     private const OBP1 = 0xFF49; // Object Palette 1 (DMG)
     private const WY = 0xFF4A;   // Window Y
     private const WX = 0xFF4B;   // Window X + 7
+    private const BCPS = 0xFF68; // Background Color Palette Specification (CGB)
+    private const BCPD = 0xFF69; // Background Color Palette Data (CGB)
+    private const OCPS = 0xFF6A; // Object Color Palette Specification (CGB)
+    private const OCPD = 0xFF6B; // Object Color Palette Data (CGB)
 
     // LCDC bits
     private const LCDC_LCD_ENABLE = 0x80;
@@ -89,6 +93,12 @@ final class Ppu implements DeviceInterface
     /** @var array<int, Color> */
     private array $scanlineBuffer = [];
 
+    /** @var ColorPalette Color palette system (CGB) */
+    private readonly ColorPalette $colorPalette;
+
+    /** @var bool CGB mode enabled */
+    private bool $cgbMode = false;
+
     public function __construct(
         private readonly Vram $vram,
         private readonly Oam $oam,
@@ -97,6 +107,9 @@ final class Ppu implements DeviceInterface
     ) {
         // Initialize STAT register with initial mode bits
         $this->stat = $this->mode->getStatBits();
+
+        // Initialize color palette system
+        $this->colorPalette = new ColorPalette();
     }
 
     /**
@@ -242,7 +255,8 @@ final class Ppu implements DeviceInterface
 
     private function renderBackground(): void
     {
-        $vramData = $this->vram->getData();
+        $vramBank0 = $this->vram->getData(0);
+        $vramBank1 = $this->vram->getData(1);
         $tileMapBase = (($this->lcdc & self::LCDC_BG_TILEMAP) !== 0) ? 0x1C00 : 0x1800;
         $tileDataMode = (($this->lcdc & self::LCDC_TILE_DATA) !== 0) ? 0 : 1; // 0=unsigned, 1=signed
 
@@ -255,16 +269,34 @@ final class Ppu implements DeviceInterface
             $tileCol = $bgX >> 3;
             $tileX = $bgX & 7;
 
-            // Get tile index from tile map
+            // Get tile index from tile map (bank 0)
             $tileMapAddr = $tileMapBase + ($tileRow * 32) + $tileCol;
-            $tileIndex = $vramData[$tileMapAddr];
+            $tileIndex = $vramBank0[$tileMapAddr];
 
-            // Calculate tile data address
+            // Get tile attributes from bank 1 (CGB only)
+            $attributes = $this->cgbMode ? $vramBank1[$tileMapAddr] : 0x00;
+            $paletteNum = $attributes & 0x07; // Bits 0-2: palette number
+            $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
+            $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
+            $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+
+            // Apply flips
+            $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
+            $finalTileX = $xFlip ? (7 - $tileX) : $tileX;
+
+            // Get tile data from appropriate bank
+            $vramData = $this->cgbMode ? $this->vram->getData($vramBank) : $vramBank0;
             $tileDataAddr = $this->getTileDataAddress($tileIndex, $tileDataMode);
 
             // Get pixel color
-            $color = $this->getTilePixel($vramData, $tileDataAddr, $tileX, $tileY);
-            $this->scanlineBuffer[$x] = $this->applyPalette($color, $this->bgp);
+            $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
+
+            // Apply palette
+            if ($this->cgbMode) {
+                $this->scanlineBuffer[$x] = $this->colorPalette->getBgColor($paletteNum, $color);
+            } else {
+                $this->scanlineBuffer[$x] = $this->applyPalette($color, $this->bgp);
+            }
         }
     }
 
@@ -275,7 +307,8 @@ final class Ppu implements DeviceInterface
             return;
         }
 
-        $vramData = $this->vram->getData();
+        $vramBank0 = $this->vram->getData(0);
+        $vramBank1 = $this->vram->getData(1);
         $tileMapBase = (($this->lcdc & self::LCDC_WINDOW_TILEMAP) !== 0) ? 0x1C00 : 0x1800;
         $tileDataMode = (($this->lcdc & self::LCDC_TILE_DATA) !== 0) ? 0 : 1;
 
@@ -294,11 +327,31 @@ final class Ppu implements DeviceInterface
             $tileX = $windowPixelX & 7;
 
             $tileMapAddr = $tileMapBase + ($tileRow * 32) + $tileCol;
-            $tileIndex = $vramData[$tileMapAddr];
+            $tileIndex = $vramBank0[$tileMapAddr];
 
+            // Get tile attributes from bank 1 (CGB only)
+            $attributes = $this->cgbMode ? $vramBank1[$tileMapAddr] : 0x00;
+            $paletteNum = $attributes & 0x07; // Bits 0-2: palette number
+            $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
+            $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
+            $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+
+            // Apply flips
+            $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
+            $finalTileX = $xFlip ? (7 - $tileX) : $tileX;
+
+            // Get tile data from appropriate bank
+            $vramData = $this->cgbMode ? $this->vram->getData($vramBank) : $vramBank0;
             $tileDataAddr = $this->getTileDataAddress($tileIndex, $tileDataMode);
-            $color = $this->getTilePixel($vramData, $tileDataAddr, $tileX, $tileY);
-            $this->scanlineBuffer[$x] = $this->applyPalette($color, $this->bgp);
+
+            $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
+
+            // Apply palette
+            if ($this->cgbMode) {
+                $this->scanlineBuffer[$x] = $this->colorPalette->getBgColor($paletteNum, $color);
+            } else {
+                $this->scanlineBuffer[$x] = $this->applyPalette($color, $this->bgp);
+            }
         }
 
         $this->windowLineCounter++;
@@ -355,8 +408,17 @@ final class Ppu implements DeviceInterface
 
         $yFlip = ($flags & 0x40) !== 0;
         $xFlip = ($flags & 0x20) !== 0;
-        $palette = ($flags & 0x10) !== 0 ? $this->obp1 : $this->obp0;
         $behindBg = ($flags & 0x80) !== 0;
+
+        // CGB: bits 0-2 are palette number, bit 3 is VRAM bank
+        // DMG: bit 4 selects OBP0 or OBP1
+        if ($this->cgbMode) {
+            $paletteNum = $flags & 0x07;
+            $vramBank = ($flags & 0x08) !== 0 ? 1 : 0;
+            $vramData = $this->vram->getData($vramBank);
+        } else {
+            $palette = ($flags & 0x10) !== 0 ? $this->obp1 : $this->obp0;
+        }
 
         $line = $this->ly - $spriteY;
         if ($yFlip) {
@@ -395,7 +457,11 @@ final class Ppu implements DeviceInterface
                 // For now, simplified: always draw sprite (TODO: track BG pixel colors)
             }
 
-            $this->scanlineBuffer[$pixelX] = $this->applyPalette($color, $palette);
+            if ($this->cgbMode) {
+                $this->scanlineBuffer[$pixelX] = $this->colorPalette->getObjColor($paletteNum, $color);
+            } else {
+                $this->scanlineBuffer[$pixelX] = $this->applyPalette($color, $palette);
+            }
         }
     }
 
@@ -440,6 +506,22 @@ final class Ppu implements DeviceInterface
         return ($this->lcdc & self::LCDC_LCD_ENABLE) !== 0;
     }
 
+    /**
+     * Enable CGB mode (called during system initialization).
+     */
+    public function enableCgbMode(bool $enabled): void
+    {
+        $this->cgbMode = $enabled;
+    }
+
+    /**
+     * Check if CGB mode is enabled.
+     */
+    public function isCgbMode(): bool
+    {
+        return $this->cgbMode;
+    }
+
     // DeviceInterface implementation for I/O registers
     public function readByte(int $address): int
     {
@@ -455,6 +537,10 @@ final class Ppu implements DeviceInterface
             self::OBP1 => $this->obp1,
             self::WY => $this->wy,
             self::WX => $this->wx,
+            self::BCPS => $this->colorPalette->readBgIndex(),
+            self::BCPD => $this->colorPalette->readBgData(),
+            self::OCPS => $this->colorPalette->readObjIndex(),
+            self::OCPD => $this->colorPalette->readObjData(),
             default => 0xFF,
         };
     }
@@ -473,6 +559,10 @@ final class Ppu implements DeviceInterface
             self::OBP1 => $this->obp1 = $value,
             self::WY => $this->wy = $value,
             self::WX => $this->wx = $value,
+            self::BCPS => $this->colorPalette->writeBgIndex($value),
+            self::BCPD => $this->colorPalette->writeBgData($value),
+            self::OCPS => $this->colorPalette->writeObjIndex($value),
+            self::OCPD => $this->colorPalette->writeObjData($value),
             default => null,
         };
 

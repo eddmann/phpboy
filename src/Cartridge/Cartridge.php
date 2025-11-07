@@ -33,6 +33,9 @@ final class Cartridge implements DeviceInterface
     /** @var int Total ROM size */
     private int $romSize;
 
+    /** @var CartridgeHeader Parsed cartridge header */
+    private readonly CartridgeHeader $header;
+
     /**
      * @param array<int, int> $romData ROM data loaded from .gb file
      */
@@ -40,6 +43,9 @@ final class Cartridge implements DeviceInterface
     {
         $this->rom = $romData;
         $this->romSize = count($romData);
+
+        // Parse cartridge header
+        $this->header = CartridgeHeader::fromRom($romData);
 
         // Initialize 8KB of external RAM (will be used by MBC cartridges)
         $this->ram = array_fill(0, 8192, 0x00);
@@ -96,5 +102,15 @@ final class Cartridge implements DeviceInterface
     public static function fromRom(array $romData): self
     {
         return new self($romData);
+    }
+
+    /**
+     * Get the parsed cartridge header.
+     *
+     * @return CartridgeHeader
+     */
+    public function getHeader(): CartridgeHeader
+    {
+        return $this->header;
     }
 }
