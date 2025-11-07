@@ -1,0 +1,160 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Gb\Cpu\Register;
+
+/**
+ * FlagRegister - CPU flags register (F register)
+ *
+ * The Game Boy CPU has 4 flags in the F register:
+ * - Z (Zero) at bit 7: Set when result is zero
+ * - N (Subtract) at bit 6: Set when last operation was subtraction
+ * - H (Half Carry) at bit 5: Set when carry from bit 3 to bit 4
+ * - C (Carry) at bit 4: Set when carry from bit 7 or borrow occurred
+ *
+ * Bits 0-3 are always 0 on the Game Boy.
+ */
+final class FlagRegister
+{
+    private const int FLAG_ZERO = 0x80;        // Bit 7
+    private const int FLAG_SUBTRACT = 0x40;    // Bit 6
+    private const int FLAG_HALF_CARRY = 0x20;  // Bit 5
+    private const int FLAG_CARRY = 0x10;       // Bit 4
+
+    private int $value;
+
+    /**
+     * @param int $initialValue Initial flag register value (default: 0x00)
+     */
+    public function __construct(int $initialValue = 0x00)
+    {
+        // Mask to only keep flag bits (bits 4-7)
+        $this->value = $initialValue & 0xF0;
+    }
+
+    /**
+     * Get the raw flag register value
+     *
+     * @return int Value with only bits 4-7 set
+     */
+    public function get(): int
+    {
+        return $this->value;
+    }
+
+    /**
+     * Set the raw flag register value
+     *
+     * @param int $value Value to set (bits 0-3 will be cleared)
+     */
+    public function set(int $value): void
+    {
+        // Mask to only keep flag bits (bits 4-7)
+        $this->value = $value & 0xF0;
+    }
+
+    /**
+     * Get Zero flag (Z)
+     *
+     * @return bool True if zero flag is set
+     */
+    public function getZero(): bool
+    {
+        return ($this->value & self::FLAG_ZERO) !== 0;
+    }
+
+    /**
+     * Set or clear Zero flag (Z)
+     *
+     * @param bool $value True to set, false to clear
+     */
+    public function setZero(bool $value): void
+    {
+        if ($value) {
+            $this->value |= self::FLAG_ZERO;
+        } else {
+            $this->value &= ~self::FLAG_ZERO;
+        }
+    }
+
+    /**
+     * Get Subtract flag (N)
+     *
+     * @return bool True if subtract flag is set
+     */
+    public function getSubtract(): bool
+    {
+        return ($this->value & self::FLAG_SUBTRACT) !== 0;
+    }
+
+    /**
+     * Set or clear Subtract flag (N)
+     *
+     * @param bool $value True to set, false to clear
+     */
+    public function setSubtract(bool $value): void
+    {
+        if ($value) {
+            $this->value |= self::FLAG_SUBTRACT;
+        } else {
+            $this->value &= ~self::FLAG_SUBTRACT;
+        }
+    }
+
+    /**
+     * Get Half Carry flag (H)
+     *
+     * @return bool True if half carry flag is set
+     */
+    public function getHalfCarry(): bool
+    {
+        return ($this->value & self::FLAG_HALF_CARRY) !== 0;
+    }
+
+    /**
+     * Set or clear Half Carry flag (H)
+     *
+     * @param bool $value True to set, false to clear
+     */
+    public function setHalfCarry(bool $value): void
+    {
+        if ($value) {
+            $this->value |= self::FLAG_HALF_CARRY;
+        } else {
+            $this->value &= ~self::FLAG_HALF_CARRY;
+        }
+    }
+
+    /**
+     * Get Carry flag (C)
+     *
+     * @return bool True if carry flag is set
+     */
+    public function getCarry(): bool
+    {
+        return ($this->value & self::FLAG_CARRY) !== 0;
+    }
+
+    /**
+     * Set or clear Carry flag (C)
+     *
+     * @param bool $value True to set, false to clear
+     */
+    public function setCarry(bool $value): void
+    {
+        if ($value) {
+            $this->value |= self::FLAG_CARRY;
+        } else {
+            $this->value &= ~self::FLAG_CARRY;
+        }
+    }
+
+    /**
+     * Clear all flags
+     */
+    public function clear(): void
+    {
+        $this->value = 0x00;
+    }
+}
