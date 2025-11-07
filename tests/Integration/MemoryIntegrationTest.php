@@ -6,6 +6,7 @@ namespace Tests\Integration;
 
 use Gb\Bus\SystemBus;
 use Gb\Cartridge\Cartridge;
+use Gb\Interrupts\InterruptController;
 use Gb\Memory\Hram;
 use Gb\Memory\Vram;
 use Gb\Memory\Wram;
@@ -47,6 +48,9 @@ final class MemoryIntegrationTest extends TestCase
         $this->bus->attachDevice('wram', new Wram(), 0xC000, 0xDFFF);
         $this->bus->attachDevice('oam', new Oam(), 0xFE00, 0xFE9F);
         $this->bus->attachDevice('hram', new Hram(), 0xFF80, 0xFFFE);
+
+        // Attach interrupt controller for IF (0xFF0F) and IE (0xFFFF) registers
+        $this->bus->attachIoDevice(new InterruptController(), 0xFF0F, 0xFFFF);
     }
 
     #[Test]
