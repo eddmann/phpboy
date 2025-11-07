@@ -129,13 +129,8 @@ final class Channel1Test extends TestCase
         $channel->writeNR13(0xFF); // Frequency = 0x7FF (2047)
         $channel->writeNR14(0x87); // Frequency high = 7, trigger
 
-        self::assertTrue($channel->isEnabled());
-
-        // Clock sweep - should overflow and disable
-        $channel->clockSweep();
-
-        // Sweep overflow should disable the channel
-        // Note: The overflow check happens during trigger and sweep calculation
+        // Overflow check happens during trigger with shift > 0
+        // Channel should be disabled immediately
         self::assertFalse($channel->isEnabled());
     }
 
@@ -161,10 +156,10 @@ final class Channel1Test extends TestCase
         $channel = new Channel1();
 
         $channel->writeNR10(0x7F);
-        self::assertSame(0xFF, $channel->readNR10() & 0x7F); // Top bit is always 1
+        self::assertSame(0xFF, $channel->readNR10()); // Top bit always 1, all bits readable
 
         $channel->writeNR11(0xFF);
-        self::assertSame(0xFF, $channel->readNR11() & 0xC0); // Only duty bits readable
+        self::assertSame(0xFF, $channel->readNR11()); // Duty bits + write-only lower bits return 1
 
         $channel->writeNR12(0xFF);
         self::assertSame(0xFF, $channel->readNR12());

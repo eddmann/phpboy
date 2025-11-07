@@ -57,10 +57,11 @@ final class Channel2 implements ChannelInterface
 
     /**
      * Read from NR21 (0xFF16): Length timer & duty
+     * Lower 6 bits are write-only and return as 1s
      */
     public function readNR21(): int
     {
-        return 0x3F | ($this->duty << 6);
+        return ($this->duty << 6) | 0x3F;
     }
 
     /**
