@@ -29,8 +29,8 @@ final class SystemBus implements BusInterface
     /** @var array<string, array{device: DeviceInterface, start: int, end: int}> */
     private array $devices = [];
 
-    /** @var int Interrupt Enable register (0xFFFF) */
-    private int $interruptEnable = 0x00;
+    /** @var array<int, DeviceInterface> I/O register device mapping */
+    private array $ioDevices = [];
 
     /**
      * Attach a device to the bus at a specific address range.
@@ -47,6 +47,19 @@ final class SystemBus implements BusInterface
             'start' => $startAddr,
             'end' => $endAddr,
         ];
+    }
+
+    /**
+     * Attach an I/O device that handles specific register addresses.
+     *
+     * @param DeviceInterface $device Device instance
+     * @param int ...$addresses Register addresses this device handles
+     */
+    public function attachIoDevice(DeviceInterface $device, int ...$addresses): void
+    {
+        foreach ($addresses as $address) {
+            $this->ioDevices[$address] = $device;
+        }
     }
 
     /**
@@ -97,8 +110,10 @@ final class SystemBus implements BusInterface
 
         // I/O Registers (0xFF00-0xFF7F)
         if ($address <= 0xFF7F) {
-            // I/O registers will be implemented in later steps
-            // For now, return 0xFF (unimplemented)
+            if (isset($this->ioDevices[$address])) {
+                return $this->ioDevices[$address]->readByte($address);
+            }
+            // Unimplemented I/O register, return 0xFF (open bus)
             return 0xFF;
         }
 
@@ -107,8 +122,11 @@ final class SystemBus implements BusInterface
             return $this->readFromDevice('hram', $address - 0xFF80);
         }
 
-        // IE Register (0xFFFF)
-        return $this->interruptEnable;
+        // IE Register (0xFFFF) - handled by InterruptController
+        if (isset($this->ioDevices[0xFFFF])) {
+            return $this->ioDevices[0xFFFF]->readByte(0xFFFF);
+        }
+        return 0xFF;
     }
 
     /**
@@ -166,8 +184,10 @@ final class SystemBus implements BusInterface
 
         // I/O Registers (0xFF00-0xFF7F)
         if ($address <= 0xFF7F) {
-            // I/O registers will be implemented in later steps
-            // For now, ignore writes
+            if (isset($this->ioDevices[$address])) {
+                $this->ioDevices[$address]->writeByte($address, $value);
+            }
+            // Unimplemented I/O register, ignore write
             return;
         }
 
@@ -177,8 +197,10 @@ final class SystemBus implements BusInterface
             return;
         }
 
-        // IE Register (0xFFFF)
-        $this->interruptEnable = $value;
+        // IE Register (0xFFFF) - handled by InterruptController
+        if (isset($this->ioDevices[0xFFFF])) {
+            $this->ioDevices[0xFFFF]->writeByte(0xFFFF, $value);
+        }
     }
 
     /**
