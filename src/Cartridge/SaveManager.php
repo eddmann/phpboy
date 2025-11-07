@@ -142,11 +142,12 @@ final class SaveManager
         }
 
         $data = json_decode($json, true);
-        if (!is_array($data) || !isset($data['timestamp'], $data['rtc'])) {
+        if (!is_array($data) || !isset($data['timestamp'], $data['rtc']) || !is_array($data['rtc'])) {
             throw new RuntimeException("Invalid RTC file format: {$path}");
         }
 
         $timestamp = $data['timestamp'];
+        /** @var array<string, int> $rtcState */
         $rtcState = $data['rtc'];
 
         // Calculate elapsed time since save
@@ -197,7 +198,8 @@ final class SaveManager
      */
     public function getSavePath(string $romPath): string
     {
-        return preg_replace('/\.(gb|gbc)$/i', '.sav', $romPath);
+        $result = preg_replace('/\.(gb|gbc)$/i', '.sav', $romPath);
+        return $result ?? $romPath . '.sav';
     }
 
     /**
@@ -208,7 +210,8 @@ final class SaveManager
      */
     public function getRtcPath(string $romPath): string
     {
-        return preg_replace('/\.(gb|gbc)$/i', '.rtc', $romPath);
+        $result = preg_replace('/\.(gb|gbc)$/i', '.rtc', $romPath);
+        return $result ?? $romPath . '.rtc';
     }
 
     /**

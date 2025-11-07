@@ -246,7 +246,7 @@ final readonly class CartridgeHeader
             return 0;
         }
 
-        return $ramSize / (8 * 1024);
+        return (int)($ramSize / (8 * 1024));
     }
 
     /**

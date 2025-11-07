@@ -20,6 +20,10 @@ final class CartridgeHeaderTest extends TestCase
         0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
     ];
 
+    /**
+     * @param array<int, int> $headerData
+     * @return array<int, int>
+     */
     private function createRomWithHeader(array $headerData = []): array
     {
         $rom = array_fill(0, 0x8000, 0x00);
