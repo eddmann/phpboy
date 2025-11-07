@@ -2022,7 +2022,1827 @@ final class InstructionSet
                 },
             ),
 
-            // Continue with remaining instructions in next part...
+            // 0x88-0x8F: ADC A,r (Add with carry)
+            0x88 => new Instruction(
+                opcode: 0x88,
+                mnemonic: 'ADC A,B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $b = $cpu->getB();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $b + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $b, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x89 => new Instruction(
+                opcode: 0x89,
+                mnemonic: 'ADC A,C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $c = $cpu->getC();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $c + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $c, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x8A => new Instruction(
+                opcode: 0x8A,
+                mnemonic: 'ADC A,D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $d = $cpu->getD();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $d + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $d, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x8B => new Instruction(
+                opcode: 0x8B,
+                mnemonic: 'ADC A,E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $e = $cpu->getE();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $e + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $e, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x8C => new Instruction(
+                opcode: 0x8C,
+                mnemonic: 'ADC A,H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $h = $cpu->getH();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $h + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $h, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x8D => new Instruction(
+                opcode: 0x8D,
+                mnemonic: 'ADC A,L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $l = $cpu->getL();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $l + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $l, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            0x8E => new Instruction(
+                opcode: 0x8E,
+                mnemonic: 'ADC A,(HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $value + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $value, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 8;
+                },
+            ),
+
+            0x8F => new Instruction(
+                opcode: 0x8F,
+                mnemonic: 'ADC A,A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $a + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $a, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 4;
+                },
+            ),
+
+            // 0x90-0x97: SUB r (Subtract)
+            0x90 => new Instruction(
+                opcode: 0x90,
+                mnemonic: 'SUB B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $b = $cpu->getB();
+                    $result = $a - $b;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $b));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x91 => new Instruction(
+                opcode: 0x91,
+                mnemonic: 'SUB C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $c = $cpu->getC();
+                    $result = $a - $c;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $c));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x92 => new Instruction(
+                opcode: 0x92,
+                mnemonic: 'SUB D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $d = $cpu->getD();
+                    $result = $a - $d;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $d));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x93 => new Instruction(
+                opcode: 0x93,
+                mnemonic: 'SUB E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $e = $cpu->getE();
+                    $result = $a - $e;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $e));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x94 => new Instruction(
+                opcode: 0x94,
+                mnemonic: 'SUB H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $h = $cpu->getH();
+                    $result = $a - $h;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $h));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x95 => new Instruction(
+                opcode: 0x95,
+                mnemonic: 'SUB L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $l = $cpu->getL();
+                    $result = $a - $l;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $l));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x96 => new Instruction(
+                opcode: 0x96,
+                mnemonic: 'SUB (HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $result = $a - $value;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $value));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0x97 => new Instruction(
+                opcode: 0x97,
+                mnemonic: 'SUB A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setA(0);
+                    $cpu->getFlags()->setZ(true);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            // 0x98-0x9F: SBC A,r (Subtract with carry)
+            0x98 => new Instruction(
+                opcode: 0x98,
+                mnemonic: 'SBC A,B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $b = $cpu->getB();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $b - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $b, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x99 => new Instruction(
+                opcode: 0x99,
+                mnemonic: 'SBC A,C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $c = $cpu->getC();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $c - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $c, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x9A => new Instruction(
+                opcode: 0x9A,
+                mnemonic: 'SBC A,D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $d = $cpu->getD();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $d - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $d, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x9B => new Instruction(
+                opcode: 0x9B,
+                mnemonic: 'SBC A,E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $e = $cpu->getE();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $e - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $e, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x9C => new Instruction(
+                opcode: 0x9C,
+                mnemonic: 'SBC A,H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $h = $cpu->getH();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $h - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $h, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x9D => new Instruction(
+                opcode: 0x9D,
+                mnemonic: 'SBC A,L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $l = $cpu->getL();
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $l - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $l, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0x9E => new Instruction(
+                opcode: 0x9E,
+                mnemonic: 'SBC A,(HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $value - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $value, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0x9F => new Instruction(
+                opcode: 0x9F,
+                mnemonic: 'SBC A,A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = -$carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH($carry !== 0);
+                    $cpu->getFlags()->setC($carry !== 0);
+                    return 4;
+                },
+            ),
+
+            // 0xA0-0xA7: AND r
+
+            0xA0 => new Instruction(
+                opcode: 0xA0,
+                mnemonic: 'AND B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getB();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA1 => new Instruction(
+                opcode: 0xA1,
+                mnemonic: 'AND C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getC();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA2 => new Instruction(
+                opcode: 0xA2,
+                mnemonic: 'AND D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getD();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA3 => new Instruction(
+                opcode: 0xA3,
+                mnemonic: 'AND E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getE();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA4 => new Instruction(
+                opcode: 0xA4,
+                mnemonic: 'AND H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getH();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA5 => new Instruction(
+                opcode: 0xA5,
+                mnemonic: 'AND L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() & $cpu->getL();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA6 => new Instruction(
+                opcode: 0xA6,
+                mnemonic: 'AND (HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $result = $cpu->getA() & $value;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xA7 => new Instruction(
+                opcode: 0xA7,
+                mnemonic: 'AND A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA();
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            // 0xA8-0xAF: XOR r
+
+            0xA8 => new Instruction(
+                opcode: 0xA8,
+                mnemonic: 'XOR B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getB();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xA9 => new Instruction(
+                opcode: 0xA9,
+                mnemonic: 'XOR C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getC();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xAA => new Instruction(
+                opcode: 0xAA,
+                mnemonic: 'XOR D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getD();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xAB => new Instruction(
+                opcode: 0xAB,
+                mnemonic: 'XOR E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getE();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xAC => new Instruction(
+                opcode: 0xAC,
+                mnemonic: 'XOR H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getH();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xAD => new Instruction(
+                opcode: 0xAD,
+                mnemonic: 'XOR L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() ^ $cpu->getL();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xAE => new Instruction(
+                opcode: 0xAE,
+                mnemonic: 'XOR (HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $result = $cpu->getA() ^ $value;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xAF => new Instruction(
+                opcode: 0xAF,
+                mnemonic: 'XOR A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setA(0);
+                    $cpu->getFlags()->setZ(true);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            // 0xB0-0xB7: OR r
+
+            0xB0 => new Instruction(
+                opcode: 0xB0,
+                mnemonic: 'OR B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getB();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB1 => new Instruction(
+                opcode: 0xB1,
+                mnemonic: 'OR C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getC();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB2 => new Instruction(
+                opcode: 0xB2,
+                mnemonic: 'OR D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getD();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB3 => new Instruction(
+                opcode: 0xB3,
+                mnemonic: 'OR E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getE();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB4 => new Instruction(
+                opcode: 0xB4,
+                mnemonic: 'OR H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getH();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB5 => new Instruction(
+                opcode: 0xB5,
+                mnemonic: 'OR L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA() | $cpu->getL();
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            0xB6 => new Instruction(
+                opcode: 0xB6,
+                mnemonic: 'OR (HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $result = $cpu->getA() | $value;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xB7 => new Instruction(
+                opcode: 0xB7,
+                mnemonic: 'OR A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $result = $cpu->getA();
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            // 0xB8-0xBF: CP r (compare)
+
+            0xB8 => new Instruction(
+                opcode: 0xB8,
+                mnemonic: 'CP B',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $b = $cpu->getB();
+                    $result = $a - $b;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $b));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xB9 => new Instruction(
+                opcode: 0xB9,
+                mnemonic: 'CP C',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $c = $cpu->getC();
+                    $result = $a - $c;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $c));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xBA => new Instruction(
+                opcode: 0xBA,
+                mnemonic: 'CP D',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $d = $cpu->getD();
+                    $result = $a - $d;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $d));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xBB => new Instruction(
+                opcode: 0xBB,
+                mnemonic: 'CP E',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $e = $cpu->getE();
+                    $result = $a - $e;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $e));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xBC => new Instruction(
+                opcode: 0xBC,
+                mnemonic: 'CP H',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $h = $cpu->getH();
+                    $result = $a - $h;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $h));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xBD => new Instruction(
+                opcode: 0xBD,
+                mnemonic: 'CP L',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $l = $cpu->getL();
+                    $result = $a - $l;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $l));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 4;
+                },
+            ),
+
+            0xBE => new Instruction(
+                opcode: 0xBE,
+                mnemonic: 'CP (HL)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $address = $cpu->getHL()->get();
+                    $value = $cpu->getBus()->readByte($address);
+                    $result = $a - $value;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $value));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0xBF => new Instruction(
+                opcode: 0xBF,
+                mnemonic: 'CP A',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->getFlags()->setZ(true);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 4;
+                },
+            ),
+
+            // 0xC0-0xCF: Control flow and stack operations
+
+            0xC0 => new Instruction(
+                opcode: 0xC0,
+                mnemonic: 'RET NZ',
+                length: 1,
+                cycles: 8, // 20 if taken, 8 if not taken
+                handler: static function (Cpu $cpu): int {
+                    if (!$cpu->getFlags()->getZ()) {
+                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $cpu->getPC()->set(($high << 8) | $low);
+                        return 20;
+                    }
+                    return 8;
+                },
+            ),
+
+            0xC1 => new Instruction(
+                opcode: 0xC1,
+                mnemonic: 'POP BC',
+                length: 1,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getBC()->set(($high << 8) | $low);
+                    return 12;
+                },
+            ),
+
+            0xC2 => new Instruction(
+                opcode: 0xC2,
+                mnemonic: 'JP NZ,nn',
+                length: 3,
+                cycles: 12, // 16 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if (!$cpu->getFlags()->getZ()) {
+                        $cpu->getPC()->set($address);
+                        return 16;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xC3 => new Instruction(
+                opcode: 0xC3,
+                mnemonic: 'JP nn',
+                length: 3,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    $cpu->getPC()->set($address);
+                    return 16;
+                },
+            ),
+
+            0xC4 => new Instruction(
+                opcode: 0xC4,
+                mnemonic: 'CALL NZ,nn',
+                length: 3,
+                cycles: 12, // 24 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if (!$cpu->getFlags()->getZ()) {
+                        $pc = $cpu->getPC()->get();
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->getPC()->set($address);
+                        return 24;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xC5 => new Instruction(
+                opcode: 0xC5,
+                mnemonic: 'PUSH BC',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $value = $cpu->getBC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    return 16;
+                },
+            ),
+
+            0xC6 => new Instruction(
+                opcode: 0xC6,
+                mnemonic: 'ADD A,n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $n = self::readImm8($cpu);
+                    $result = $a + $n;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $n));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 8;
+                },
+            ),
+
+            0xC7 => new Instruction(
+                opcode: 0xC7,
+                mnemonic: 'RST 00H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0000);
+                    return 16;
+                },
+            ),
+
+            0xC8 => new Instruction(
+                opcode: 0xC8,
+                mnemonic: 'RET Z',
+                length: 1,
+                cycles: 8, // 20 if taken, 8 if not taken
+                handler: static function (Cpu $cpu): int {
+                    if ($cpu->getFlags()->getZ()) {
+                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $cpu->getPC()->set(($high << 8) | $low);
+                        return 20;
+                    }
+                    return 8;
+                },
+            ),
+
+            0xC9 => new Instruction(
+                opcode: 0xC9,
+                mnemonic: 'RET',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getPC()->set(($high << 8) | $low);
+                    return 16;
+                },
+            ),
+
+            0xCA => new Instruction(
+                opcode: 0xCA,
+                mnemonic: 'JP Z,nn',
+                length: 3,
+                cycles: 12, // 16 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if ($cpu->getFlags()->getZ()) {
+                        $cpu->getPC()->set($address);
+                        return 16;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xCB => new Instruction(
+                opcode: 0xCB,
+                mnemonic: 'PREFIX CB',
+                length: 2,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cb = self::readImm8($cpu);
+                    return self::getCBInstruction($cb)->handler($cpu);
+                },
+            ),
+
+            0xCC => new Instruction(
+                opcode: 0xCC,
+                mnemonic: 'CALL Z,nn',
+                length: 3,
+                cycles: 12, // 24 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if ($cpu->getFlags()->getZ()) {
+                        $pc = $cpu->getPC()->get();
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->getPC()->set($address);
+                        return 24;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xCD => new Instruction(
+                opcode: 0xCD,
+                mnemonic: 'CALL nn',
+                length: 3,
+                cycles: 24,
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set($address);
+                    return 24;
+                },
+            ),
+
+            0xCE => new Instruction(
+                opcode: 0xCE,
+                mnemonic: 'ADC A,n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $n = self::readImm8($cpu);
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a + $n + $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(self::halfCarry8Add($a, $n, $carry));
+                    $cpu->getFlags()->setC($result > 0xFF);
+                    return 8;
+                },
+            ),
+
+            0xCF => new Instruction(
+                opcode: 0xCF,
+                mnemonic: 'RST 08H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0008);
+                    return 16;
+                },
+            ),
+
+            // 0xD0-0xDF: More control flow and stack operations
+
+            0xD0 => new Instruction(
+                opcode: 0xD0,
+                mnemonic: 'RET NC',
+                length: 1,
+                cycles: 8, // 20 if taken, 8 if not taken
+                handler: static function (Cpu $cpu): int {
+                    if (!$cpu->getFlags()->getC()) {
+                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $cpu->getPC()->set(($high << 8) | $low);
+                        return 20;
+                    }
+                    return 8;
+                },
+            ),
+
+            0xD1 => new Instruction(
+                opcode: 0xD1,
+                mnemonic: 'POP DE',
+                length: 1,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getDE()->set(($high << 8) | $low);
+                    return 12;
+                },
+            ),
+
+            0xD2 => new Instruction(
+                opcode: 0xD2,
+                mnemonic: 'JP NC,nn',
+                length: 3,
+                cycles: 12, // 16 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if (!$cpu->getFlags()->getC()) {
+                        $cpu->getPC()->set($address);
+                        return 16;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xD4 => new Instruction(
+                opcode: 0xD4,
+                mnemonic: 'CALL NC,nn',
+                length: 3,
+                cycles: 12, // 24 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if (!$cpu->getFlags()->getC()) {
+                        $pc = $cpu->getPC()->get();
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->getPC()->set($address);
+                        return 24;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xD5 => new Instruction(
+                opcode: 0xD5,
+                mnemonic: 'PUSH DE',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $value = $cpu->getDE()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    return 16;
+                },
+            ),
+
+            0xD6 => new Instruction(
+                opcode: 0xD6,
+                mnemonic: 'SUB n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $n = self::readImm8($cpu);
+                    $result = $a - $n;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $n));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0xD7 => new Instruction(
+                opcode: 0xD7,
+                mnemonic: 'RST 10H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0010);
+                    return 16;
+                },
+            ),
+
+            0xD8 => new Instruction(
+                opcode: 0xD8,
+                mnemonic: 'RET C',
+                length: 1,
+                cycles: 8, // 20 if taken, 8 if not taken
+                handler: static function (Cpu $cpu): int {
+                    if ($cpu->getFlags()->getC()) {
+                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $cpu->getSP()->increment();
+                        $cpu->getPC()->set(($high << 8) | $low);
+                        return 20;
+                    }
+                    return 8;
+                },
+            ),
+
+            0xD9 => new Instruction(
+                opcode: 0xD9,
+                mnemonic: 'RETI',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getPC()->set(($high << 8) | $low);
+                    $cpu->setIME(true);
+                    return 16;
+                },
+            ),
+
+            0xDA => new Instruction(
+                opcode: 0xDA,
+                mnemonic: 'JP C,nn',
+                length: 3,
+                cycles: 12, // 16 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if ($cpu->getFlags()->getC()) {
+                        $cpu->getPC()->set($address);
+                        return 16;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xDC => new Instruction(
+                opcode: 0xDC,
+                mnemonic: 'CALL C,nn',
+                length: 3,
+                cycles: 12, // 24 if taken, 12 if not taken
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    if ($cpu->getFlags()->getC()) {
+                        $pc = $cpu->getPC()->get();
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->getSP()->decrement();
+                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->getPC()->set($address);
+                        return 24;
+                    }
+                    return 12;
+                },
+            ),
+
+            0xDE => new Instruction(
+                opcode: 0xDE,
+                mnemonic: 'SBC A,n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $n = self::readImm8($cpu);
+                    $carry = $cpu->getFlags()->getC() ? 1 : 0;
+                    $result = $a - $n - $carry;
+                    $cpu->setA($result & 0xFF);
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $n, $carry));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0xDF => new Instruction(
+                opcode: 0xDF,
+                mnemonic: 'RST 18H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0018);
+                    return 16;
+                },
+            ),
+
+            // 0xE0-0xEF: I/O operations and more control flow
+
+            0xE0 => new Instruction(
+                opcode: 0xE0,
+                mnemonic: 'LDH (n),A',
+                length: 2,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $n = self::readImm8($cpu);
+                    $address = 0xFF00 + $n;
+                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    return 12;
+                },
+            ),
+
+            0xE1 => new Instruction(
+                opcode: 0xE1,
+                mnemonic: 'POP HL',
+                length: 1,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getHL()->set(($high << 8) | $low);
+                    return 12;
+                },
+            ),
+
+            0xE2 => new Instruction(
+                opcode: 0xE2,
+                mnemonic: 'LD (C),A',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $address = 0xFF00 + $cpu->getC();
+                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    return 8;
+                },
+            ),
+
+            0xE5 => new Instruction(
+                opcode: 0xE5,
+                mnemonic: 'PUSH HL',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $value = $cpu->getHL()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    return 16;
+                },
+            ),
+
+            0xE6 => new Instruction(
+                opcode: 0xE6,
+                mnemonic: 'AND n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $n = self::readImm8($cpu);
+                    $result = $cpu->getA() & $n;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xE7 => new Instruction(
+                opcode: 0xE7,
+                mnemonic: 'RST 20H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0020);
+                    return 16;
+                },
+            ),
+
+            0xE8 => new Instruction(
+                opcode: 0xE8,
+                mnemonic: 'ADD SP,e',
+                length: 2,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $sp = $cpu->getSP()->get();
+                    $e = self::readImm8($cpu);
+                    // Sign extend
+                    if ($e > 0x7F) {
+                        $e -= 0x100;
+                    }
+                    $result = $sp + $e;
+                    $cpu->getSP()->set($result & 0xFFFF);
+                    $cpu->getFlags()->setZ(false);
+                    $cpu->getFlags()->setN(false);
+                    // For ADD SP,e, half-carry and carry are calculated on the lower byte
+                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e & 0x0F)) & 0x10) !== 0);
+                    $cpu->getFlags()->setC(((($sp & 0xFF) + ($e & 0xFF)) & 0x100) !== 0);
+                    return 16;
+                },
+            ),
+
+            0xE9 => new Instruction(
+                opcode: 0xE9,
+                mnemonic: 'JP (HL)',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->getPC()->set($cpu->getHL()->get());
+                    return 4;
+                },
+            ),
+
+            0xEA => new Instruction(
+                opcode: 0xEA,
+                mnemonic: 'LD (nn),A',
+                length: 3,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    return 16;
+                },
+            ),
+
+            0xEE => new Instruction(
+                opcode: 0xEE,
+                mnemonic: 'XOR n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $n = self::readImm8($cpu);
+                    $result = $cpu->getA() ^ $n;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xEF => new Instruction(
+                opcode: 0xEF,
+                mnemonic: 'RST 28H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0028);
+                    return 16;
+                },
+            ),
+
+            // 0xF0-0xFF: Final I/O operations and control flow
+
+            0xF0 => new Instruction(
+                opcode: 0xF0,
+                mnemonic: 'LDH A,(n)',
+                length: 2,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $n = self::readImm8($cpu);
+                    $address = 0xFF00 + $n;
+                    $cpu->setA($cpu->getBus()->readByte($address));
+                    return 12;
+                },
+            ),
+
+            0xF1 => new Instruction(
+                opcode: 0xF1,
+                mnemonic: 'POP AF',
+                length: 1,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $cpu->getSP()->increment();
+                    $cpu->getAF()->set(($high << 8) | ($low & 0xF0)); // Lower 4 bits of F are always 0
+                    return 12;
+                },
+            ),
+
+            0xF2 => new Instruction(
+                opcode: 0xF2,
+                mnemonic: 'LD A,(C)',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $address = 0xFF00 + $cpu->getC();
+                    $cpu->setA($cpu->getBus()->readByte($address));
+                    return 8;
+                },
+            ),
+
+            0xF3 => new Instruction(
+                opcode: 0xF3,
+                mnemonic: 'DI',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setIME(false);
+                    return 4;
+                },
+            ),
+
+            0xF5 => new Instruction(
+                opcode: 0xF5,
+                mnemonic: 'PUSH AF',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $value = $cpu->getAF()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    return 16;
+                },
+            ),
+
+            0xF6 => new Instruction(
+                opcode: 0xF6,
+                mnemonic: 'OR n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $n = self::readImm8($cpu);
+                    $result = $cpu->getA() | $n;
+                    $cpu->setA($result);
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+                    return 8;
+                },
+            ),
+
+            0xF7 => new Instruction(
+                opcode: 0xF7,
+                mnemonic: 'RST 30H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0030);
+                    return 16;
+                },
+            ),
+
+            0xF8 => new Instruction(
+                opcode: 0xF8,
+                mnemonic: 'LD HL,SP+e',
+                length: 2,
+                cycles: 12,
+                handler: static function (Cpu $cpu): int {
+                    $sp = $cpu->getSP()->get();
+                    $e = self::readImm8($cpu);
+                    // Sign extend
+                    if ($e > 0x7F) {
+                        $e -= 0x100;
+                    }
+                    $result = $sp + $e;
+                    $cpu->getHL()->set($result & 0xFFFF);
+                    $cpu->getFlags()->setZ(false);
+                    $cpu->getFlags()->setN(false);
+                    // For LD HL,SP+e, half-carry and carry are calculated on the lower byte
+                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e & 0x0F)) & 0x10) !== 0);
+                    $cpu->getFlags()->setC(((($sp & 0xFF) + ($e & 0xFF)) & 0x100) !== 0);
+                    return 12;
+                },
+            ),
+
+            0xF9 => new Instruction(
+                opcode: 0xF9,
+                mnemonic: 'LD SP,HL',
+                length: 1,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->getSP()->set($cpu->getHL()->get());
+                    return 8;
+                },
+            ),
+
+            0xFA => new Instruction(
+                opcode: 0xFA,
+                mnemonic: 'LD A,(nn)',
+                length: 3,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $address = self::readImm16($cpu);
+                    $cpu->setA($cpu->getBus()->readByte($address));
+                    return 16;
+                },
+            ),
+
+            0xFB => new Instruction(
+                opcode: 0xFB,
+                mnemonic: 'EI',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setIME(true);
+                    return 4;
+                },
+            ),
+
+            0xFE => new Instruction(
+                opcode: 0xFE,
+                mnemonic: 'CP n',
+                length: 2,
+                cycles: 8,
+                handler: static function (Cpu $cpu): int {
+                    $a = $cpu->getA();
+                    $n = self::readImm8($cpu);
+                    $result = $a - $n;
+                    $cpu->getFlags()->setZ(($result & 0xFF) === 0);
+                    $cpu->getFlags()->setN(true);
+                    $cpu->getFlags()->setH(self::halfCarry8Sub($a, $n));
+                    $cpu->getFlags()->setC($result < 0);
+                    return 8;
+                },
+            ),
+
+            0xFF => new Instruction(
+                opcode: 0xFF,
+                mnemonic: 'RST 38H',
+                length: 1,
+                cycles: 16,
+                handler: static function (Cpu $cpu): int {
+                    $pc = $cpu->getPC()->get();
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->getSP()->decrement();
+                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->getPC()->set(0x0038);
+                    return 16;
+                },
+            ),
 
             default => throw new RuntimeException(sprintf('Unknown opcode: 0x%02X', $opcode)),
         };
@@ -2033,7 +3853,278 @@ final class InstructionSet
      */
     private static function buildCBInstruction(int $opcode): Instruction
     {
-        // CB instructions to be implemented
-        throw new RuntimeException(sprintf('CB-prefixed opcode 0xCB%02X not yet implemented', $opcode));
+        // Extract register index (0-7: B, C, D, E, H, L, (HL), A)
+        $regIndex = $opcode & 0x07;
+
+        // Determine register name for mnemonic
+        $regName = match ($regIndex) {
+            0 => 'B',
+            1 => 'C',
+            2 => 'D',
+            3 => 'E',
+            4 => 'H',
+            5 => 'L',
+            6 => '(HL)',
+            7 => 'A',
+        };
+
+        // (HL) operations take 16 cycles, register operations take 8 cycles
+        $cycles = ($regIndex === 6) ? 16 : 8;
+
+        return match (true) {
+            // RLC r (0x00-0x07) - Rotate Left Circular
+            $opcode >= 0x00 && $opcode <= 0x07 => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "RLC $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $bit7 = ($value & 0x80) !== 0;
+                    $result = (($value << 1) & 0xFF) | ($bit7 ? 1 : 0);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($bit7);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // RRC r (0x08-0x0F) - Rotate Right Circular
+            $opcode >= 0x08 && $opcode <= 0x0F => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "RRC $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $bit0 = ($value & 0x01) !== 0;
+                    $result = ($value >> 1) | ($bit0 ? 0x80 : 0);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($bit0);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // RL r (0x10-0x17) - Rotate Left through Carry
+            $opcode >= 0x10 && $opcode <= 0x17 => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "RL $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $oldCarry = $cpu->getFlags()->getC();
+                    [$result, $newCarry] = BitOps::rotateLeft($value, $oldCarry);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($newCarry);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // RR r (0x18-0x1F) - Rotate Right through Carry
+            $opcode >= 0x18 && $opcode <= 0x1F => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "RR $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $oldCarry = $cpu->getFlags()->getC();
+                    [$result, $newCarry] = BitOps::rotateRight($value, $oldCarry);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($newCarry);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // SLA r (0x20-0x27) - Shift Left Arithmetic
+            $opcode >= 0x20 && $opcode <= 0x27 => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "SLA $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    [$result, $carry] = BitOps::shiftLeft($value);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($carry);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // SRA r (0x28-0x2F) - Shift Right Arithmetic (preserve bit 7)
+            $opcode >= 0x28 && $opcode <= 0x2F => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "SRA $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    [$result, $carry] = BitOps::shiftRight($value, true);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($carry);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // SWAP r (0x30-0x37) - Swap nibbles
+            $opcode >= 0x30 && $opcode <= 0x37 => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "SWAP $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $result = BitOps::swap($value);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC(false);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // SRL r (0x38-0x3F) - Shift Right Logical (bit 7 becomes 0)
+            $opcode >= 0x38 && $opcode <= 0x3F => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: "SRL $regName",
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($regIndex, $cycles): int {
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    [$result, $carry] = BitOps::shiftRight($value, false);
+
+                    $cpu->getFlags()->setZ($result === 0);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(false);
+                    $cpu->getFlags()->setC($carry);
+
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // BIT b,r (0x40-0x7F) - Test bit b in register r
+            $opcode >= 0x40 && $opcode <= 0x7F => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: sprintf('BIT %d,%s', ($opcode - 0x40) >> 3, $regName),
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($opcode, $regIndex, $cycles): int {
+                    $bit = ($opcode - 0x40) >> 3;
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $bitValue = BitOps::getBit($value, $bit);
+
+                    $cpu->getFlags()->setZ(!$bitValue);
+                    $cpu->getFlags()->setN(false);
+                    $cpu->getFlags()->setH(true);
+                    // C flag unchanged
+
+                    return $cycles;
+                },
+            ),
+
+            // RES b,r (0x80-0xBF) - Reset (clear) bit b in register r
+            $opcode >= 0x80 && $opcode <= 0xBF => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: sprintf('RES %d,%s', ($opcode - 0x80) >> 3, $regName),
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($opcode, $regIndex, $cycles): int {
+                    $bit = ($opcode - 0x80) >> 3;
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $result = BitOps::setBit($value, $bit, false);
+
+                    // Flags unchanged for RES
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            // SET b,r (0xC0-0xFF) - Set bit b in register r
+            $opcode >= 0xC0 && $opcode <= 0xFF => new Instruction(
+                opcode: 0xCB00 | $opcode,
+                mnemonic: sprintf('SET %d,%s', ($opcode - 0xC0) >> 3, $regName),
+                length: 2,
+                cycles: $cycles,
+                handler: static function (Cpu $cpu) use ($opcode, $regIndex, $cycles): int {
+                    $bit = ($opcode - 0xC0) >> 3;
+                    $value = self::getRegByIndex($cpu, $regIndex);
+                    $result = BitOps::setBit($value, $bit, true);
+
+                    // Flags unchanged for SET
+                    self::setRegByIndex($cpu, $regIndex, $result);
+                    return $cycles;
+                },
+            ),
+
+            default => throw new RuntimeException(sprintf('Invalid CB opcode: 0xCB%02X', $opcode)),
+        };
+    }
+
+    /**
+     * Helper: Get register value by index (0-7: B,C,D,E,H,L,(HL),A)
+     */
+    private static function getRegByIndex(Cpu $cpu, int $index): int
+    {
+        return match ($index) {
+            0 => $cpu->getB(),
+            1 => $cpu->getC(),
+            2 => $cpu->getD(),
+            3 => $cpu->getE(),
+            4 => $cpu->getH(),
+            5 => $cpu->getL(),
+            6 => $cpu->getBus()->readByte($cpu->getHL()->get()),
+            7 => $cpu->getA(),
+        };
+    }
+
+    /**
+     * Helper: Set register value by index (0-7: B,C,D,E,H,L,(HL),A)
+     */
+    private static function setRegByIndex(Cpu $cpu, int $index, int $value): void
+    {
+        match ($index) {
+            0 => $cpu->setB($value),
+            1 => $cpu->setC($value),
+            2 => $cpu->setD($value),
+            3 => $cpu->setE($value),
+            4 => $cpu->setH($value),
+            5 => $cpu->setL($value),
+            6 => $cpu->getBus()->writeByte($cpu->getHL()->get(), $value),
+            7 => $cpu->setA($value),
+        };
     }
 }
