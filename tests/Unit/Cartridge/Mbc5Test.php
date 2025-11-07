@@ -169,7 +169,7 @@ final class Mbc5Test extends TestCase
     public function testRumbleDoesNotAffectBanking(): void
     {
         $rom = $this->createRom(2);
-        $mbc = new Mbc5($rom, count($rom), 8192, false, true); // With rumble
+        $mbc = new Mbc5($rom, count($rom), 16 * 1024, false, true); // With rumble, 2 banks
 
         // Enable RAM
         $mbc->writeByte(0x0000, 0x0A);
