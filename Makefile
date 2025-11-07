@@ -19,7 +19,7 @@ test: ## Run PHPUnit tests in Docker
 	docker compose run --rm phpboy vendor/bin/phpunit
 
 lint: ## Run PHPStan static analysis in Docker
-	docker compose run --rm phpboy vendor/bin/phpstan analyse
+	docker compose run --rm phpboy php -d memory_limit=512M vendor/bin/phpstan analyse
 
 shell: ## Open bash shell in Docker container
 	docker compose run --rm phpboy bash
