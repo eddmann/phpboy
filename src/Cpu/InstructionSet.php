@@ -703,30 +703,35 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $flags = $cpu->getFlags();
+                    $correction = 0;
+                    $setCarry = false;
 
                     if (!$flags->getN()) {
-                        // After addition
-                        if ($flags->getC() || $a > 0x99) {
-                            $a += 0x60;
-                            $flags->setC(true);
-                        }
+                        // After addition (ADD, ADC, INC)
                         if ($flags->getH() || ($a & 0x0F) > 0x09) {
-                            $a += 0x06;
+                            $correction += 0x06;
                         }
+                        if ($flags->getC() || $a > 0x99) {
+                            $correction += 0x60;
+                            $setCarry = true;
+                        }
+                        $a = ($a + $correction) & 0xFF;
                     } else {
-                        // After subtraction
-                        if ($flags->getC()) {
-                            $a -= 0x60;
-                        }
+                        // After subtraction (SUB, SBC, DEC)
                         if ($flags->getH()) {
-                            $a -= 0x06;
+                            $correction += 0x06;
                         }
+                        if ($flags->getC()) {
+                            $correction += 0x60;
+                        }
+                        $a = ($a - $correction) & 0xFF;
+                        $setCarry = $flags->getC(); // Carry unchanged after subtraction
                     }
 
-                    $a &= 0xFF;
                     $cpu->setA($a);
                     $flags->setZ($a === 0);
                     $flags->setH(false);
+                    $flags->setC($setCarry);
                     return 4;
                 },
             ),
@@ -3581,18 +3586,16 @@ final class InstructionSet
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
                     $sp = $cpu->getSP()->get();
-                    $e = self::readImm8($cpu);
-                    // Sign extend
-                    if ($e > 0x7F) {
-                        $e -= 0x100;
-                    }
-                    $result = $sp + $e;
+                    $e_unsigned = self::readImm8($cpu);
+                    // Sign extend for the actual addition
+                    $e_signed = $e_unsigned > 0x7F ? $e_unsigned - 0x100 : $e_unsigned;
+                    $result = $sp + $e_signed;
                     $cpu->getSP()->set($result & 0xFFFF);
                     $cpu->getFlags()->setZ(false);
                     $cpu->getFlags()->setN(false);
-                    // For ADD SP,e, half-carry and carry are calculated on the lower byte
-                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e & 0x0F)) & 0x10) !== 0);
-                    $cpu->getFlags()->setC(((($sp & 0xFF) + ($e & 0xFF)) & 0x100) !== 0);
+                    // Flags are calculated on the lower byte using unsigned arithmetic
+                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e_unsigned & 0x0F)) & 0x10) !== 0);
+                    $cpu->getFlags()->setC(((($sp & 0xFF) + $e_unsigned) & 0x100) !== 0);
                     return 16;
                 },
             ),
@@ -3761,18 +3764,16 @@ final class InstructionSet
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
                     $sp = $cpu->getSP()->get();
-                    $e = self::readImm8($cpu);
-                    // Sign extend
-                    if ($e > 0x7F) {
-                        $e -= 0x100;
-                    }
-                    $result = $sp + $e;
+                    $e_unsigned = self::readImm8($cpu);
+                    // Sign extend for the actual addition
+                    $e_signed = $e_unsigned > 0x7F ? $e_unsigned - 0x100 : $e_unsigned;
+                    $result = $sp + $e_signed;
                     $cpu->getHL()->set($result & 0xFFFF);
                     $cpu->getFlags()->setZ(false);
                     $cpu->getFlags()->setN(false);
-                    // For LD HL,SP+e, half-carry and carry are calculated on the lower byte
-                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e & 0x0F)) & 0x10) !== 0);
-                    $cpu->getFlags()->setC(((($sp & 0xFF) + ($e & 0xFF)) & 0x100) !== 0);
+                    // Flags are calculated on the lower byte using unsigned arithmetic
+                    $cpu->getFlags()->setH(((($sp & 0x0F) + ($e_unsigned & 0x0F)) & 0x10) !== 0);
+                    $cpu->getFlags()->setC(((($sp & 0xFF) + $e_unsigned) & 0x100) !== 0);
                     return 12;
                 },
             ),
