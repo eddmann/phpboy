@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint shell run clean
+.PHONY: help setup install test lint shell run clean rebuild
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,30 +6,33 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Build Docker image (or verify environment in CI/containerized environments)
-	@echo "Environment check:"
-	@php --version
-	@composer --version
-	@echo "Setup complete!"
+setup: ## Build Docker image with PHP 8.5 RC4
+	docker compose build
 
-install: ## Install PHP dependencies via Composer
-	composer install
+rebuild: ## Rebuild Docker image from scratch (no cache)
+	docker compose build --no-cache
 
-test: ## Run PHPUnit tests
-	vendor/bin/phpunit
+install: ## Install PHP dependencies via Composer in Docker
+	docker compose run --rm phpboy composer install
 
-lint: ## Run PHPStan static analysis
-	vendor/bin/phpstan analyse
+test: ## Run PHPUnit tests in Docker
+	docker compose run --rm phpboy vendor/bin/phpunit
 
-shell: ## Open bash shell (for Docker compatibility)
-	@bash
+lint: ## Run PHPStan static analysis in Docker
+	docker compose run --rm phpboy vendor/bin/phpstan analyse
 
-run: ## Run emulator with ROM (usage: make run ROM=path/to/rom.gb)
+shell: ## Open bash shell in Docker container
+	docker compose run --rm phpboy bash
+
+run: ## Run emulator with ROM in Docker (usage: make run ROM=path/to/rom.gb)
 	@if [ -z "$(ROM)" ]; then \
 		echo "Error: ROM parameter is required. Usage: make run ROM=path/to/rom.gb"; \
 		exit 1; \
 	fi
-	php bin/phpboy.php $(ROM)
+	docker compose run --rm phpboy php bin/phpboy.php $(ROM)
 
 clean: ## Remove vendor directory and composer.lock
 	rm -rf vendor composer.lock
+
+clean-docker: ## Remove Docker containers and images
+	docker compose down --rmi all --volumes
