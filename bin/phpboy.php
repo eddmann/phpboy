@@ -11,14 +11,14 @@ require_once __DIR__ . '/../vendor/autoload.php';
 echo "PHPBoy - Game Boy Color Emulator\n";
 echo "================================\n\n";
 
-if ($argc < 2) {
+if ($_SERVER['argc'] < 2) {
     echo "Usage: php bin/phpboy.php <rom-file>\n";
     echo "Example: php bin/phpboy.php third_party/roms/cpu_instrs/cpu_instrs.gb\n\n";
     echo "This is a stub implementation. Full emulator coming soon!\n";
     exit(1);
 }
 
-$romFile = $argv[1];
+$romFile = $_SERVER['argv'][1];
 
 if (!file_exists($romFile)) {
     echo "Error: ROM file not found: $romFile\n";
