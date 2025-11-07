@@ -25,9 +25,6 @@ final class TestRomRunner
     /** Maximum frames to execute (safety limit) */
     private const MAX_FRAMES = 18000; // ~5 minutes at 60 FPS
 
-    /** Frames per second (approximate) */
-    private const FPS = 59.7;
-
     private Emulator $emulator;
     private int $timeout;
 
