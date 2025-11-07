@@ -7,6 +7,7 @@ namespace Gb\Cpu;
 use Gb\Bus\BusInterface;
 use Gb\Cpu\Register\FlagRegister;
 use Gb\Cpu\Register\Register16;
+use Gb\Interrupts\InterruptController;
 
 /**
  * LR35902 CPU (Sharp SM83)
@@ -37,12 +38,15 @@ final class Cpu
     private bool $halted = false;
     private bool $stopped = false;
     private bool $ime = false; // Interrupt Master Enable
+    private int $imeDelay = 0; // EI instruction has 1-instruction delay
 
     /**
      * @param BusInterface $bus Memory bus for reading/writing memory
+     * @param InterruptController $interruptController Interrupt controller
      */
     public function __construct(
         private readonly BusInterface $bus,
+        private readonly InterruptController $interruptController,
     ) {
         // Initialize registers to their power-up state
         // After boot ROM execution, PC should be at 0x0100
@@ -59,13 +63,74 @@ final class Cpu
     /**
      * Execute one instruction and return the number of cycles consumed.
      *
+     * Handles interrupts, HALT, and the EI delay.
+     *
      * @return int Number of CPU cycles consumed (typically 4, 8, 12, 16, 20, or 24)
      */
     public function step(): int
     {
+        // Handle EI delay (IME is enabled after the instruction following EI)
+        if ($this->imeDelay > 0) {
+            $this->imeDelay--;
+            if ($this->imeDelay === 0) {
+                $this->ime = true;
+            }
+        }
+
+        // Check for interrupts before fetching
+        if ($this->ime) {
+            $interrupt = $this->interruptController->getPendingInterrupt();
+            if ($interrupt !== null) {
+                $this->halted = false; // Wake from HALT
+                return $this->serviceInterrupt($interrupt);
+            }
+        }
+
+        // If halted, check if we should wake up
+        if ($this->halted) {
+            // HALT wakes on any pending interrupt, even if IME=0
+            if ($this->interruptController->hasAnyPendingInterrupt()) {
+                $this->halted = false;
+                // HALT bug: if IME=0 and interrupt pending, PC doesn't increment
+                // For now, we'll implement the simple behavior
+            } else {
+                // Still halted, consume 4 cycles
+                return 4;
+            }
+        }
+
         $opcode = $this->fetch();
         $instruction = $this->decode($opcode);
         return $this->execute($instruction);
+    }
+
+    /**
+     * Service an interrupt by pushing PC to stack and jumping to the vector.
+     *
+     * @param \Gb\Interrupts\InterruptType $interrupt The interrupt to service
+     * @return int Number of CPU cycles consumed (20)
+     */
+    private function serviceInterrupt(\Gb\Interrupts\InterruptType $interrupt): int
+    {
+        // Disable IME
+        $this->ime = false;
+        $this->imeDelay = 0;
+
+        // Acknowledge the interrupt
+        $this->interruptController->acknowledgeInterrupt($interrupt);
+
+        // Push PC to stack (takes 2 M-cycles = 8 T-cycles)
+        $pc = $this->pc->get();
+        $this->sp->decrement();
+        $this->bus->writeByte($this->sp->get(), ($pc >> 8) & 0xFF); // High byte
+        $this->sp->decrement();
+        $this->bus->writeByte($this->sp->get(), $pc & 0xFF); // Low byte
+
+        // Jump to interrupt vector (takes 1 M-cycle = 4 T-cycles)
+        $this->pc->set($interrupt->getVector());
+
+        // Total: 5 M-cycles = 20 T-cycles
+        return 20;
     }
 
     /**
@@ -362,10 +427,30 @@ final class Cpu
     /**
      * Set the Interrupt Master Enable flag.
      *
-     * @param bool $ime True to enable interrupts, false to disable
+     * For EI instruction: sets a delay so IME is enabled after the next instruction.
+     * For DI instruction: disables IME immediately.
+     *
+     * @param bool $ime True to enable interrupts (with delay), false to disable immediately
      */
     public function setIME(bool $ime): void
     {
-        $this->ime = $ime;
+        if ($ime) {
+            // EI: Enable after next instruction (1-instruction delay)
+            $this->imeDelay = 1;
+        } else {
+            // DI: Disable immediately
+            $this->ime = false;
+            $this->imeDelay = 0;
+        }
+    }
+
+    /**
+     * Get the interrupt controller.
+     *
+     * @return InterruptController The interrupt controller
+     */
+    public function getInterruptController(): InterruptController
+    {
+        return $this->interruptController;
     }
 }

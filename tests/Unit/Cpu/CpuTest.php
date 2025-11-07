@@ -6,6 +6,7 @@ namespace Tests\Unit\Cpu;
 
 use Gb\Bus\MockBus;
 use Gb\Cpu\Cpu;
+use Gb\Interrupts\InterruptController;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,7 +23,7 @@ final class CpuTest extends TestCase
     public function testRegisterInitialization(): void
     {
         $bus = new MockBus();
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         // After boot ROM, PC should be at 0x0100 (start of cartridge ROM)
         $this->assertSame(0x0100, $cpu->getPC()->get(), 'PC should initialize to 0x0100');
@@ -46,7 +47,7 @@ final class CpuTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x00, // NOP at starting address
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $initialPc = $cpu->getPC()->get();
         $cycles = $cpu->step();
@@ -63,7 +64,7 @@ final class CpuTest extends TestCase
         $bus = new MockBus([
             0x0100 => 0x42, // Some opcode at PC
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $opcode = $cpu->fetch();
 
@@ -77,7 +78,7 @@ final class CpuTest extends TestCase
     public function testFlagRegisterOperations(): void
     {
         $bus = new MockBus();
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         $flags = $cpu->getFlags();
 
@@ -116,7 +117,7 @@ final class CpuTest extends TestCase
             0x0101 => 0x00, // NOP
             0x0102 => 0x00, // NOP
         ]);
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         // Execute three NOPs
         $cycles1 = $cpu->step();
@@ -135,7 +136,7 @@ final class CpuTest extends TestCase
     public function testEightBitRegisterAccessors(): void
     {
         $bus = new MockBus();
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         // Test A register
         $cpu->setA(0x42);
@@ -172,7 +173,7 @@ final class CpuTest extends TestCase
     public function testRegisterPairConsistency(): void
     {
         $bus = new MockBus();
-        $cpu = new Cpu($bus);
+        $cpu = new Cpu($bus, new InterruptController());
 
         // Set BC via individual registers
         $cpu->setB(0x12);

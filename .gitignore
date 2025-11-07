@@ -8,6 +8,7 @@ composer.lock
 
 # PHPStan
 .phpstan.cache/
+var/
 
 # IDE
 .idea/
