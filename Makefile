@@ -18,6 +18,9 @@ install: ## Install PHP dependencies via Composer in Docker
 test: ## Run PHPUnit tests in Docker
 	docker compose run --rm phpboy vendor/bin/phpunit
 
+test-roms: ## Run test ROM suite (Blargg, Mooneye, etc.)
+	docker compose run --rm phpboy vendor/bin/phpunit --testsuite=Integration --no-coverage
+
 lint: ## Run PHPStan static analysis in Docker
 	docker compose run --rm phpboy php -d memory_limit=512M vendor/bin/phpstan analyse
 
