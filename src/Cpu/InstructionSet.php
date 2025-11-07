@@ -703,35 +703,36 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $flags = $cpu->getFlags();
-                    $correction = 0;
-                    $setCarry = false;
 
                     if (!$flags->getN()) {
                         // After addition (ADD, ADC, INC)
-                        if ($flags->getH() || ($a & 0x0F) > 0x09) {
-                            $correction += 0x06;
-                        }
+                        // Upper nibble first
                         if ($flags->getC() || $a > 0x99) {
-                            $correction += 0x60;
-                            $setCarry = true;
+                            $a = ($a + 0x60) & 0xFF;
+                            $flags->setC(true);
                         }
-                        $a = ($a + $correction) & 0xFF;
+                        // Lower nibble second
+                        if ($flags->getH() || ($a & 0x0F) > 0x09) {
+                            $a = ($a + 0x06) & 0xFF;
+                        }
                     } else {
                         // After subtraction (SUB, SBC, DEC)
-                        if ($flags->getH()) {
-                            $correction += 0x06;
-                        }
+                        // Carry first
                         if ($flags->getC()) {
-                            $correction += 0x60;
+                            $a = ($a - 0x60) & 0xFF;
                         }
-                        $a = ($a - $correction) & 0xFF;
-                        $setCarry = $flags->getC(); // Carry unchanged after subtraction
+                        // Half-carry second
+                        if ($flags->getH()) {
+                            $a = ($a - 0x06) & 0xFF;
+                        }
+                        // Carry unchanged in subtraction
                     }
 
                     $cpu->setA($a);
                     $flags->setZ($a === 0);
                     $flags->setH(false);
-                    $flags->setC($setCarry);
+                    // N flag unchanged (not set here)
+                    // C flag already set in addition mode, unchanged in subtraction mode
                     return 4;
                 },
             ),
@@ -3682,6 +3683,7 @@ final class InstructionSet
                     $high = $cpu->getBus()->readByte($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getAF()->set(($high << 8) | ($low & 0xF0)); // Lower 4 bits of F are always 0
+                    $cpu->getFlags()->syncFromAF(); // Sync flags from AF register
                     return 12;
                 },
             ),
