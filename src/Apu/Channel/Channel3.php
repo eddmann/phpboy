@@ -22,7 +22,6 @@ final class Channel3 implements ChannelInterface
     private bool $dacEnabled = false;
 
     // NR31: Length timer
-    private int $lengthLoad = 0;
     private int $lengthCounter = 0;
 
     // NR32: Output level (volume shift)
@@ -71,7 +70,6 @@ final class Channel3 implements ChannelInterface
      */
     public function writeNR31(int $value): void
     {
-        $this->lengthLoad = $value;
         $this->lengthCounter = 256 - $value;
     }
 

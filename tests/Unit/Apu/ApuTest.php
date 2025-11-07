@@ -84,7 +84,7 @@ final class ApuTest extends TestCase
 
         // Verify readback (some bits are write-only)
         self::assertSame(0xFF, $apu->readByte(0xFF10));
-        self::assertSame(0xFF, $apu->readByte(0xFF11) & 0xC0);
+        self::assertSame(0xFF, $apu->readByte(0xFF11)); // Duty bits + write-only bits return 1
         self::assertSame(0xF3, $apu->readByte(0xFF12));
         self::assertSame(0xFF, $apu->readByte(0xFF13)); // Write-only
         self::assertSame(0x40, $apu->readByte(0xFF14) & 0x40);
@@ -101,7 +101,7 @@ final class ApuTest extends TestCase
         $apu->writeByte(0xFF18, 0xCD);
         $apu->writeByte(0xFF19, 0x40);
 
-        self::assertSame(0xFF, $apu->readByte(0xFF16) & 0xC0);
+        self::assertSame(0xFF, $apu->readByte(0xFF16)); // Duty bits + write-only bits return 1
         self::assertSame(0xF0, $apu->readByte(0xFF17));
         self::assertSame(0xFF, $apu->readByte(0xFF18));
         self::assertSame(0x40, $apu->readByte(0xFF19) & 0x40);

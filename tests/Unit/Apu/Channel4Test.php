@@ -31,14 +31,16 @@ final class Channel4Test extends TestCase
         $channel = new Channel4();
 
         $channel->writeNR42(0xF0); // Volume 15
-        $channel->writeNR43(0x00); // Clock shift 0, divisor 0
+        $channel->writeNR43(0x00); // Clock shift 0, divisor 0 (period = 8)
         $channel->writeNR44(0x80); // Trigger
 
         self::assertTrue($channel->isEnabled());
 
         // Collect samples - should have variation (noise)
+        // LFSR needs ~14 clocks to produce different output
+        // With period=8, need at least 14*8=112 steps
         $samples = [];
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; $i < 200; $i++) {
             $samples[] = $channel->getSample();
             $channel->step();
         }
