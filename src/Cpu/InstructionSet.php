@@ -666,7 +666,6 @@ final class InstructionSet
                     $address = $cpu->getHL()->get();
                     $cpu->cycleWrite($address, $cpu->getA());
                     $cpu->getHL()->increment();
-                    $cpu->cycleNoAccess(); // Internal operation: 1 M-cycle
                     return 8;
                 },
             ),
@@ -823,7 +822,6 @@ final class InstructionSet
                     $address = $cpu->getHL()->get();
                     $cpu->setA($cpu->cycleRead($address));
                     $cpu->getHL()->increment();
-                    $cpu->cycleNoAccess(); // Internal operation: 1 M-cycle
                     return 8;
                 },
             ),
@@ -946,7 +944,6 @@ final class InstructionSet
                     $address = $cpu->getHL()->get();
                     $cpu->cycleWrite($address, $cpu->getA());
                     $cpu->getHL()->decrement();
-                    $cpu->cycleNoAccess(); // Internal operation: 1 M-cycle
                     return 8;
                 },
             ),
@@ -1079,7 +1076,6 @@ final class InstructionSet
                     $address = $cpu->getHL()->get();
                     $cpu->setA($cpu->cycleRead($address));
                     $cpu->getHL()->decrement();
-                    $cpu->cycleNoAccess(); // Internal operation: 1 M-cycle
                     return 8;
                 },
             ),
@@ -3098,6 +3094,7 @@ final class InstructionSet
                     $address = self::readImm16($cpu);
                     if (!$cpu->getFlags()->getZ()) {
                         $cpu->getPC()->set($address);
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 16;
                     }
                     return 12;
@@ -3112,6 +3109,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     $cpu->getPC()->set($address);
+                    $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                     return 16;
                 },
             ),
@@ -3232,6 +3230,7 @@ final class InstructionSet
                     $address = self::readImm16($cpu);
                     if ($cpu->getFlags()->getZ()) {
                         $cpu->getPC()->set($address);
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 16;
                     }
                     return 12;
@@ -3370,6 +3369,7 @@ final class InstructionSet
                     $address = self::readImm16($cpu);
                     if (!$cpu->getFlags()->getC()) {
                         $cpu->getPC()->set($address);
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 16;
                     }
                     return 12;
@@ -3493,6 +3493,7 @@ final class InstructionSet
                     $address = self::readImm16($cpu);
                     if ($cpu->getFlags()->getC()) {
                         $cpu->getPC()->set($address);
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 16;
                     }
                     return 12;
