@@ -230,6 +230,101 @@ The test renders a stylized face that verifies CGB-specific features:
    - Improve sprite priority handling
    - Enhance color palette accuracy
 
+## Root Cause Analysis: Mooneye Timing Test Failures
+
+### Investigation Summary
+
+The 25.6% Mooneye pass rate (compared to 100% Blargg pass rate) is due to a fundamental architectural difference in how instructions are executed.
+
+### Our Current Architecture (Atomic Execution)
+
+**Current CPU design:**
+1. Fetch entire instruction and operands in one operation
+2. Execute instruction atomically
+3. Return total cycle count
+4. Components (Timer, PPU, APU, DMA) are ticked with total cycles in bulk
+
+**Example: CALL nn (24 T-cycles)**
+```php
+// Current implementation
+$address = self::readImm16($cpu);  // Read all operands at once
+$cpu->getSP()->decrement();
+$cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+$cpu->getSP()->decrement();
+$cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+$cpu->getPC()->set($address);
+return 24;  // Return total cycles
+```
+
+### What Mooneye Tests Expect (M-Cycle Accurate Execution)
+
+**Expected CALL nn timing breakdown:**
+- **M-cycle 0**: Fetch opcode (4 T-cycles)
+- **M-cycle 1**: Read low byte of nn (4 T-cycles)
+- **M-cycle 2**: Read high byte of nn (4 T-cycles)
+- **M-cycle 3**: Internal delay (4 T-cycles)
+- **M-cycle 4**: Push PC high byte to stack (4 T-cycles)
+- **M-cycle 5**: Push PC low byte to stack (4 T-cycles)
+
+**Critical difference:** Mooneye tests like `call_timing.gb` use OAM DMA to verify that operand reads happen at exact M-cycle boundaries. The test manipulates DMA timing so that if the high byte is read at M-cycle 2 (correct), it reads `$1a`, but if timing is wrong, it reads `$ff`.
+
+### Why Our Instruction Cycle Counts Are Correct But Tests Still Fail
+
+**Verified against Pan Docs:**
+- ✅ CALL nn: 24 T-cycles (our implementation: 24)
+- ✅ CALL cc,nn: 24/12 T-cycles (our implementation: 24/12)
+- ✅ RET: 16 T-cycles (our implementation: 16)
+- ✅ RET cc: 20/8 T-cycles (our implementation: 20/8)
+- ✅ JP nn: 16 T-cycles (our implementation: 16)
+- ✅ JP cc,nn: 16/12 T-cycles (our implementation: 16/12)
+
+**The problem:** Total cycle count is correct, but timing-sensitive tests need **observable state changes at M-cycle boundaries**.
+
+### Attempted Fix: Hybrid Timing Model
+
+**Approach:** Wrap memory operations to tick components at M-cycle granularity
+- Added `tickComponents()` to SystemBus
+- Modified CPU to call `readByteAndTick()` / `writeByteAndTick()`
+- Components (Timer, DMA) ticked after each memory operation
+
+**Result:** **Major regression** - dropped from 100% Blargg to 83% Blargg, 25.6% Mooneye to 0% Mooneye
+
+**Root cause of regression:** Over-ticking - components were ticked at every memory access within an instruction, plus the final bulk tick, resulting in excessive cycle accumulation and broken timing everywhere.
+
+### Solution: Not Applicable for Step 13
+
+To pass Mooneye timing tests requires **M-cycle stepped execution** like SameBoy:
+```c
+// SameBoy's approach (C code)
+static void call_a16(GB_gameboy_t *gb, uint8_t opcode)
+{
+    uint16_t addr = cycle_read(gb, gb->pc++);        // M-cycle 1
+    addr |= (cycle_read(gb, gb->pc++) << 8);         // M-cycle 2
+    cycle_oam_bug(gb, GB_REGISTER_SP);               // M-cycle 3 (internal)
+    cycle_write(gb, --gb->sp, (gb->pc) >> 8);        // M-cycle 4
+    cycle_write(gb, --gb->sp, (gb->pc) & 0xFF);      // M-cycle 5
+    gb->pc = addr;
+}
+```
+
+Each `cycle_read()` and `cycle_write()` advances time by 1 M-cycle and updates all components.
+
+**Implementation complexity:**
+- Requires complete CPU rewrite to execute instructions across multiple M-cycles
+- Every instruction handler needs refactoring to use stepped operations
+- Significant architectural change (estimated 1-2 weeks of development)
+- Would be more appropriate for a future "Step 15: Cycle Accuracy" or "Step 14: Performance & Timing Optimization"
+
+### Conclusion
+
+**Step 13 Goals Achieved:**
+- ✅ **100% Blargg CPU instruction tests** - proves instruction correctness
+- ✅ **100% Blargg timing test** - proves total cycle counts are correct
+- ✅ **25.6% Mooneye tests** - basic timing functionality works
+- ✅ **3 commercial ROMs stable** - proves real-world compatibility
+
+**Mooneye timing test failures are expected and documented** for current architecture. Achieving higher Mooneye pass rate requires M-cycle stepped execution, which is out of scope for Step 13 focus on instruction correctness.
+
 ## Next Steps
 
 To improve Mooneye pass rate:
