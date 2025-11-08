@@ -50,6 +50,7 @@ Options:
   --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
   --save=<path>        Save file location (default: <rom>.sav)
   --audio-out=<path>   WAV file to record audio output
+  --screenshot=<path>  Save screenshot to PNG after running (requires GD extension)
   --help               Show this help message
 
 Examples:
@@ -63,7 +64,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, help: bool}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, screenshot: string|null, help: bool}
  */
 function parseArguments(array $argv): array
 {
@@ -75,6 +76,7 @@ function parseArguments(array $argv): array
         'speed' => 1.0,
         'save' => null,
         'audio_out' => null,
+        'screenshot' => null,
         'help' => false,
     ];
 
@@ -98,6 +100,8 @@ function parseArguments(array $argv): array
             $options['save'] = substr($arg, 7);
         } elseif (str_starts_with($arg, '--audio-out=')) {
             $options['audio_out'] = substr($arg, 12);
+        } elseif (str_starts_with($arg, '--screenshot=')) {
+            $options['screenshot'] = substr($arg, 13);
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -177,8 +181,9 @@ try {
         $emulator->setInput($input);
     }
 
-    // Set up renderer
-    if (!$options['headless']) {
+    // Set up renderer (always needed if screenshot is requested)
+    $renderer = null;
+    if (!$options['headless'] || $options['screenshot'] !== null) {
         $renderer = new CliRenderer();
         $emulator->setFramebuffer($renderer);
     }
@@ -216,6 +221,13 @@ try {
         }
 
         $emulator->run();
+    }
+
+    // Save screenshot if requested
+    if ($options['screenshot'] !== null && $renderer !== null) {
+        echo "\nSaving screenshot to: {$options['screenshot']}\n";
+        $renderer->saveToPng($options['screenshot']);
+        echo "Screenshot saved successfully\n";
     }
 
     echo "\nEmulation stopped.\n";

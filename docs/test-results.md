@@ -166,6 +166,70 @@ Current emulator performance is approximately **25-30 FPS** (compared to Game Bo
 
 Performance optimization is planned for Step 14 (Performance Profiling & Optimisation).
 
+## Acid Tests
+
+Acid tests verify PPU (Pixel Processing Unit) rendering correctness through visual inspection.
+
+### DMG Acid2
+
+| Test | Status | Screenshot | Notes |
+|------|--------|------------|-------|
+| dmg-acid2.gb | ✅ RUN | [Screenshot](screenshots/dmg-acid2.png) | Test executes successfully, visual verification needed |
+
+**Test Details:**
+- **Purpose:** Verify DMG (original Game Boy) PPU rendering accuracy
+- **Requirements:** Line-based renderer, LY=LYC interrupts, mode 2 register writes
+- **Execution:** 60 frames rendered successfully
+- **Screenshot:** Captured at docs/screenshots/dmg-acid2.png
+
+**Visual Verification:**
+The test renders a stylized face ("Hello World!" acid test) that verifies:
+- Object rendering (sprites)
+- Background/window rendering
+- Tile data addressing
+- Palette handling
+- Object priority
+- 10 object per scanline limit
+- 8x16 sprite mode
+
+**Status:** Test executes without crashes. Visual comparison to reference image required for full validation.
+
+### CGB Acid2
+
+| Test | Status | Screenshot | Notes |
+|------|--------|------------|-------|
+| cgb-acid2.gbc | ✅ RUN | [Screenshot](screenshots/cgb-acid2.png) | Test executes successfully, visual verification needed |
+
+**Test Details:**
+- **Purpose:** Verify GBC (Game Boy Color) PPU rendering accuracy
+- **Requirements:** CGB color palettes, VRAM banking, background attributes
+- **Execution:** 60 frames rendered successfully
+- **Screenshot:** Captured at docs/screenshots/cgb-acid2.png
+
+**Visual Verification:**
+The test renders a stylized face that verifies CGB-specific features:
+- Background tile VRAM banking
+- Background tile flipping (horizontal/vertical)
+- Background-to-OAM priority
+- Object tile VRAM banking
+- Object palette selection
+- Master priority (LCDC bit 0)
+- Color palette handling
+
+**Status:** Test executes without crashes. Visual comparison to reference image required for full validation.
+
+### Next Steps for Acid Tests
+
+1. **Visual Comparison**
+   - Compare captured screenshots to reference images
+   - Document any rendering differences
+   - Create visual diff if needed
+
+2. **PPU Accuracy Improvements** (if needed)
+   - Fix any rendering issues identified
+   - Improve sprite priority handling
+   - Enhance color palette accuracy
+
 ## Next Steps
 
 To improve Mooneye pass rate:
