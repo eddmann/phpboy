@@ -32,6 +32,10 @@ final class SystemBus implements BusInterface
     /** @var array<int, DeviceInterface> I/O register device mapping */
     private array $ioDevices = [];
 
+    /** Component references for M-cycle accurate timing */
+    private ?\Gb\Timer\Timer $timer = null;
+    private ?\Gb\Dma\OamDma $oamDma = null;
+
     /**
      * Attach a device to the bus at a specific address range.
      *
@@ -246,5 +250,36 @@ final class SystemBus implements BusInterface
     public function getDevice(string $name): ?DeviceInterface
     {
         return $this->devices[$name]['device'] ?? null;
+    }
+
+    /**
+     * Set component references for M-cycle accurate timing.
+     *
+     * Timer and OamDma are ticked at M-cycle granularity during CPU memory operations.
+     * PPU and APU are stepped in bulk after instruction execution.
+     *
+     * @param \Gb\Timer\Timer $timer Timer component
+     * @param \Gb\Dma\OamDma $oamDma OAM DMA component
+     */
+    public function setComponents(
+        \Gb\Timer\Timer $timer,
+        \Gb\Dma\OamDma $oamDma
+    ): void {
+        $this->timer = $timer;
+        $this->oamDma = $oamDma;
+    }
+
+    /**
+     * Tick timing-sensitive components at M-cycle granularity.
+     *
+     * Called by CPU during memory operations to ensure Timer and OamDma
+     * observe state changes at exact M-cycle boundaries.
+     *
+     * @param int $cycles Number of T-cycles (typically 4 for 1 M-cycle)
+     */
+    public function tickComponents(int $cycles): void
+    {
+        $this->timer?->tick($cycles);
+        $this->oamDma?->tick($cycles);
     }
 }

@@ -137,7 +137,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getBC()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 8;
                 },
             ),
@@ -228,8 +228,8 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     $sp = $cpu->getSP()->get();
-                    $cpu->getBus()->writeByte($address, $sp & 0xFF);
-                    $cpu->getBus()->writeByte($address + 1, ($sp >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($address, $sp & 0xFF);
+                    $cpu->writeByteAndTick($address + 1, ($sp >> 8) & 0xFF);
                     return 20;
                 },
             ),
@@ -260,7 +260,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getBC()->get();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -378,7 +378,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getDE()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 8;
                 },
             ),
@@ -505,7 +505,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getDE()->get();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -630,7 +630,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     $cpu->getHL()->increment();
                     return 8;
                 },
@@ -783,7 +783,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     $cpu->getHL()->increment();
                     return 8;
                 },
@@ -903,7 +903,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     $cpu->getHL()->decrement();
                     return 8;
                 },
@@ -929,9 +929,9 @@ final class InstructionSet
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = ($value + 1) & 0xFF;
-                    $cpu->getBus()->writeByte($address, $result);
+                    $cpu->writeByteAndTick($address, $result);
                     $cpu->getFlags()->setZ($result === 0);
                     $cpu->getFlags()->setN(false);
                     $cpu->getFlags()->setH((($value & 0x0F) + 1) > 0x0F);
@@ -947,9 +947,9 @@ final class InstructionSet
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = ($value - 1) & 0xFF;
-                    $cpu->getBus()->writeByte($address, $result);
+                    $cpu->writeByteAndTick($address, $result);
                     $cpu->getFlags()->setZ($result === 0);
                     $cpu->getFlags()->setN(true);
                     $cpu->getFlags()->setH(($value & 0x0F) === 0);
@@ -966,7 +966,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $value = self::readImm8($cpu);
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $value);
+                    $cpu->writeByteAndTick($address, $value);
                     return 12;
                 },
             ),
@@ -1032,7 +1032,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     $cpu->getHL()->decrement();
                     return 8;
                 },
@@ -1190,7 +1190,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setB($cpu->getBus()->readByte($address));
+                    $cpu->setB($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1284,7 +1284,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setC($cpu->getBus()->readByte($address));
+                    $cpu->setC($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1378,7 +1378,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setD($cpu->getBus()->readByte($address));
+                    $cpu->setD($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1472,7 +1472,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setE($cpu->getBus()->readByte($address));
+                    $cpu->setE($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1566,7 +1566,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setH($cpu->getBus()->readByte($address));
+                    $cpu->setH($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1660,7 +1660,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setL($cpu->getBus()->readByte($address));
+                    $cpu->setL($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1685,7 +1685,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getB());
+                    $cpu->writeByteAndTick($address, $cpu->getB());
                     return 8;
                 },
             ),
@@ -1698,7 +1698,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getC());
+                    $cpu->writeByteAndTick($address, $cpu->getC());
                     return 8;
                 },
             ),
@@ -1711,7 +1711,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getD());
+                    $cpu->writeByteAndTick($address, $cpu->getD());
                     return 8;
                 },
             ),
@@ -1724,7 +1724,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getE());
+                    $cpu->writeByteAndTick($address, $cpu->getE());
                     return 8;
                 },
             ),
@@ -1737,7 +1737,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getH());
+                    $cpu->writeByteAndTick($address, $cpu->getH());
                     return 8;
                 },
             ),
@@ -1750,7 +1750,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getL());
+                    $cpu->writeByteAndTick($address, $cpu->getL());
                     return 8;
                 },
             ),
@@ -1775,7 +1775,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 8;
                 },
             ),
@@ -1860,7 +1860,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -1999,7 +1999,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $a + $value;
                     $cpu->setA($result & 0xFF);
                     $cpu->getFlags()->setZ(($result & 0xFF) === 0);
@@ -2151,7 +2151,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $carry = $cpu->getFlags()->getC() ? 1 : 0;
                     $result = $a + $value + $carry;
                     $cpu->setA($result & 0xFF);
@@ -2298,7 +2298,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $a - $value;
                     $cpu->setA($result & 0xFF);
                     $cpu->getFlags()->setZ(($result & 0xFF) === 0);
@@ -2447,7 +2447,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $carry = $cpu->getFlags()->getC() ? 1 : 0;
                     $result = $a - $value - $carry;
                     $cpu->setA($result & 0xFF);
@@ -2581,7 +2581,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $cpu->getA() & $value;
                     $cpu->setA($result);
                     $cpu->getFlags()->setZ($result === 0);
@@ -2712,7 +2712,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $cpu->getA() ^ $value;
                     $cpu->setA($result);
                     $cpu->getFlags()->setZ($result === 0);
@@ -2843,7 +2843,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $cpu->getA() | $value;
                     $cpu->setA($result);
                     $cpu->getFlags()->setZ($result === 0);
@@ -2981,7 +2981,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $a = $cpu->getA();
                     $address = $cpu->getHL()->get();
-                    $value = $cpu->getBus()->readByte($address);
+                    $value = $cpu->readByteAndTick($address);
                     $result = $a - $value;
                     $cpu->getFlags()->setZ(($result & 0xFF) === 0);
                     $cpu->getFlags()->setN(true);
@@ -3014,9 +3014,9 @@ final class InstructionSet
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
                     if (!$cpu->getFlags()->getZ()) {
-                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $low = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
-                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $high = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
                         return 20;
@@ -3031,9 +3031,9 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getBC()->set(($high << 8) | $low);
                     return 12;
@@ -3062,6 +3062,7 @@ final class InstructionSet
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
+                    $cpu->tickInternal(4); // Internal delay
                     $cpu->getPC()->set($address);
                     return 16;
                 },
@@ -3075,11 +3076,12 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     if (!$cpu->getFlags()->getZ()) {
+                        $cpu->tickInternal(4); // Internal delay
                         $pc = $cpu->getPC()->get();
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                         $cpu->getPC()->set($address);
                         return 24;
                     }
@@ -3094,10 +3096,11 @@ final class InstructionSet
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
                     $value = $cpu->getBC()->get();
+                    $cpu->tickInternal(4); // Internal delay
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($value >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $value & 0xFF);
                     return 16;
                 },
             ),
@@ -3128,9 +3131,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0000);
                     return 16;
                 },
@@ -3143,9 +3146,9 @@ final class InstructionSet
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
                     if ($cpu->getFlags()->getZ()) {
-                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $low = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
-                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $high = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
                         return 20;
@@ -3160,10 +3163,11 @@ final class InstructionSet
                 length: 1,
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
+                    $cpu->tickInternal(4); // Internal delay
                     $cpu->getPC()->set(($high << 8) | $low);
                     return 16;
                 },
@@ -3203,11 +3207,12 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     if ($cpu->getFlags()->getZ()) {
+                        $cpu->tickInternal(4); // Internal delay
                         $pc = $cpu->getPC()->get();
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                         $cpu->getPC()->set($address);
                         return 24;
                     }
@@ -3222,11 +3227,12 @@ final class InstructionSet
                 cycles: 24,
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
+                    $cpu->tickInternal(4); // Internal delay (M-cycle 3)
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set($address);
                     return 24;
                 },
@@ -3259,9 +3265,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0008);
                     return 16;
                 },
@@ -3276,9 +3282,9 @@ final class InstructionSet
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
                     if (!$cpu->getFlags()->getC()) {
-                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $low = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
-                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $high = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
                         return 20;
@@ -3293,9 +3299,9 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getDE()->set(($high << 8) | $low);
                     return 12;
@@ -3325,11 +3331,12 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     if (!$cpu->getFlags()->getC()) {
+                        $cpu->tickInternal(4); // Internal delay
                         $pc = $cpu->getPC()->get();
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                         $cpu->getPC()->set($address);
                         return 24;
                     }
@@ -3345,9 +3352,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $value = $cpu->getDE()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($value >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $value & 0xFF);
                     return 16;
                 },
             ),
@@ -3378,9 +3385,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0010);
                     return 16;
                 },
@@ -3393,9 +3400,9 @@ final class InstructionSet
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
                     if ($cpu->getFlags()->getC()) {
-                        $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $low = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
-                        $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                        $high = $cpu->readByteAndTick($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
                         return 20;
@@ -3410,9 +3417,9 @@ final class InstructionSet
                 length: 1,
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getPC()->set(($high << 8) | $low);
                     $cpu->setIME(true);
@@ -3443,11 +3450,12 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
                     if ($cpu->getFlags()->getC()) {
+                        $cpu->tickInternal(4); // Internal delay
                         $pc = $cpu->getPC()->get();
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                         $cpu->getSP()->decrement();
-                        $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                        $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                         $cpu->getPC()->set($address);
                         return 24;
                     }
@@ -3482,9 +3490,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0018);
                     return 16;
                 },
@@ -3500,7 +3508,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $n = self::readImm8($cpu);
                     $address = 0xFF00 + $n;
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 12;
                 },
             ),
@@ -3511,9 +3519,9 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getHL()->set(($high << 8) | $low);
                     return 12;
@@ -3527,7 +3535,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = 0xFF00 + $cpu->getC();
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 8;
                 },
             ),
@@ -3540,9 +3548,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $value = $cpu->getHL()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($value >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $value & 0xFF);
                     return 16;
                 },
             ),
@@ -3572,9 +3580,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0020);
                     return 16;
                 },
@@ -3619,7 +3627,7 @@ final class InstructionSet
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
-                    $cpu->getBus()->writeByte($address, $cpu->getA());
+                    $cpu->writeByteAndTick($address, $cpu->getA());
                     return 16;
                 },
             ),
@@ -3649,9 +3657,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0028);
                     return 16;
                 },
@@ -3667,7 +3675,7 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $n = self::readImm8($cpu);
                     $address = 0xFF00 + $n;
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 12;
                 },
             ),
@@ -3678,9 +3686,9 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $low = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $low = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
-                    $high = $cpu->getBus()->readByte($cpu->getSP()->get());
+                    $high = $cpu->readByteAndTick($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getAF()->set(($high << 8) | ($low & 0xF0)); // Lower 4 bits of F are always 0
                     $cpu->getFlags()->syncFromAF(); // Sync flags from AF register
@@ -3695,7 +3703,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $address = 0xFF00 + $cpu->getC();
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 8;
                 },
             ),
@@ -3719,9 +3727,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $value = $cpu->getAF()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($value >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($value >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $value & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $value & 0xFF);
                     return 16;
                 },
             ),
@@ -3751,9 +3759,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0030);
                     return 16;
                 },
@@ -3798,7 +3806,7 @@ final class InstructionSet
                 cycles: 16,
                 handler: static function (Cpu $cpu): int {
                     $address = self::readImm16($cpu);
-                    $cpu->setA($cpu->getBus()->readByte($address));
+                    $cpu->setA($cpu->readByteAndTick($address));
                     return 16;
                 },
             ),
@@ -3839,9 +3847,9 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     $pc = $cpu->getPC()->get();
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), ($pc >> 8) & 0xFF);
                     $cpu->getSP()->decrement();
-                    $cpu->getBus()->writeByte($cpu->getSP()->get(), $pc & 0xFF);
+                    $cpu->writeByteAndTick($cpu->getSP()->get(), $pc & 0xFF);
                     $cpu->getPC()->set(0x0038);
                     return 16;
                 },
@@ -4109,7 +4117,7 @@ final class InstructionSet
             3 => $cpu->getE(),
             4 => $cpu->getH(),
             5 => $cpu->getL(),
-            6 => $cpu->getBus()->readByte($cpu->getHL()->get()),
+            6 => $cpu->readByteAndTick($cpu->getHL()->get()),
             7 => $cpu->getA(),
             default => throw new \InvalidArgumentException("Invalid register index: {$index}"),
         };
@@ -4127,7 +4135,7 @@ final class InstructionSet
             3 => $cpu->setE($value),
             4 => $cpu->setH($value),
             5 => $cpu->setL($value),
-            6 => $cpu->getBus()->writeByte($cpu->getHL()->get(), $value),
+            6 => $cpu->writeByteAndTick($cpu->getHL()->get(), $value),
             7 => $cpu->setA($value),
             default => throw new \InvalidArgumentException("Invalid register index: {$index}"),
         };

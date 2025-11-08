@@ -76,4 +76,16 @@ final class MockBus implements BusInterface
     {
         $this->memory = [];
     }
+
+    /**
+     * Tick timing-sensitive components at M-cycle granularity.
+     *
+     * No-op for MockBus since it doesn't have real components.
+     *
+     * @param int $cycles Number of T-cycles
+     */
+    public function tickComponents(int $cycles): void
+    {
+        // No-op for MockBus
+    }
 }

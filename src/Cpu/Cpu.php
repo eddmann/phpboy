@@ -96,6 +96,7 @@ final class Cpu
                 // For now, we'll implement the simple behavior
             } else {
                 // Still halted, consume 4 cycles
+                $this->tickInternal(4);
                 return 4;
             }
         }
@@ -120,15 +121,20 @@ final class Cpu
         // Acknowledge the interrupt
         $this->interruptController->acknowledgeInterrupt($interrupt);
 
-        // Push PC to stack (takes 2 M-cycles = 8 T-cycles)
+        // Internal delay (2 M-cycles)
+        $this->tickInternal(4);
+        $this->tickInternal(4);
+
+        // Push PC to stack (2 M-cycles)
         $pc = $this->pc->get();
         $this->sp->decrement();
-        $this->bus->writeByte($this->sp->get(), ($pc >> 8) & 0xFF); // High byte
+        $this->writeByteAndTick($this->sp->get(), ($pc >> 8) & 0xFF); // High byte
         $this->sp->decrement();
-        $this->bus->writeByte($this->sp->get(), $pc & 0xFF); // Low byte
+        $this->writeByteAndTick($this->sp->get(), $pc & 0xFF); // Low byte
 
-        // Jump to interrupt vector (takes 1 M-cycle = 4 T-cycles)
+        // Jump to interrupt vector (internal operation, 1 M-cycle)
         $this->pc->set($interrupt->getVector());
+        $this->tickInternal(4);
 
         // Total: 5 M-cycles = 20 T-cycles
         return 20;
@@ -137,11 +143,14 @@ final class Cpu
     /**
      * Fetch the next opcode byte from memory at PC and increment PC.
      *
+     * This includes both opcode fetch and immediate operand reads.
+     * Ticks components for M-cycle accurate timing.
+     *
      * @return int The opcode byte (0x00-0xFF)
      */
     public function fetch(): int
     {
-        $opcode = $this->bus->readByte($this->pc->get());
+        $opcode = $this->readByteAndTick($this->pc->get());
         $this->pc->increment();
         return $opcode;
     }
@@ -373,6 +382,47 @@ final class Cpu
     public function getBus(): BusInterface
     {
         return $this->bus;
+    }
+
+    /**
+     * Read a byte from memory and tick components (M-cycle accurate timing).
+     *
+     * This helper ensures Timer and OamDma observe the memory read at the correct M-cycle.
+     *
+     * @param int $address Memory address to read from
+     * @return int Byte value read
+     */
+    public function readByteAndTick(int $address): int
+    {
+        $value = $this->bus->readByte($address);
+        $this->bus->tickComponents(4); // 1 M-cycle
+        return $value;
+    }
+
+    /**
+     * Write a byte to memory and tick components (M-cycle accurate timing).
+     *
+     * This helper ensures Timer and OamDma observe the memory write at the correct M-cycle.
+     *
+     * @param int $address Memory address to write to
+     * @param int $value Byte value to write
+     */
+    public function writeByteAndTick(int $address, int $value): void
+    {
+        $this->bus->writeByte($address, $value);
+        $this->bus->tickComponents(4); // 1 M-cycle
+    }
+
+    /**
+     * Tick components for internal CPU operations (M-cycle accurate timing).
+     *
+     * Used for internal delays that don't involve memory operations (e.g., internal ALU operations).
+     *
+     * @param int $cycles Number of T-cycles (typically 4 for 1 M-cycle)
+     */
+    public function tickInternal(int $cycles = 4): void
+    {
+        $this->bus->tickComponents($cycles);
     }
 
     /**

@@ -194,6 +194,10 @@ final class Emulator
         // Attach interrupt controller
         $this->bus->attachIoDevice($this->interruptController, 0xFF0F, 0xFFFF); // IF and IE registers
 
+        // Wire up components for M-cycle accurate timing
+        // Timer and OamDma are ticked at M-cycle granularity during CPU memory operations
+        $this->bus->setComponents($this->timer, $this->oamDma);
+
         // Create CPU
         $this->cpu = new Cpu($this->bus, $this->interruptController);
 
@@ -303,11 +307,9 @@ final class Emulator
             // Execute one CPU instruction
             $cycles = $this->cpu->step();
 
-            // Step all other components by the same number of cycles
+            // Step PPU and APU (Timer and OamDma are ticked at M-cycle granularity by CPU)
             $this->ppu->step($cycles);
             $this->apu->step($cycles);
-            $this->timer?->tick($cycles);
-            $this->oamDma?->tick($cycles);
 
             // Accumulate cycles
             $frameCycles += $cycles;
@@ -328,11 +330,9 @@ final class Emulator
 
         $cycles = $this->cpu->step();
 
-        // Step other components
+        // Step PPU and APU (Timer and OamDma are ticked at M-cycle granularity by CPU)
         $this->ppu?->step($cycles);
         $this->apu?->step($cycles);
-        $this->timer?->tick($cycles);
-        $this->oamDma?->tick($cycles);
 
         $this->clock->tick($cycles);
 

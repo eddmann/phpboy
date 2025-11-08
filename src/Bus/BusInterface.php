@@ -28,4 +28,13 @@ interface BusInterface
      * @param int $value Byte value to write (0x00-0xFF)
      */
     public function writeByte(int $address, int $value): void;
+
+    /**
+     * Tick timing-sensitive components at M-cycle granularity.
+     *
+     * Called by CPU during memory operations for M-cycle accurate timing.
+     *
+     * @param int $cycles Number of T-cycles (typically 4 for 1 M-cycle)
+     */
+    public function tickComponents(int $cycles): void;
 }
