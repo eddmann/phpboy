@@ -39,6 +39,7 @@ final class Cpu
     private bool $stopped = false;
     private bool $ime = false; // Interrupt Master Enable
     private int $imeDelay = 0; // EI instruction has 1-instruction delay
+    private int $pendingCycles = 0; // Pending T-cycles for M-cycle accurate timing (SameBoy pattern)
 
     /**
      * @param BusInterface $bus Memory bus for reading/writing memory
@@ -83,7 +84,9 @@ final class Cpu
             $interrupt = $this->interruptController->getPendingInterrupt();
             if ($interrupt !== null) {
                 $this->halted = false; // Wake from HALT
-                return $this->serviceInterrupt($interrupt);
+                $cycles = $this->serviceInterrupt($interrupt);
+                $this->flushPendingCycles();
+                return $cycles;
             }
         }
 
@@ -97,13 +100,19 @@ final class Cpu
             } else {
                 // Still halted, consume 4 cycles
                 $this->tickInternal(4);
+                $this->flushPendingCycles();
                 return 4;
             }
         }
 
         $opcode = $this->fetch();
         $instruction = $this->decode($opcode);
-        return $this->execute($instruction);
+        $cycles = $this->execute($instruction);
+
+        // Flush any remaining pending cycles
+        $this->flushPendingCycles();
+
+        return $cycles;
     }
 
     /**
@@ -387,42 +396,81 @@ final class Cpu
     /**
      * Read a byte from memory and tick components (M-cycle accurate timing).
      *
-     * This helper ensures Timer and OamDma observe the memory read at the correct M-cycle.
+     * Uses SameBoy's pending cycles pattern: flush pending cycles from previous
+     * operation BEFORE reading, then set pending for this operation.
      *
      * @param int $address Memory address to read from
      * @return int Byte value read
      */
     public function readByteAndTick(int $address): int
     {
+        // Flush pending cycles from previous operation
+        if ($this->pendingCycles > 0) {
+            $this->bus->tickComponents($this->pendingCycles);
+        }
+
+        // Perform the memory read
         $value = $this->bus->readByte($address);
-        $this->bus->tickComponents(4); // 1 M-cycle
+
+        // Set pending cycles for this operation (will be flushed on next operation)
+        $this->pendingCycles = 4; // 1 M-cycle
+
         return $value;
     }
 
     /**
      * Write a byte to memory and tick components (M-cycle accurate timing).
      *
-     * This helper ensures Timer and OamDma observe the memory write at the correct M-cycle.
+     * Uses SameBoy's pending cycles pattern: flush pending cycles from previous
+     * operation BEFORE writing, then set pending for this operation.
      *
      * @param int $address Memory address to write to
      * @param int $value Byte value to write
      */
     public function writeByteAndTick(int $address, int $value): void
     {
+        // Flush pending cycles from previous operation
+        if ($this->pendingCycles > 0) {
+            $this->bus->tickComponents($this->pendingCycles);
+        }
+
+        // Perform the memory write
         $this->bus->writeByte($address, $value);
-        $this->bus->tickComponents(4); // 1 M-cycle
+
+        // Set pending cycles for this operation (will be flushed on next operation)
+        $this->pendingCycles = 4; // 1 M-cycle
     }
 
     /**
      * Tick components for internal CPU operations (M-cycle accurate timing).
      *
-     * Used for internal delays that don't involve memory operations (e.g., internal ALU operations).
+     * Uses SameBoy's pending cycles pattern: flush pending cycles from previous
+     * operation BEFORE the internal delay, then set pending for this delay.
      *
      * @param int $cycles Number of T-cycles (typically 4 for 1 M-cycle)
      */
     public function tickInternal(int $cycles = 4): void
     {
-        $this->bus->tickComponents($cycles);
+        // Flush pending cycles from previous operation
+        if ($this->pendingCycles > 0) {
+            $this->bus->tickComponents($this->pendingCycles);
+        }
+
+        // Set pending cycles for this internal operation
+        $this->pendingCycles = $cycles;
+    }
+
+    /**
+     * Flush any remaining pending cycles.
+     *
+     * Called at the end of instruction execution to ensure all cycles are accounted for.
+     */
+    private function flushPendingCycles(): void
+    {
+        if ($this->pendingCycles > 0) {
+            $this->bus->tickComponents($this->pendingCycles);
+            $this->pendingCycles = 0;
+        }
     }
 
     /**
