@@ -40,6 +40,10 @@ final class Cpu
     private bool $ime = false; // Interrupt Master Enable
     private int $imeDelay = 0; // EI instruction has 1-instruction delay
 
+    // M-cycle tracking (1 M-cycle = 4 T-cycles)
+    private int $pendingCycles = 0;
+    private ?\Closure $cycleCallback = null;
+
     /**
      * @param BusInterface $bus Memory bus for reading/writing memory
      * @param InterruptController $interruptController Interrupt controller
@@ -65,11 +69,16 @@ final class Cpu
      * Execute one instruction and return the number of cycles consumed.
      *
      * Handles interrupts, HALT, and the EI delay.
+     * With M-cycle accuracy, cycles are advanced during execution via callbacks,
+     * but we still return the total for compatibility.
      *
      * @return int Number of CPU cycles consumed (typically 4, 8, 12, 16, 20, or 24)
      */
     public function step(): int
     {
+        // Track total cycles for return value
+        $cyclesStart = $this->pendingCycles;
+
         // Handle EI delay (IME is enabled after the instruction following EI)
         if ($this->imeDelay > 0) {
             $this->imeDelay--;
@@ -83,7 +92,10 @@ final class Cpu
             $interrupt = $this->interruptController->getPendingInterrupt();
             if ($interrupt !== null) {
                 $this->halted = false; // Wake from HALT
-                return $this->serviceInterrupt($interrupt);
+                $this->serviceInterrupt($interrupt);
+                $this->flushPendingCycles();
+                $totalCycles = 20; // Interrupt service always takes 20 T-cycles
+                return $totalCycles;
             }
         }
 
@@ -96,6 +108,7 @@ final class Cpu
                 // For now, we'll implement the simple behavior
             } else {
                 // Still halted, consume 4 cycles
+                $this->advanceCycles(4);
                 return 4;
             }
         }
@@ -104,16 +117,26 @@ final class Cpu
         // Expected: 3-7% performance gain by removing decode() and execute() method calls
         $opcode = $this->fetch();
         $instruction = InstructionSet::getInstruction($opcode);
-        return ($instruction->handler)($this);
+        $cycles = ($instruction->handler)($this);
+
+        // Flush any remaining pending cycles
+        $this->flushPendingCycles();
+
+        return $cycles;
     }
 
     /**
      * Service an interrupt by pushing PC to stack and jumping to the vector.
      *
+     * Timing breakdown (5 M-cycles = 20 T-cycles):
+     * - 2 M-cycles: Internal delay
+     * - 1 M-cycle: Write PC high byte to stack
+     * - 1 M-cycle: Write PC low byte to stack
+     * - 1 M-cycle: Jump to interrupt vector
+     *
      * @param \Gb\Interrupts\InterruptType $interrupt The interrupt to service
-     * @return int Number of CPU cycles consumed (20)
      */
-    private function serviceInterrupt(\Gb\Interrupts\InterruptType $interrupt): int
+    private function serviceInterrupt(\Gb\Interrupts\InterruptType $interrupt): void
     {
         // Disable IME
         $this->ime = false;
@@ -122,28 +145,32 @@ final class Cpu
         // Acknowledge the interrupt
         $this->interruptController->acknowledgeInterrupt($interrupt);
 
-        // Push PC to stack (takes 2 M-cycles = 8 T-cycles)
+        // Internal delay: 2 M-cycles
+        $this->cycleNoAccess();
+        $this->cycleNoAccess();
+
+        // Push PC to stack: 2 M-cycles (1 per write)
         $pc = $this->pc->get();
         $this->sp->decrement();
-        $this->bus->writeByte($this->sp->get(), ($pc >> 8) & 0xFF); // High byte
+        $this->cycleWrite($this->sp->get(), ($pc >> 8) & 0xFF); // High byte
         $this->sp->decrement();
-        $this->bus->writeByte($this->sp->get(), $pc & 0xFF); // Low byte
+        $this->cycleWrite($this->sp->get(), $pc & 0xFF); // Low byte
 
-        // Jump to interrupt vector (takes 1 M-cycle = 4 T-cycles)
+        // Jump to interrupt vector: 1 M-cycle
         $this->pc->set($interrupt->getVector());
-
-        // Total: 5 M-cycles = 20 T-cycles
-        return 20;
+        $this->cycleNoAccess();
     }
 
     /**
      * Fetch the next opcode byte from memory at PC and increment PC.
      *
+     * Takes 1 M-cycle (4 T-cycles) to read from memory.
+     *
      * @return int The opcode byte (0x00-0xFF)
      */
     public function fetch(): int
     {
-        $opcode = $this->bus->readByte($this->pc->get());
+        $opcode = $this->cycleRead($this->pc->get());
         $this->pc->increment();
         return $opcode;
     }
@@ -467,5 +494,105 @@ final class Cpu
     public function getInterruptController(): InterruptController
     {
         return $this->interruptController;
+    }
+
+    /**
+     * Set the cycle callback for M-cycle accurate emulation.
+     *
+     * The callback is invoked whenever cycles are advanced, allowing other
+     * components (PPU, APU, Timer, etc.) to update in real-time during
+     * instruction execution.
+     *
+     * @param \Closure $callback Function that takes int $cycles as parameter
+     */
+    public function setCycleCallback(\Closure $callback): void
+    {
+        $this->cycleCallback = $callback;
+    }
+
+    /**
+     * Advance CPU cycles and invoke the cycle callback.
+     *
+     * This is the core of M-cycle accurate emulation - cycles are advanced
+     * incrementally during instruction execution, not just at the end.
+     *
+     * @param int $cycles Number of T-cycles to advance (typically 4 per M-cycle)
+     */
+    private function advanceCycles(int $cycles): void
+    {
+        if ($this->cycleCallback !== null) {
+            ($this->cycleCallback)($cycles);
+        }
+    }
+
+    /**
+     * Flush any pending cycles.
+     *
+     * Called before branches, interrupts, or other control flow changes.
+     */
+    private function flushPendingCycles(): void
+    {
+        if ($this->pendingCycles > 0) {
+            $this->advanceCycles($this->pendingCycles);
+            $this->pendingCycles = 0;
+        }
+    }
+
+    /**
+     * Read a byte from memory with M-cycle accurate timing.
+     *
+     * This function:
+     * 1. Flushes any pending cycles
+     * 2. Reads the byte from memory
+     * 3. Sets pending cycles to 4 (1 M-cycle)
+     *
+     * @param int $address Memory address to read from
+     * @return int The byte value read
+     */
+    public function cycleRead(int $address): int
+    {
+        $this->flushPendingCycles();
+        $value = $this->bus->readByte($address);
+        $this->pendingCycles = 4;
+        return $value;
+    }
+
+    /**
+     * Write a byte to memory with M-cycle accurate timing.
+     *
+     * This function:
+     * 1. Flushes any pending cycles
+     * 2. Writes the byte to memory
+     * 3. Sets pending cycles to 4 (1 M-cycle)
+     *
+     * @param int $address Memory address to write to
+     * @param int $value Byte value to write
+     */
+    public function cycleWrite(int $address, int $value): void
+    {
+        $this->flushPendingCycles();
+        $this->bus->writeByte($address, $value);
+        $this->pendingCycles = 4;
+    }
+
+    /**
+     * Internal operation with no memory access (1 M-cycle).
+     *
+     * Used for ALU operations, internal register transfers, etc.
+     * Accumulates cycles without flushing.
+     */
+    public function cycleNoAccess(): void
+    {
+        $this->pendingCycles += 4;
+    }
+
+    /**
+     * Get pending cycles count.
+     *
+     * @return int Number of pending T-cycles
+     */
+    public function getPendingCycles(): int
+    {
+        return $this->pendingCycles;
     }
 }
