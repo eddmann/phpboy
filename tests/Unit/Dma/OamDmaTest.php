@@ -54,8 +54,8 @@ final class OamDmaTest extends TestCase
         // Start DMA transfer from 0xC100
         $this->dma->writeByte(0xFF46, 0xC1);
 
-        // Transfer completes after 160 M-cycles
-        $this->dma->tick(160);
+        // Transfer completes after 161 M-cycles (1 delay + 160 transfer) = 644 T-cycles
+        $this->dma->tick(644);
 
         // Verify all 160 bytes were copied to OAM (0xFE00-0xFE9F)
         for ($i = 0; $i < 160; $i++) {
@@ -76,8 +76,8 @@ final class OamDmaTest extends TestCase
         // Start DMA transfer
         $this->dma->writeByte(0xFF46, 0xD0);
 
-        // Transfer 50 bytes
-        $this->dma->tick(50);
+        // Transfer 50 bytes (1 delay + 50 transfer = 51 M-cycles = 204 T-cycles)
+        $this->dma->tick(204);
 
         $this->assertTrue($this->dma->isDmaActive());
 
@@ -105,11 +105,12 @@ final class OamDmaTest extends TestCase
 
         $this->assertTrue($this->dma->isDmaActive());
 
-        // Transfer in chunks
-        $this->dma->tick(100);
+        // Transfer in chunks (100 M-cycles = 400 T-cycles)
+        $this->dma->tick(400);
         $this->assertTrue($this->dma->isDmaActive());
 
-        $this->dma->tick(60);
+        // Complete transfer (61 more M-cycles = 244 T-cycles)
+        $this->dma->tick(244);
         $this->assertFalse($this->dma->isDmaActive());
 
         // Verify all bytes transferred
@@ -126,7 +127,7 @@ final class OamDmaTest extends TestCase
             $this->bus->writeByte(0xC000 + $i, $i);
         }
         $this->dma->writeByte(0xFF46, 0xC0);
-        $this->dma->tick(160);
+        $this->dma->tick(644); // 161 M-cycles = 644 T-cycles
 
         // Verify first transfer
         $this->assertSame(0x00, $this->bus->readByte(0xFE00));
@@ -137,7 +138,7 @@ final class OamDmaTest extends TestCase
             $this->bus->writeByte(0xD000 + $i, 0xFF - $i);
         }
         $this->dma->writeByte(0xFF46, 0xD0);
-        $this->dma->tick(160);
+        $this->dma->tick(644); // 161 M-cycles = 644 T-cycles
 
         // Verify second transfer overwrote OAM
         $this->assertSame(0xFF, $this->bus->readByte(0xFE00));
@@ -154,7 +155,7 @@ final class OamDmaTest extends TestCase
 
         // Write 0xC1 to DMA register (should use 0xC100 as source, not 0xC146)
         $this->dma->writeByte(0xFF46, 0xC1);
-        $this->dma->tick(160);
+        $this->dma->tick(644); // 161 M-cycles = 644 T-cycles
 
         // All OAM bytes should be 0x42
         for ($i = 0; $i < 160; $i++) {

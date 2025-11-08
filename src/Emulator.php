@@ -201,6 +201,17 @@ final class Emulator
         // Expected: 1-2% performance gain by eliminating lazy initialization checks
         \Gb\Cpu\InstructionSet::warmCache();
 
+        // Set up M-cycle accurate callback
+        // This callback is invoked by the CPU during instruction execution
+        // to advance all other components in real-time
+        $this->cpu->setCycleCallback(function (int $cycles) {
+            $this->ppu?->step($cycles);
+            $this->apu?->step($cycles);
+            $this->timer?->tick($cycles);
+            $this->oamDma?->tick($cycles);
+            $this->clock->tick($cycles);
+        });
+
         // Reset clock
         $this->clock->reset();
     }
@@ -305,22 +316,20 @@ final class Emulator
 
         while ($frameCycles < self::CYCLES_PER_FRAME) {
             // Execute one CPU instruction
+            // With M-cycle accuracy, all components are advanced during
+            // instruction execution via the cycle callback
             $cycles = $this->cpu->step();
-
-            // Step all other components by the same number of cycles
-            $this->ppu->step($cycles);
-            $this->apu->step($cycles);
-            $this->timer?->tick($cycles);
-            $this->oamDma?->tick($cycles);
 
             // Accumulate cycles
             $frameCycles += $cycles;
-            $this->clock->tick($cycles);
         }
     }
 
     /**
      * Execute a single CPU instruction.
+     *
+     * With M-cycle accuracy, all components are automatically advanced
+     * during instruction execution via the cycle callback.
      *
      * @return int Number of cycles executed
      */
@@ -330,15 +339,9 @@ final class Emulator
             throw new \RuntimeException("Cannot step instruction: CPU not initialized");
         }
 
+        // Execute CPU instruction
+        // All components are automatically stepped via the cycle callback
         $cycles = $this->cpu->step();
-
-        // Step other components
-        $this->ppu?->step($cycles);
-        $this->apu?->step($cycles);
-        $this->timer?->tick($cycles);
-        $this->oamDma?->tick($cycles);
-
-        $this->clock->tick($cycles);
 
         return $cycles;
     }
