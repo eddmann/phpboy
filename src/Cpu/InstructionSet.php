@@ -3441,7 +3441,8 @@ final class InstructionSet
                     $high = $cpu->getBus()->readByte($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getPC()->set(($high << 8) | $low);
-                    $cpu->setIME(true);
+                    // RETI enables interrupts immediately (not delayed like EI)
+                    $cpu->setIMEImmediate();
                     return 16;
                 },
             ),
