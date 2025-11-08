@@ -50,6 +50,12 @@ final class OamDma implements DeviceInterface
     private int $dmaSource = 0x0000;
 
     /**
+     * Startup delay in M-cycles before first byte transfer.
+     * DMA has a 1 M-cycle delay after trigger before transferring bytes.
+     */
+    private int $dmaDelay = 0;
+
+    /**
      * @param BusInterface $bus Memory bus for reading source and writing to OAM
      */
     public function __construct(
@@ -97,6 +103,7 @@ final class OamDma implements DeviceInterface
         $this->dmaSource = ($sourcePage << 8) & 0xFF00;
         $this->dmaActive = true;
         $this->dmaProgress = 0;
+        $this->dmaDelay = 1; // 1 M-cycle delay before first byte transfer
     }
 
     /**
@@ -110,11 +117,11 @@ final class OamDma implements DeviceInterface
     }
 
     /**
-     * Update the DMA transfer by the specified number of M-cycles.
+     * Update the DMA transfer by the specified number of CPU cycles.
      *
-     * Each M-cycle transfers one byte. DMA completes after 160 M-cycles.
+     * Each M-cycle (4 T-cycles) transfers one byte. DMA completes after 160 M-cycles.
      *
-     * @param int $cycles Number of M-cycles elapsed (typically 1, 2, 3, 4, 5, or 6)
+     * @param int $cycles Number of T-cycles (CPU cycles) elapsed
      */
     public function tick(int $cycles): void
     {
@@ -122,8 +129,22 @@ final class OamDma implements DeviceInterface
             return;
         }
 
+        // Convert T-cycles to M-cycles (1 M-cycle = 4 T-cycles)
+        $mCycles = intdiv($cycles, 4);
+
+        // Handle startup delay (1 M-cycle before first byte transfer)
+        if ($this->dmaDelay > 0) {
+            $delayToProcess = min($this->dmaDelay, $mCycles);
+            $this->dmaDelay -= $delayToProcess;
+            $mCycles -= $delayToProcess;
+
+            if ($mCycles <= 0) {
+                return; // Still in delay phase
+            }
+        }
+
         // Transfer one byte per M-cycle
-        for ($i = 0; $i < $cycles; $i++) {
+        for ($i = 0; $i < $mCycles; $i++) {
             if ($this->dmaProgress >= self::TRANSFER_LENGTH) {
                 $this->dmaActive = false;
                 break;

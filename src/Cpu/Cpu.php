@@ -448,6 +448,18 @@ final class Cpu
     }
 
     /**
+     * Enable interrupts immediately without delay.
+     *
+     * Used by the RETI instruction, which enables IME immediately
+     * (unlike EI which has a 1-instruction delay).
+     */
+    public function setIMEImmediate(): void
+    {
+        $this->ime = true;
+        $this->imeDelay = 0;
+    }
+
+    /**
      * Get the interrupt controller.
      *
      * @return InterruptController The interrupt controller
