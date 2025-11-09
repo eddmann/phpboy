@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 final class BlarggTestRomsTest extends TestCase
 {
     private const ROM_BASE_PATH = __DIR__ . '/../../third_party/roms';
-    private const TIMEOUT = 35; // 35 seconds per test (increased for 11-op a,(hl).gb)
+    private const TIMEOUT = 60; // 60 seconds per test (increased for M-cycle accurate execution)
 
     private TestRomRunner $runner;
 
