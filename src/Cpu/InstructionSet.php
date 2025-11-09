@@ -3056,13 +3056,14 @@ final class InstructionSet
                 length: 1,
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
+                    $cpu->cycleNoAccess(); // Internal delay for condition check: 1 M-cycle
                     if (!$cpu->getFlags()->getZ()) {
                         $low = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $high = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 20;
                     }
                     return 8;
@@ -3191,13 +3192,14 @@ final class InstructionSet
                 length: 1,
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
+                    $cpu->cycleNoAccess(); // Internal delay for condition check: 1 M-cycle
                     if ($cpu->getFlags()->getZ()) {
                         $low = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $high = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 20;
                     }
                     return 8;
@@ -3330,13 +3332,14 @@ final class InstructionSet
                 length: 1,
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
+                    $cpu->cycleNoAccess(); // Internal delay for condition check: 1 M-cycle
                     if (!$cpu->getFlags()->getC()) {
                         $low = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $high = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 20;
                     }
                     return 8;
@@ -3452,13 +3455,14 @@ final class InstructionSet
                 length: 1,
                 cycles: 8, // 20 if taken, 8 if not taken
                 handler: static function (Cpu $cpu): int {
+                    $cpu->cycleNoAccess(); // Internal delay for condition check: 1 M-cycle
                     if ($cpu->getFlags()->getC()) {
                         $low = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $high = $cpu->cycleRead($cpu->getSP()->get());
                         $cpu->getSP()->increment();
                         $cpu->getPC()->set(($high << 8) | $low);
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
+                        $cpu->cycleNoAccess(); // Internal delay for jump: 1 M-cycle
                         return 20;
                     }
                     return 8;
@@ -3476,6 +3480,7 @@ final class InstructionSet
                     $high = $cpu->cycleRead($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $cpu->getPC()->set(($high << 8) | $low);
+                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
                     // RETI enables interrupts immediately (not delayed like EI)
                     $cpu->setIMEImmediate();
                     return 16;
