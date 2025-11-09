@@ -34,4 +34,12 @@ interface FramebufferInterface
      * Clear the framebuffer (typically to white).
      */
     public function clear(): void;
+
+    /**
+     * Present the framebuffer (display/render the current frame).
+     *
+     * Called by the PPU at the end of each frame to signal that
+     * the frame is complete and ready to be displayed.
+     */
+    public function present(): void;
 }
