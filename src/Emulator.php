@@ -429,6 +429,22 @@ final class Emulator
     }
 
     /**
+     * Get the input handler.
+     */
+    public function getInput(): ?InputInterface
+    {
+        return $this->input;
+    }
+
+    /**
+     * Get the audio sink.
+     */
+    public function getAudioSink(): AudioSinkInterface
+    {
+        return $this->audioSink;
+    }
+
+    /**
      * Get the clock.
      */
     public function getClock(): Clock
