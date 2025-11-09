@@ -130,6 +130,7 @@ final class CommercialRomTest extends TestCase
      * Test loading ROMs without running them (quick sanity check)
      *
      * @dataProvider commercialRomProvider
+     * @doesNotPerformAssertions
      */
     public function testRomLoads(string $romName, string $romPath, int $framesToRun): void
     {
