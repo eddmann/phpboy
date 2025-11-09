@@ -197,6 +197,10 @@ final class Emulator
         // Create CPU
         $this->cpu = new Cpu($this->bus, $this->interruptController);
 
+        // Optimization (Step 14): Pre-build all 512 instructions for faster dispatch
+        // Expected: 1-2% performance gain by eliminating lazy initialization checks
+        \Gb\Cpu\InstructionSet::warmCache();
+
         // Reset clock
         $this->clock->reset();
     }
