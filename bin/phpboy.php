@@ -10,6 +10,7 @@ use Gb\Frontend\Cli\CliInput;
 use Gb\Frontend\Cli\CliRenderer;
 use Gb\Apu\Sink\WavSink;
 use Gb\Apu\Sink\NullSink;
+use Gb\Apu\Sink\PipeAudioSink;
 use Gb\Debug\Debugger;
 use Gb\Debug\Trace;
 
@@ -50,6 +51,7 @@ Options:
   --display-mode=<mode> Display mode: 'ansi-color', 'ascii', 'none' (default: ansi-color)
   --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
   --save=<path>        Save file location (default: <rom>.sav)
+  --audio              Enable real-time audio playback (requires aplay/ffplay)
   --audio-out=<path>   WAV file to record audio output
   --frames=<n>         Number of frames to run in headless mode (default: 60)
   --benchmark          Enable benchmark mode with FPS measurement (requires --headless)
@@ -61,6 +63,8 @@ Examples:
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
   php bin/phpboy.php tetris.gb --display-mode=ansi-color
   php bin/phpboy.php tetris.gb --display-mode=ascii
+  php bin/phpboy.php tetris.gb --audio
+  php bin/phpboy.php tetris.gb --audio --audio-out=recording.wav
   php bin/phpboy.php tetris.gb --debug
   php bin/phpboy.php tetris.gb --trace --headless
   php bin/phpboy.php tetris.gb --headless --frames=3600 --benchmark
@@ -71,7 +75,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
  */
 function parseArguments(array $argv): array
 {
@@ -83,6 +87,7 @@ function parseArguments(array $argv): array
         'display_mode' => 'ansi-color',
         'speed' => 1.0,
         'save' => null,
+        'audio' => false,
         'audio_out' => null,
         'help' => false,
         'frames' => null,
@@ -115,6 +120,8 @@ function parseArguments(array $argv): array
             $options['speed'] = (float)substr($arg, 8);
         } elseif (str_starts_with($arg, '--save=')) {
             $options['save'] = substr($arg, 7);
+        } elseif ($arg === '--audio') {
+            $options['audio'] = true;
         } elseif (str_starts_with($arg, '--audio-out=')) {
             $options['audio_out'] = substr($arg, 12);
         } elseif (str_starts_with($arg, '--frames=')) {
@@ -194,10 +201,26 @@ try {
     }
 
     // Set up audio output
-    if ($options['audio_out'] !== null) {
+    if ($options['audio'] && $options['audio_out'] !== null) {
+        echo "Warning: Both --audio and --audio-out specified. Using real-time playback only.\n";
+        echo "         To record audio, use --audio-out without --audio.\n";
+    }
+
+    if ($options['audio']) {
+        // Real-time audio playback via pipe to external player
+        $audioSink = new PipeAudioSink(48000);
+        $emulator->setAudioSink($audioSink);
+
+        if ($audioSink->isAvailable()) {
+            echo "Audio: Enabled (using {$audioSink->getPlayerName()})\n";
+        } else {
+            echo "Audio: Failed to start (install aplay or ffplay for audio support)\n";
+        }
+    } elseif ($options['audio_out'] !== null) {
+        // WAV file recording
         $audioSink = new WavSink($options['audio_out']);
         $emulator->setAudioSink($audioSink);
-        echo "Recording audio to: {$options['audio_out']}\n";
+        echo "Audio: Recording to {$options['audio_out']}\n";
     }
 
     // Set up input
