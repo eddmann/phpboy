@@ -182,7 +182,7 @@ final class Channel3 implements ChannelInterface
         }
 
         // Get the current 4-bit sample from wave RAM
-        $byteIndex = $this->samplePosition / 2;
+        $byteIndex = intdiv($this->samplePosition, 2);
         $nibbleHigh = ($this->samplePosition % 2) === 0;
         $byte = $this->waveRam[$byteIndex];
         $sample4bit = $nibbleHigh ? ($byte >> 4) : ($byte & 0x0F);

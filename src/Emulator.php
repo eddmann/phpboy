@@ -323,6 +323,9 @@ final class Emulator
             // Accumulate cycles
             $frameCycles += $cycles;
         }
+
+        // Display the rendered frame
+        $this->framebuffer->present();
     }
 
     /**
