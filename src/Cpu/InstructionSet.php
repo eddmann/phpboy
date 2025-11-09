@@ -3075,7 +3075,6 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
                     $low = $cpu->cycleRead($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $high = $cpu->cycleRead($cpu->getSP()->get());
@@ -3350,7 +3349,6 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
                     $low = $cpu->cycleRead($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $high = $cpu->cycleRead($cpu->getSP()->get());
@@ -3578,7 +3576,6 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
                     $low = $cpu->cycleRead($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $high = $cpu->cycleRead($cpu->getSP()->get());
@@ -3752,7 +3749,6 @@ final class InstructionSet
                 length: 1,
                 cycles: 12,
                 handler: static function (Cpu $cpu): int {
-                    $cpu->cycleNoAccess(); // Internal delay: 1 M-cycle
                     $low = $cpu->cycleRead($cpu->getSP()->get());
                     $cpu->getSP()->increment();
                     $high = $cpu->cycleRead($cpu->getSP()->get());
