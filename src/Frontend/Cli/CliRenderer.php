@@ -31,6 +31,8 @@ final class CliRenderer implements FramebufferInterface
     private bool $enabled = true;
     private int $frameCount = 0;
     private int $displayInterval = 1; // Display every N frames
+    private string $displayMode = 'ansi-color'; // 'none', 'ascii', 'ansi-color'
+    private bool $cursorHidden = false;
 
     public function __construct()
     {
@@ -92,7 +94,7 @@ final class CliRenderer implements FramebufferInterface
      */
     public function present(): void
     {
-        if (!$this->enabled) {
+        if (!$this->enabled || $this->displayMode === 'none') {
             return;
         }
 
@@ -103,15 +105,19 @@ final class CliRenderer implements FramebufferInterface
             return;
         }
 
-        // For CLI rendering, we can either:
-        // 1. Print a downscaled ASCII art representation
-        // 2. Save to a file for later viewing
-        // 3. Do nothing (headless mode)
-
-        // For now, just print a simple status message every 60 frames
-        if ($this->frameCount % 60 === 0) {
-            $seconds = $this->frameCount / 60;
-            echo sprintf("\rFrame: %d (%.1fs)", $this->frameCount, $seconds);
+        if ($this->displayMode === 'ansi-color') {
+            // Render full-color terminal output
+            $this->clearScreen();
+            if (!$this->cursorHidden) {
+                $this->hideCursor();
+            }
+            echo $this->toAnsiColor(2); // Scale 2x (80x72 chars)
+            echo sprintf("\nFrame: %d (%.1fs) | Press Ctrl+C to exit", $this->frameCount, $this->frameCount / 60.0);
+        } elseif ($this->displayMode === 'ascii') {
+            // Render ASCII art representation
+            $this->clearScreen();
+            echo $this->toAscii(4); // Scale 4x (40x36 chars)
+            echo sprintf("\nFrame: %d (%.1fs)", $this->frameCount, $this->frameCount / 60.0);
         }
     }
 
@@ -244,5 +250,116 @@ final class CliRenderer implements FramebufferInterface
         }
 
         return $output;
+    }
+
+    /**
+     * Render full-color ANSI representation using Unicode half-blocks.
+     *
+     * Uses Unicode half-block characters (▀▄█) to achieve 2x vertical resolution.
+     * Each terminal character represents 2 vertical pixels:
+     * - Top half: background color
+     * - Bottom half: foreground color (using ▀ or ▄)
+     *
+     * @param int $scale Horizontal downscale factor (1 = full width, 2 = half width)
+     * @return string ANSI color representation
+     */
+    public function toAnsiColor(int $scale = 2): string
+    {
+        $output = '';
+
+        // Process 2 rows at a time (top and bottom half-blocks)
+        for ($y = 0; $y < self::HEIGHT; $y += 2) {
+            for ($x = 0; $x < self::WIDTH; $x += $scale) {
+                // Get colors for top and bottom pixels
+                $topColor = $this->pixels[$y][$x];
+                $bottomColor = ($y + 1 < self::HEIGHT) ? $this->pixels[$y + 1][$x] : $topColor;
+
+                // Check if colors are identical
+                if ($topColor->r === $bottomColor->r &&
+                    $topColor->g === $bottomColor->g &&
+                    $topColor->b === $bottomColor->b) {
+                    // Same color - use full block with background color
+                    $output .= sprintf(
+                        "\e[48;2;%d;%d;%dm ",
+                        $topColor->r,
+                        $topColor->g,
+                        $topColor->b
+                    );
+                } else {
+                    // Different colors - use upper half block
+                    // Foreground = top color, Background = bottom color
+                    $output .= sprintf(
+                        "\e[38;2;%d;%d;%dm\e[48;2;%d;%d;%dm▀",
+                        $topColor->r,
+                        $topColor->g,
+                        $topColor->b,
+                        $bottomColor->r,
+                        $bottomColor->g,
+                        $bottomColor->b
+                    );
+                }
+            }
+            // Reset colors at end of line
+            $output .= "\e[0m\n";
+        }
+
+        return $output;
+    }
+
+    /**
+     * Set the display mode.
+     *
+     * @param string $mode Display mode: 'none', 'ascii', 'ansi-color'
+     */
+    public function setDisplayMode(string $mode): void
+    {
+        if (!in_array($mode, ['none', 'ascii', 'ansi-color'], true)) {
+            throw new \InvalidArgumentException("Invalid display mode: $mode");
+        }
+        $this->displayMode = $mode;
+    }
+
+    /**
+     * Get the current display mode.
+     */
+    public function getDisplayMode(): string
+    {
+        return $this->displayMode;
+    }
+
+    /**
+     * Clear the terminal screen and move cursor to top-left.
+     */
+    private function clearScreen(): void
+    {
+        echo "\e[2J\e[H";
+    }
+
+    /**
+     * Hide the terminal cursor.
+     */
+    private function hideCursor(): void
+    {
+        echo "\e[?25l";
+        $this->cursorHidden = true;
+    }
+
+    /**
+     * Show the terminal cursor.
+     */
+    public function showCursor(): void
+    {
+        echo "\e[?25h";
+        $this->cursorHidden = false;
+    }
+
+    /**
+     * Destructor - ensure cursor is restored.
+     */
+    public function __destruct()
+    {
+        if ($this->cursorHidden) {
+            $this->showCursor();
+        }
     }
 }
