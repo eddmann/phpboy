@@ -125,4 +125,15 @@ final class WasmFramebuffer implements FramebufferInterface
     {
         return self::HEIGHT;
     }
+
+    /**
+     * Present the framebuffer.
+     *
+     * For WASM, this is a no-op since JavaScript explicitly polls
+     * for pixel data via getPixelsRGBA() in the render loop.
+     */
+    public function present(): void
+    {
+        // No-op for WASM - JavaScript polls for pixel data
+    }
 }
