@@ -43,4 +43,10 @@ final class ArrayFramebuffer implements FramebufferInterface
             $this->buffer[$y] = array_fill(0, self::WIDTH, $white);
         }
     }
+
+    public function present(): void
+    {
+        // No-op for array framebuffer (used for testing)
+        // Actual rendering implementations (CLI, WASM) should override this
+    }
 }

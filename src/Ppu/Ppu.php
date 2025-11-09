@@ -191,6 +191,9 @@ final class Ppu implements DeviceInterface
                 $this->ly = 0;
                 $this->updateLycCoincidence();
                 $this->setMode(PpuMode::OamSearch);
+
+                // Frame complete - present the framebuffer
+                $this->framebuffer->present();
             }
         }
     }
