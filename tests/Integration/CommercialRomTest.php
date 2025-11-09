@@ -22,13 +22,6 @@ final class CommercialRomTest extends TestCase
     private const ROM_BASE_PATH = __DIR__ . '/../../third_party/roms/commerical';
 
     /**
-     * Test duration in frames
-     * 5 minutes at 60 FPS = 18,000 frames
-     * We'll use shorter durations adjusted for current performance (~25-30 FPS)
-     */
-    private const TEST_DURATION_FRAMES = 3000;
-
-    /**
      * Timeout in seconds
      * At ~25 FPS, 3000 frames takes ~120 seconds
      */
