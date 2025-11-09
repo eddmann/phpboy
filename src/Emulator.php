@@ -467,4 +467,28 @@ final class Emulator
     {
         return $this->serial;
     }
+
+    /**
+     * Save the current emulator state to a file.
+     *
+     * @param string $path Path to save the savestate file
+     * @throws \RuntimeException If savestate cannot be created or saved
+     */
+    public function saveState(string $path): void
+    {
+        $manager = new \Gb\Savestate\SavestateManager($this);
+        $manager->save($path);
+    }
+
+    /**
+     * Load an emulator state from a file.
+     *
+     * @param string $path Path to the savestate file
+     * @throws \RuntimeException If savestate cannot be loaded or is invalid
+     */
+    public function loadState(string $path): void
+    {
+        $manager = new \Gb\Savestate\SavestateManager($this);
+        $manager->load($path);
+    }
 }

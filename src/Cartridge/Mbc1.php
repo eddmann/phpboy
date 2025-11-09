@@ -177,4 +177,40 @@ final class Mbc1 implements MbcInterface
     {
         // No-op for MBC1
     }
+
+    public function getCurrentRomBank(): int
+    {
+        return ($this->bankUpper << 5) | $this->romBankLower;
+    }
+
+    public function getCurrentRamBank(): int
+    {
+        return $this->bankingMode === 1 ? $this->bankUpper : 0;
+    }
+
+    public function isRamEnabled(): bool
+    {
+        return $this->ramEnabled;
+    }
+
+    public function setCurrentRomBank(int $bank): void
+    {
+        $this->romBankLower = $bank & 0x1F;
+        $this->bankUpper = ($bank >> 5) & 0x03;
+
+        // Ensure bank 0 quirk is maintained
+        if ($this->romBankLower === 0x00) {
+            $this->romBankLower = 0x01;
+        }
+    }
+
+    public function setCurrentRamBank(int $bank): void
+    {
+        $this->bankUpper = $bank & 0x03;
+    }
+
+    public function setRamEnabled(bool $enabled): void
+    {
+        $this->ramEnabled = $enabled;
+    }
 }

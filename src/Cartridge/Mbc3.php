@@ -406,4 +406,42 @@ final class Mbc3 implements MbcInterface
         $this->rtcHalt = ($state['halt'] ?? 0) !== 0;
         $this->rtcDayHigh = $state['dayHigh'] ?? 0;
     }
+
+    public function getCurrentRomBank(): int
+    {
+        return $this->romBank;
+    }
+
+    public function getCurrentRamBank(): int
+    {
+        return $this->ramBankOrRtc;
+    }
+
+    public function isRamEnabled(): bool
+    {
+        return $this->ramRtcEnabled;
+    }
+
+    public function setCurrentRomBank(int $bank): void
+    {
+        $this->romBank = $bank & 0x7F;
+
+        // Ensure bank 0 quirk is maintained
+        if ($this->romBank === 0x00) {
+            $this->romBank = 0x01;
+        }
+
+        // Clamp to available banks
+        $this->romBank = $this->romBank % $this->romBankCount;
+    }
+
+    public function setCurrentRamBank(int $bank): void
+    {
+        $this->ramBankOrRtc = $bank;
+    }
+
+    public function setRamEnabled(bool $enabled): void
+    {
+        $this->ramRtcEnabled = $enabled;
+    }
 }

@@ -55,4 +55,46 @@ interface MbcInterface
      * @param int $cycles Number of cycles elapsed
      */
     public function step(int $cycles): void;
+
+    /**
+     * Get current ROM bank number (for savestates).
+     *
+     * @return int Current ROM bank
+     */
+    public function getCurrentRomBank(): int;
+
+    /**
+     * Get current RAM bank number (for savestates).
+     *
+     * @return int Current RAM bank
+     */
+    public function getCurrentRamBank(): int;
+
+    /**
+     * Check if RAM is currently enabled (for savestates).
+     *
+     * @return bool True if RAM is enabled
+     */
+    public function isRamEnabled(): bool;
+
+    /**
+     * Set current ROM bank (for savestates).
+     *
+     * @param int $bank ROM bank number
+     */
+    public function setCurrentRomBank(int $bank): void;
+
+    /**
+     * Set current RAM bank (for savestates).
+     *
+     * @param int $bank RAM bank number
+     */
+    public function setCurrentRamBank(int $bank): void;
+
+    /**
+     * Set RAM enabled state (for savestates).
+     *
+     * @param bool $enabled RAM enabled state
+     */
+    public function setRamEnabled(bool $enabled): void;
 }
