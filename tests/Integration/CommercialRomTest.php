@@ -141,7 +141,7 @@ final class CommercialRomTest extends TestCase
 
         try {
             $emulator->loadRom($romPath);
-            $this->assertTrue(true, "{$romName} loaded successfully");
+            // Test passes if no exception is thrown
         } catch (\Exception $e) {
             $this->fail("Failed to load ROM {$romName}: {$e->getMessage()}");
         }
