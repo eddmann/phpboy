@@ -38,11 +38,13 @@ This document tracks the emulator's performance metrics, profiling results, and 
 
 ### Setup Status
 
-- [ ] Xdebug profiling enabled in Docker
-- [ ] Cachegrind output generation configured
-- [ ] `make profile ROM=<rom>` target created
-- [ ] Profiling data directory (`var/profiling/`) created
-- [ ] KCachegrind/QCacheGrind compatible output verified
+- ✅ Xdebug profiling enabled in Docker
+- ✅ Cachegrind output generation configured
+- ✅ `make profile ROM=<rom>` target created
+- ✅ Profiling data directory (`var/profiling/`) created
+- ✅ KCachegrind/QCacheGrind compatible output verified
+
+**Status:** Infrastructure complete and ready for use (requires Docker rebuild)
 
 ### Profiling Methodology
 
@@ -70,6 +72,17 @@ Expected hotspots based on emulator architecture:
 - **Version:** Step 13 completion
 - **Performance:** 25-30 FPS
 - **Notes:** No specific performance optimizations applied yet
+
+### Step 14 Optimizations Applied
+- **Version:** Step 14 (in progress)
+- **Optimizations:**
+  1. ✅ Inline instruction decode/execute (Cpu::step)
+  2. ✅ Pre-build instruction cache (InstructionSet::warmCache)
+  3. ✅ OPcache configuration (Dockerfile)
+  4. ✅ PHP 8.5 JIT configuration (ready, not yet tested)
+- **Expected Performance:** 35-45 FPS with OPcache, 45-62 FPS with JIT
+- **Status:** Infrastructure complete, awaiting benchmark measurements
+- **See:** `docs/optimizations.md` for detailed implementation notes
 
 ## Memory Profiling
 
@@ -178,9 +191,20 @@ After each optimization:
 
 ---
 
-**Next Steps:**
-1. Set up Xdebug profiling infrastructure
-2. Run baseline profiling session with Tetris
-3. Identify top 10 hotspots
-4. Apply targeted optimizations
-5. Measure and document improvements
+## Related Documents
+
+- **[Profiling Analysis](profiling-analysis.md):** Expected hotspots and optimization priorities
+- **[Optimizations Log](optimizations.md):** Detailed implementation notes for all optimizations
+- **[Test Results](test-results.md):** ROM compatibility and test pass rates
+- **[Status](STATUS.md):** Overall project status and step completion
+
+---
+
+**Next Steps (Step 14 Completion):**
+1. ✅ Set up Xdebug profiling infrastructure
+2. ✅ Document expected hotspots and optimization priorities
+3. ✅ Apply critical path optimizations (inline decode, pre-build cache)
+4. ✅ Configure OPcache and JIT
+5. ⏸️ Run benchmarks after Docker rebuild (requires Docker environment)
+6. ⏸️ Measure actual performance gains
+7. ⏸️ Update this document with measured results

@@ -100,9 +100,11 @@ final class Cpu
             }
         }
 
+        // Optimization (Step 14): Inline instruction decode and execute to eliminate method call overhead
+        // Expected: 3-7% performance gain by removing decode() and execute() method calls
         $opcode = $this->fetch();
-        $instruction = $this->decode($opcode);
-        return $this->execute($instruction);
+        $instruction = InstructionSet::getInstruction($opcode);
+        return ($instruction->handler)($this);
     }
 
     /**

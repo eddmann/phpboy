@@ -24,6 +24,32 @@ final class InstructionSet
     private static array $cbInstructions = [];
 
     /**
+     * Pre-build all instructions to eliminate lazy initialization overhead.
+     *
+     * Optimization (Step 14): Build all 512 instructions upfront during initialization.
+     * Trade-off: ~100KB additional memory for faster instruction dispatch (no isset check).
+     * Expected: 1-2% performance gain by eliminating branch prediction overhead.
+     *
+     * Call this during emulator initialization for best performance.
+     */
+    public static function warmCache(): void
+    {
+        // Pre-build all 256 base instructions
+        for ($opcode = 0x00; $opcode <= 0xFF; $opcode++) {
+            if (!isset(self::$instructions[$opcode])) {
+                self::$instructions[$opcode] = self::buildInstruction($opcode);
+            }
+        }
+
+        // Pre-build all 256 CB-prefixed instructions
+        for ($opcode = 0x00; $opcode <= 0xFF; $opcode++) {
+            if (!isset(self::$cbInstructions[$opcode])) {
+                self::$cbInstructions[$opcode] = self::buildCBInstruction($opcode);
+            }
+        }
+    }
+
+    /**
      * Get instruction metadata for a given opcode.
      *
      * @param int $opcode The opcode byte (0x00-0xFF)
