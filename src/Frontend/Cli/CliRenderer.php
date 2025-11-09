@@ -33,6 +33,7 @@ final class CliRenderer implements FramebufferInterface
     private int $displayInterval = 1; // Display every N frames
     private string $displayMode = 'ansi-color'; // 'none', 'ascii', 'ansi-color'
     private bool $cursorHidden = false;
+    private bool $screenInitialized = false;
 
     public function __construct()
     {
@@ -106,19 +107,44 @@ final class CliRenderer implements FramebufferInterface
         }
 
         if ($this->displayMode === 'ansi-color') {
-            // Render full-color terminal output
-            $this->clearScreen();
-            if (!$this->cursorHidden) {
-                $this->hideCursor();
+            // Build entire output buffer first to minimize flicker
+            $output = '';
+
+            // Clear screen only on first frame to avoid flickering
+            if (!$this->screenInitialized) {
+                $output .= "\e[2J\e[H";
+                $this->screenInitialized = true;
+            } else {
+                $output .= "\e[H";
             }
-            echo $this->toAnsiColor(2); // Scale 2x (80x72 chars)
-            echo sprintf("\nFrame: %d (%.1fs) | Press Ctrl+C to exit", $this->frameCount, $this->frameCount / 60.0);
+
+            if (!$this->cursorHidden) {
+                $output .= "\e[?25l";
+                $this->cursorHidden = true;
+            }
+
+            // Render full-color terminal output
+            // Terminal chars are ~2:1 tall, half-blocks give us 2 pixels per char vertically
+            // To maintain Game Boy aspect ratio (160:144 = 1.11:1), use 1x horizontal scale
+            // This gives us: 160x72 terminal chars (160:72 = 2.22:1, accounting for 2:1 char aspect = ~1.11:1 visual)
+            $output .= $this->toAnsiColor(1, 2); // 160x72 chars - wider display
+            $output .= sprintf("\nFrame: %d (%.1fs) | Press Ctrl+C to exit\e[K", $this->frameCount, $this->frameCount / 60.0);
+
+            // Single atomic write to minimize flicker
+            echo $output;
             flush(); // Ensure output reaches terminal
         } elseif ($this->displayMode === 'ascii') {
+            // Clear screen only on first frame to avoid flickering
+            if (!$this->screenInitialized) {
+                $this->clearScreen();
+                $this->screenInitialized = true;
+            } else {
+                $this->moveCursorHome();
+            }
+
             // Render ASCII art representation
-            $this->clearScreen();
             echo $this->toAscii(4); // Scale 4x (40x36 chars)
-            echo sprintf("\nFrame: %d (%.1fs)", $this->frameCount, $this->frameCount / 60.0);
+            echo sprintf("\nFrame: %d (%.1fs)\e[K", $this->frameCount, $this->frameCount / 60.0);
             flush(); // Ensure output reaches terminal
         }
     }
@@ -262,16 +288,22 @@ final class CliRenderer implements FramebufferInterface
      * - Top half: background color
      * - Bottom half: foreground color (using ▀ or ▄)
      *
-     * @param int $scale Horizontal downscale factor (1 = full width, 2 = half width)
+     * Terminal characters are typically ~2:1 height:width ratio.
+     * Game Boy screen is 160x144 pixels (1.11:1 ratio).
+     * With half-blocks, we get 2x vertical compression automatically.
+     * So we need to also scale horizontally by 2 to maintain aspect ratio.
+     *
+     * @param int $xScale Horizontal downscale factor (2 = proper aspect ratio)
+     * @param int $yScale Vertical downscale factor (2 = use half-blocks, 4 = skip rows)
      * @return string ANSI color representation
      */
-    public function toAnsiColor(int $scale = 2): string
+    public function toAnsiColor(int $xScale = 2, int $yScale = 2): string
     {
         $output = '';
 
-        // Process 2 rows at a time (top and bottom half-blocks)
-        for ($y = 0; $y < self::HEIGHT; $y += 2) {
-            for ($x = 0; $x < self::WIDTH; $x += $scale) {
+        // Process rows based on yScale (2 means half-blocks, 4 means skip every other pair)
+        for ($y = 0; $y < self::HEIGHT; $y += $yScale) {
+            for ($x = 0; $x < self::WIDTH; $x += $xScale) {
                 // Get colors for top and bottom pixels
                 $topColor = $this->pixels[$y][$x];
                 $bottomColor = ($y + 1 < self::HEIGHT) ? $this->pixels[$y + 1][$x] : $topColor;
@@ -330,7 +362,20 @@ final class CliRenderer implements FramebufferInterface
     }
 
     /**
+     * Move cursor to top-left without clearing the screen.
+     *
+     * This prevents flickering by overwriting the previous frame
+     * instead of clearing and redrawing.
+     */
+    private function moveCursorHome(): void
+    {
+        echo "\e[H";
+    }
+
+    /**
      * Clear the terminal screen and move cursor to top-left.
+     *
+     * Only used during initialization.
      */
     private function clearScreen(): void
     {
