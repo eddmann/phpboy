@@ -3667,6 +3667,9 @@ final class InstructionSet
                     // Flags are calculated on the lower byte using unsigned arithmetic
                     $cpu->getFlags()->setH(((($sp & 0x0F) + ($e_unsigned & 0x0F)) & 0x10) !== 0);
                     $cpu->getFlags()->setC(((($sp & 0xFF) + $e_unsigned) & 0x100) !== 0);
+                    // Internal operations: 2 M-cycles
+                    $cpu->cycleNoAccess();
+                    $cpu->cycleNoAccess();
                     return 16;
                 },
             ),
@@ -3850,6 +3853,8 @@ final class InstructionSet
                     // Flags are calculated on the lower byte using unsigned arithmetic
                     $cpu->getFlags()->setH(((($sp & 0x0F) + ($e_unsigned & 0x0F)) & 0x10) !== 0);
                     $cpu->getFlags()->setC(((($sp & 0xFF) + $e_unsigned) & 0x100) !== 0);
+                    // Internal operation: 1 M-cycle
+                    $cpu->cycleNoAccess();
                     return 12;
                 },
             ),
@@ -3861,6 +3866,7 @@ final class InstructionSet
                 cycles: 8,
                 handler: static function (Cpu $cpu): int {
                     $cpu->getSP()->set($cpu->getHL()->get());
+                    $cpu->cycleNoAccess(); // Internal operation: 1 M-cycle
                     return 8;
                 },
             ),
