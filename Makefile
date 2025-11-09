@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint shell run clean rebuild
+.PHONY: help setup install test lint shell run clean rebuild build-wasm serve-wasm
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -92,3 +92,32 @@ memory-profile: ## Run with memory profiling (usage: make memory-profile ROM=pat
 		exit 1; \
 	fi
 	docker compose run --rm phpboy php -d memory_limit=512M bin/phpboy.php $(ROM) --headless --frames=$(or $(FRAMES),1000) --memory-profile
+
+build-wasm: ## Build WASM distribution for browser
+	@echo "Building PHPBoy for WebAssembly..."
+	@if [ ! -d "vendor" ]; then \
+		echo "Error: vendor directory not found. Run 'make install' first."; \
+		exit 1; \
+	fi
+	@mkdir -p dist/php
+	@echo "Copying web files..."
+	@cp -r web/* dist/
+	@echo "Copying PHP source..."
+	@cp -r src dist/php/
+	@cp composer.json dist/php/
+	@echo "Copying vendor directory..."
+	@cp -r vendor dist/php/
+	@echo "Build complete! Output in dist/"
+	@echo ""
+	@echo "To serve locally:"
+	@echo "  cd dist && python3 -m http.server 8080"
+	@echo "  or"
+	@echo "  npm install && npm run serve"
+
+serve-wasm: ## Serve WASM build locally (requires Python 3)
+	@if [ ! -d "dist" ]; then \
+		echo "Error: dist directory not found. Run 'make build-wasm' first."; \
+		exit 1; \
+	fi
+	@echo "Starting HTTP server on http://localhost:8080"
+	@cd dist && python3 -m http.server 8080
