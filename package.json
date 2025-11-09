@@ -1,0 +1,23 @@
+{
+  "name": "phpboy",
+  "version": "1.0.0",
+  "description": "A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 that runs in the CLI and, via WebAssembly, in the browser.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:46944/git/eddmann/phpboy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "php-wasm": "^0.0.8"
+  }
+}
