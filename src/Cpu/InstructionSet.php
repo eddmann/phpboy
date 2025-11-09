@@ -3377,6 +3377,18 @@ final class InstructionSet
                 },
             ),
 
+            // 0xD3: Illegal opcode - locks up CPU
+            0xD3 => new Instruction(
+                opcode: 0xD3,
+                mnemonic: 'ILLEGAL_D3',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
             0xD4 => new Instruction(
                 opcode: 0xD4,
                 mnemonic: 'CALL NC,nn',
@@ -3503,6 +3515,18 @@ final class InstructionSet
                 },
             ),
 
+            // 0xDB: Illegal opcode - locks up CPU
+            0xDB => new Instruction(
+                opcode: 0xDB,
+                mnemonic: 'ILLEGAL_DB',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
             0xDC => new Instruction(
                 opcode: 0xDC,
                 mnemonic: 'CALL C,nn',
@@ -3521,6 +3545,18 @@ final class InstructionSet
                         return 24;
                     }
                     return 12;
+                },
+            ),
+
+            // 0xDD: Illegal opcode - locks up CPU
+            0xDD => new Instruction(
+                opcode: 0xDD,
+                mnemonic: 'ILLEGAL_DD',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
                 },
             ),
 
@@ -3599,6 +3635,30 @@ final class InstructionSet
                     $address = 0xFF00 + $cpu->getC();
                     $cpu->cycleWrite($address, $cpu->getA());
                     return 8;
+                },
+            ),
+
+            // 0xE3: Illegal opcode - locks up CPU
+            0xE3 => new Instruction(
+                opcode: 0xE3,
+                mnemonic: 'ILLEGAL_E3',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
+            // 0xE4: Illegal opcode - locks up CPU
+            0xE4 => new Instruction(
+                opcode: 0xE4,
+                mnemonic: 'ILLEGAL_E4',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
                 },
             ),
 
@@ -3699,6 +3759,42 @@ final class InstructionSet
                 },
             ),
 
+            // 0xEB: Illegal opcode - locks up CPU
+            0xEB => new Instruction(
+                opcode: 0xEB,
+                mnemonic: 'ILLEGAL_EB',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
+            // 0xEC: Illegal opcode - locks up CPU
+            0xEC => new Instruction(
+                opcode: 0xEC,
+                mnemonic: 'ILLEGAL_EC',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
+            // 0xED: Illegal opcode - locks up CPU
+            0xED => new Instruction(
+                opcode: 0xED,
+                mnemonic: 'ILLEGAL_ED',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
             0xEE => new Instruction(
                 opcode: 0xEE,
                 mnemonic: 'XOR n',
@@ -3783,6 +3879,18 @@ final class InstructionSet
                 cycles: 4,
                 handler: static function (Cpu $cpu): int {
                     $cpu->setIME(false);
+                    return 4;
+                },
+            ),
+
+            // 0xF4: Illegal opcode - locks up CPU
+            0xF4 => new Instruction(
+                opcode: 0xF4,
+                mnemonic: 'ILLEGAL_F4',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
                     return 4;
                 },
             ),
@@ -3891,6 +3999,30 @@ final class InstructionSet
                 cycles: 4,
                 handler: static function (Cpu $cpu): int {
                     $cpu->setIME(true);
+                    return 4;
+                },
+            ),
+
+            // 0xFC: Illegal opcode - locks up CPU
+            0xFC => new Instruction(
+                opcode: 0xFC,
+                mnemonic: 'ILLEGAL_FC',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
+                    return 4;
+                },
+            ),
+
+            // 0xFD: Illegal opcode - locks up CPU
+            0xFD => new Instruction(
+                opcode: 0xFD,
+                mnemonic: 'ILLEGAL_FD',
+                length: 1,
+                cycles: 4,
+                handler: static function (Cpu $cpu): int {
+                    $cpu->setStopped(true);
                     return 4;
                 },
             ),
