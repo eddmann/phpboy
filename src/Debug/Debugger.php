@@ -118,6 +118,10 @@ final class Debugger
             'stack', 'st' => $this->cmdStack(),
             'frame', 'f' => $this->cmdFrame(),
             'reset' => $this->cmdReset(),
+            'savestate', 'save' => $this->cmdSavestate($args),
+            'loadstate', 'load' => $this->cmdLoadstate($args),
+            'screenshot', 'ss' => $this->cmdScreenshot($args),
+            'speed' => $this->cmdSpeed($args),
             'quit', 'q', 'exit' => true,
             default => $this->cmdUnknown($command),
         };
@@ -141,14 +145,22 @@ Debugger Commands:
   stack                   Display stack contents
   frame                   Display PPU state
   reset                   Reset emulator
+  savestate <path>        Save emulator state to file
+  loadstate <path>        Load emulator state from file
+  screenshot <path>       Take screenshot to PPM file
+  speed <factor>          Set emulation speed (1.0 = normal)
   quit, q                 Exit debugger
   help, h                 Show this help
 
 Examples:
-  b 0x100        Set breakpoint at 0x0100
-  m 0xC000       Show memory at 0xC000
-  s              Execute one instruction
-  c              Continue until breakpoint
+  b 0x100             Set breakpoint at 0x0100
+  m 0xC000            Show memory at 0xC000
+  s                   Execute one instruction
+  c                   Continue until breakpoint
+  savestate save.state  Save current state
+  loadstate save.state  Load saved state
+  screenshot frame.ppm  Take screenshot
+  speed 2.0           Run at 2x speed
 
 
 HELP;
@@ -446,6 +458,111 @@ HELP;
         echo "Resetting emulator...\n";
         $this->emulator->reset();
         $this->showCurrentInstruction();
+        return false;
+    }
+
+    /**
+     * Save emulator state to file.
+     *
+     * @param array<int, string> $args
+     */
+    private function cmdSavestate(array $args): bool
+    {
+        if (count($args) === 0) {
+            echo "Usage: savestate <path>\n";
+            echo "Example: savestate debug.state\n";
+            return false;
+        }
+
+        $path = $args[0];
+
+        try {
+            $this->emulator->saveState($path);
+            echo "Saved state to {$path}\n";
+        } catch (\Exception $e) {
+            echo "Error saving state: {$e->getMessage()}\n";
+        }
+
+        return false;
+    }
+
+    /**
+     * Load emulator state from file.
+     *
+     * @param array<int, string> $args
+     */
+    private function cmdLoadstate(array $args): bool
+    {
+        if (count($args) === 0) {
+            echo "Usage: loadstate <path>\n";
+            echo "Example: loadstate debug.state\n";
+            return false;
+        }
+
+        $path = $args[0];
+
+        try {
+            $this->emulator->loadState($path);
+            echo "Loaded state from {$path}\n";
+            $this->showCurrentInstruction();
+        } catch (\Exception $e) {
+            echo "Error loading state: {$e->getMessage()}\n";
+        }
+
+        return false;
+    }
+
+    /**
+     * Take a screenshot.
+     *
+     * @param array<int, string> $args
+     */
+    private function cmdScreenshot(array $args): bool
+    {
+        if (count($args) === 0) {
+            echo "Usage: screenshot <path>\n";
+            echo "Example: screenshot frame.ppm\n";
+            return false;
+        }
+
+        $path = $args[0];
+
+        try {
+            // Default to binary PPM format
+            $this->emulator->screenshot($path, 'ppm-binary');
+            echo "Screenshot saved to {$path}\n";
+        } catch (\Exception $e) {
+            echo "Error saving screenshot: {$e->getMessage()}\n";
+        }
+
+        return false;
+    }
+
+    /**
+     * Set emulation speed multiplier.
+     *
+     * @param array<int, string> $args
+     */
+    private function cmdSpeed(array $args): bool
+    {
+        if (count($args) === 0) {
+            echo "Usage: speed <factor>\n";
+            echo "Example: speed 2.0 (2x speed)\n";
+            echo "         speed 0.5 (half speed)\n";
+            echo "         speed 1.0 (normal speed)\n";
+            return false;
+        }
+
+        $speed = (float)$args[0];
+
+        if ($speed <= 0) {
+            echo "Error: Speed must be positive\n";
+            return false;
+        }
+
+        $this->emulator->setSpeed($speed);
+        echo sprintf("Speed set to %.1fx\n", $speed);
+
         return false;
     }
 
