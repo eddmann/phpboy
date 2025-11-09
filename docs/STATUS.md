@@ -201,7 +201,6 @@ This document tracks the implementation status of the PHPBoy Game Boy Color emul
 - **Deliverables**:
   - ✅ **Profiling Infrastructure**: Xdebug profiling with cachegrind output
   - ✅ **Benchmark Tooling**: `make benchmark`, `make benchmark-jit`, `make profile`, `make memory-profile`
-  - ✅ **Profiling Analysis**: Expected hotspots documented in `docs/profiling-analysis.md`
   - ✅ **Optimizations Applied**:
     - Inline instruction decode/execute in `Cpu::step()` (+3-7% expected)
     - Pre-build instruction cache with `InstructionSet::warmCache()` (+1-2% expected)

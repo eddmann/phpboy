@@ -193,7 +193,6 @@ After each optimization:
 
 ## Related Documents
 
-- **[Profiling Analysis](profiling-analysis.md):** Expected hotspots and optimization priorities
 - **[Optimizations Log](optimizations.md):** Detailed implementation notes for all optimizations
 - **[Test Results](test-results.md):** ROM compatibility and test pass rates
 - **[Status](STATUS.md):** Overall project status and step completion
