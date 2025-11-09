@@ -50,6 +50,9 @@ Options:
   --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
   --save=<path>        Save file location (default: <rom>.sav)
   --audio-out=<path>   WAV file to record audio output
+  --frames=<n>         Number of frames to run in headless mode (default: 60)
+  --benchmark          Enable benchmark mode with FPS measurement (requires --headless)
+  --memory-profile     Enable memory profiling (requires --headless)
   --help               Show this help message
 
 Examples:
@@ -57,13 +60,15 @@ Examples:
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
   php bin/phpboy.php tetris.gb --debug
   php bin/phpboy.php tetris.gb --trace --headless
+  php bin/phpboy.php tetris.gb --headless --frames=3600 --benchmark
+  php bin/phpboy.php tetris.gb --headless --frames=1000 --memory-profile
 
 HELP;
 }
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, help: bool}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
  */
 function parseArguments(array $argv): array
 {
@@ -76,6 +81,9 @@ function parseArguments(array $argv): array
         'save' => null,
         'audio_out' => null,
         'help' => false,
+        'frames' => null,
+        'benchmark' => false,
+        'memory_profile' => false,
     ];
 
     // Parse arguments
@@ -98,6 +106,12 @@ function parseArguments(array $argv): array
             $options['save'] = substr($arg, 7);
         } elseif (str_starts_with($arg, '--audio-out=')) {
             $options['audio_out'] = substr($arg, 12);
+        } elseif (str_starts_with($arg, '--frames=')) {
+            $options['frames'] = (int)substr($arg, 9);
+        } elseif ($arg === '--benchmark') {
+            $options['benchmark'] = true;
+        } elseif ($arg === '--memory-profile') {
+            $options['memory_profile'] = true;
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -198,11 +212,101 @@ try {
         $debugger->run();
     } elseif ($options['headless']) {
         // Run headless for a fixed number of frames (for testing)
-        echo "Running headless for 60 frames...\n";
-        for ($i = 0; $i < 60; $i++) {
-            $emulator->step();
+        $frames = $options['frames'] ?? 60;
+
+        // Benchmark mode: track timing and FPS
+        if ($options['benchmark']) {
+            echo "Running benchmark for $frames frames...\n";
+            $startTime = microtime(true);
+            $startMemory = memory_get_usage(true);
+
+            for ($i = 0; $i < $frames; $i++) {
+                $emulator->step();
+
+                // Progress indicator every 600 frames (10 seconds at 60 FPS)
+                if (($i + 1) % 600 === 0 && !$options['memory_profile']) {
+                    $elapsed = microtime(true) - $startTime;
+                    $currentFps = ($i + 1) / $elapsed;
+                    echo sprintf("Progress: %d/%d frames (%.1f FPS)\n", $i + 1, $frames, $currentFps);
+                }
+            }
+
+            $endTime = microtime(true);
+            $endMemory = memory_get_usage(true);
+            $duration = $endTime - $startTime;
+            $fps = $frames / $duration;
+            $peakMemory = memory_get_peak_usage(true);
+
+            echo "\n";
+            echo "========================================\n";
+            echo "Benchmark Results\n";
+            echo "========================================\n";
+            echo sprintf("Frames:       %d\n", $frames);
+            echo sprintf("Duration:     %.2f seconds\n", $duration);
+            echo sprintf("Average FPS:  %.2f\n", $fps);
+            echo sprintf("Target FPS:   60.0\n");
+            echo sprintf("Performance:  %.1f%% of target speed\n", ($fps / 60.0) * 100);
+            echo sprintf("Memory Start: %.2f MB\n", $startMemory / 1024 / 1024);
+            echo sprintf("Memory End:   %.2f MB\n", $endMemory / 1024 / 1024);
+            echo sprintf("Memory Peak:  %.2f MB\n", $peakMemory / 1024 / 1024);
+            echo sprintf("Memory Delta: %.2f MB\n", ($endMemory - $startMemory) / 1024 / 1024);
+            echo "========================================\n";
+        } elseif ($options['memory_profile']) {
+            echo "Running memory profiling for $frames frames...\n";
+            $measurements = [];
+
+            for ($i = 0; $i < $frames; $i++) {
+                $emulator->step();
+
+                // Measure memory every 60 frames (1 second at 60 FPS)
+                if ($i % 60 === 0 || $i === $frames - 1) {
+                    $measurements[] = [
+                        'frame' => $i,
+                        'memory' => memory_get_usage(true),
+                        'peak' => memory_get_peak_usage(true),
+                    ];
+                }
+            }
+
+            echo "\n";
+            echo "========================================\n";
+            echo "Memory Profile\n";
+            echo "========================================\n";
+            echo sprintf("%-10s %-15s %-15s\n", "Frame", "Memory (MB)", "Peak (MB)");
+            echo "----------------------------------------\n";
+
+            foreach ($measurements as $m) {
+                echo sprintf(
+                    "%-10d %-15.2f %-15.2f\n",
+                    $m['frame'],
+                    $m['memory'] / 1024 / 1024,
+                    $m['peak'] / 1024 / 1024
+                );
+            }
+
+            $first = $measurements[0];
+            $last = $measurements[count($measurements) - 1];
+            $delta = $last['memory'] - $first['memory'];
+
+            echo "----------------------------------------\n";
+            echo sprintf("Memory Growth: %.2f MB over %d frames\n", $delta / 1024 / 1024, $frames);
+            echo sprintf("Final Peak:    %.2f MB\n", $last['peak'] / 1024 / 1024);
+
+            if ($delta > 0) {
+                $perFrame = $delta / $frames;
+                echo sprintf("Growth Rate:   %.2f KB/frame\n", $perFrame / 1024);
+                if ($perFrame > 100) { // More than 100 bytes per frame
+                    echo "WARNING: Possible memory leak detected!\n";
+                }
+            }
+            echo "========================================\n";
+        } else {
+            echo "Running headless for $frames frames...\n";
+            for ($i = 0; $i < $frames; $i++) {
+                $emulator->step();
+            }
+            echo "Completed successfully\n";
         }
-        echo "Completed successfully\n";
     } else {
         // Run normal emulation
         echo "Starting emulation...\n";
