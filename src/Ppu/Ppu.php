@@ -574,4 +574,136 @@ final class Ppu implements DeviceInterface
             $this->updateLycCoincidence();
         }
     }
+
+    // Savestate support methods
+
+    public function getMode(): PpuMode
+    {
+        return $this->mode;
+    }
+
+    public function setMode(PpuMode $mode): void
+    {
+        $this->mode = $mode;
+    }
+
+    public function getModeClock(): int
+    {
+        return $this->dots;
+    }
+
+    public function setModeClock(int $dots): void
+    {
+        $this->dots = $dots;
+    }
+
+    public function getLY(): int
+    {
+        return $this->ly;
+    }
+
+    public function setLY(int $ly): void
+    {
+        $this->ly = $ly;
+    }
+
+    public function getLYC(): int
+    {
+        return $this->lyc;
+    }
+
+    public function setLYC(int $lyc): void
+    {
+        $this->lyc = $lyc;
+    }
+
+    public function getSCX(): int
+    {
+        return $this->scx;
+    }
+
+    public function setSCX(int $scx): void
+    {
+        $this->scx = $scx;
+    }
+
+    public function getSCY(): int
+    {
+        return $this->scy;
+    }
+
+    public function setSCY(int $scy): void
+    {
+        $this->scy = $scy;
+    }
+
+    public function getWX(): int
+    {
+        return $this->wx;
+    }
+
+    public function setWX(int $wx): void
+    {
+        $this->wx = $wx;
+    }
+
+    public function getWY(): int
+    {
+        return $this->wy;
+    }
+
+    public function setWY(int $wy): void
+    {
+        $this->wy = $wy;
+    }
+
+    public function getLCDC(): int
+    {
+        return $this->lcdc;
+    }
+
+    public function setLCDC(int $lcdc): void
+    {
+        $this->lcdc = $lcdc;
+    }
+
+    public function getSTAT(): int
+    {
+        return $this->stat;
+    }
+
+    public function setSTAT(int $stat): void
+    {
+        $this->stat = $stat;
+    }
+
+    public function getBGP(): int
+    {
+        return $this->bgp;
+    }
+
+    public function setBGP(int $bgp): void
+    {
+        $this->bgp = $bgp;
+    }
+
+    public function getOBP0(): int
+    {
+        return $this->obp0;
+    }
+
+    public function setOBP0(int $obp0): void
+    {
+        $this->obp0 = $obp0;
+    }
+
+    public function getOBP1(): int
+    {
+        return $this->obp1;
+    }
+
+    public function setOBP1(int $obp1): void
+    {
+        $this->obp1 = $obp1;
+    }
 }

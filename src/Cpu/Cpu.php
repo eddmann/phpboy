@@ -595,4 +595,64 @@ final class Cpu
     {
         return $this->pendingCycles;
     }
+
+    /**
+     * Set AF register pair value.
+     *
+     * @param int $value 16-bit value for AF
+     */
+    public function setAF(int $value): void
+    {
+        $this->af->set($value);
+    }
+
+    /**
+     * Set BC register pair value.
+     *
+     * @param int $value 16-bit value for BC
+     */
+    public function setBC(int $value): void
+    {
+        $this->bc->set($value);
+    }
+
+    /**
+     * Set DE register pair value.
+     *
+     * @param int $value 16-bit value for DE
+     */
+    public function setDE(int $value): void
+    {
+        $this->de->set($value);
+    }
+
+    /**
+     * Set HL register pair value.
+     *
+     * @param int $value 16-bit value for HL
+     */
+    public function setHL(int $value): void
+    {
+        $this->hl->set($value);
+    }
+
+    /**
+     * Set SP register value.
+     *
+     * @param int $value 16-bit value for SP
+     */
+    public function setSP(int $value): void
+    {
+        $this->sp->set($value);
+    }
+
+    /**
+     * Set PC register value.
+     *
+     * @param int $value 16-bit value for PC
+     */
+    public function setPC(int $value): void
+    {
+        $this->pc->set($value);
+    }
 }

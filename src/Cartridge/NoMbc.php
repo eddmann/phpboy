@@ -106,4 +106,34 @@ final class NoMbc implements MbcInterface
     {
         // No-op for ROM-only cartridges
     }
+
+    public function getCurrentRomBank(): int
+    {
+        return 0; // No banking
+    }
+
+    public function getCurrentRamBank(): int
+    {
+        return 0; // No banking
+    }
+
+    public function isRamEnabled(): bool
+    {
+        return true; // Always enabled for ROM-only cartridges
+    }
+
+    public function setCurrentRomBank(int $bank): void
+    {
+        // No-op: ROM-only cartridges don't have banking
+    }
+
+    public function setCurrentRamBank(int $bank): void
+    {
+        // No-op: ROM-only cartridges don't have banking
+    }
+
+    public function setRamEnabled(bool $enabled): void
+    {
+        // No-op: ROM-only cartridges don't have RAM enable register
+    }
 }
