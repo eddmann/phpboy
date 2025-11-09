@@ -180,8 +180,12 @@ final class PipeAudioSink implements AudioSinkInterface
         $this->flush();
 
         // Close pipe
-        @pclose($this->pipe);
+        $pipe = $this->pipe;
         $this->pipe = null;
+
+        if (is_resource($pipe)) {
+            @pclose($pipe);
+        }
     }
 
     /**
