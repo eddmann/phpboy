@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHPBoy - Game Boy Color Emulator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 PHPBoy</h1>
+            <p class="subtitle">Game Boy Color Emulator in PHP + WebAssembly</p>
+        </header>
+
+        <main>
+            <div class="emulator-section">
+                <!-- Screen Display -->
+                <div class="screen-container">
+                    <canvas id="screen" width="160" height="144"></canvas>
+                    <div id="status" class="status">Ready. Load a ROM to start.</div>
+                </div>
+
+                <!-- Controls Panel -->
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <label for="romFile" class="file-label">
+                            <span class="button">Choose ROM File</span>
+                            <input type="file" id="romFile" accept=".gb,.gbc" style="display: none;">
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <button id="pauseBtn" class="button">Pause</button>
+                        <button id="resetBtn" class="button">Reset</button>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="speedControl">Speed:</label>
+                        <select id="speedControl" class="select">
+                            <option value="0.5">0.5x</option>
+                            <option value="1.0" selected>1.0x</option>
+                            <option value="2.0">2.0x</option>
+                            <option value="4.0">4.0x</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="volumeControl">Volume:</label>
+                        <input type="range" id="volumeControl" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+
+                    <div class="stats">
+                        <span>FPS: <span id="fps">0</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keyboard Controls Info -->
+            <div class="info-section">
+                <h2>Keyboard Controls</h2>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <strong>Arrow Keys</strong>
+                        <span>D-pad (Up/Down/Left/Right)</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>Z or A</strong>
+                        <span>A Button</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>X or S</strong>
+                        <span>B Button</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>Enter</strong>
+                        <span>Start</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>Shift</strong>
+                        <span>Select</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- On-Screen Controls (Mobile) -->
+            <div class="mobile-controls">
+                <div class="dpad">
+                    <button class="dpad-btn dpad-up" data-button="up">↑</button>
+                    <button class="dpad-btn dpad-down" data-button="down">↓</button>
+                    <button class="dpad-btn dpad-left" data-button="left">←</button>
+                    <button class="dpad-btn dpad-right" data-button="right">→</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn" data-button="b">B</button>
+                    <button class="action-btn" data-button="a">A</button>
+                </div>
+                <div class="menu-buttons">
+                    <button class="menu-btn" data-button="select">Select</button>
+                    <button class="menu-btn" data-button="start">Start</button>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="info-section">
+                <h2>About PHPBoy</h2>
+                <p>
+                    PHPBoy is a Game Boy Color emulator written in PHP 8.5 that runs in your browser
+                    via WebAssembly. It demonstrates the power of modern PHP and WebAssembly technology
+                    by bringing classic gaming to the web without requiring a backend server.
+                </p>
+                <p>
+                    <strong>Features:</strong>
+                </p>
+                <ul>
+                    <li>Full Game Boy and Game Boy Color emulation</li>
+                    <li>Cycle-accurate CPU, PPU, and APU emulation</li>
+                    <li>Support for multiple MBC cartridge types</li>
+                    <li>Runs entirely in the browser via php-wasm</li>
+                    <li>Keyboard controls for gameplay</li>
+                    <li>Speed control and save states</li>
+                </ul>
+                <p>
+                    <strong>Note:</strong> This is a demonstration project. Load your own legally obtained
+                    ROM files to play games. ROMs are not included with this emulator.
+                </p>
+            </div>
+        </main>
+
+        <footer>
+            <p>
+                PHPBoy - Built with <a href="https://github.com/seanmorris/php-wasm" target="_blank">php-wasm</a>
+            </p>
+            <p>
+                <a href="https://github.com/eddmann/phpboy" target="_blank">View on GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Load PHPBoy JavaScript (as ES module) -->
+    <script type="module" src="js/phpboy.js"></script>
+</body>
+</html>
