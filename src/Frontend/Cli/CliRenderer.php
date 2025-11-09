@@ -113,11 +113,13 @@ final class CliRenderer implements FramebufferInterface
             }
             echo $this->toAnsiColor(2); // Scale 2x (80x72 chars)
             echo sprintf("\nFrame: %d (%.1fs) | Press Ctrl+C to exit", $this->frameCount, $this->frameCount / 60.0);
+            flush(); // Ensure output reaches terminal
         } elseif ($this->displayMode === 'ascii') {
             // Render ASCII art representation
             $this->clearScreen();
             echo $this->toAscii(4); // Scale 4x (40x36 chars)
             echo sprintf("\nFrame: %d (%.1fs)", $this->frameCount, $this->frameCount / 60.0);
+            flush(); // Ensure output reaches terminal
         }
     }
 
