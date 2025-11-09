@@ -47,6 +47,7 @@ Options:
   --debug              Enable debugger mode with interactive shell
   --trace              Enable CPU instruction tracing
   --headless           Run without display (for testing)
+  --display-mode=<mode> Display mode: 'ansi-color', 'ascii', 'none' (default: ansi-color)
   --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
   --save=<path>        Save file location (default: <rom>.sav)
   --audio-out=<path>   WAV file to record audio output
@@ -58,6 +59,8 @@ Options:
 Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
+  php bin/phpboy.php tetris.gb --display-mode=ansi-color
+  php bin/phpboy.php tetris.gb --display-mode=ascii
   php bin/phpboy.php tetris.gb --debug
   php bin/phpboy.php tetris.gb --trace --headless
   php bin/phpboy.php tetris.gb --headless --frames=3600 --benchmark
@@ -68,7 +71,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, speed: float, save: string|null, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
  */
 function parseArguments(array $argv): array
 {
@@ -77,6 +80,7 @@ function parseArguments(array $argv): array
         'debug' => false,
         'trace' => false,
         'headless' => false,
+        'display_mode' => 'ansi-color',
         'speed' => 1.0,
         'save' => null,
         'audio_out' => null,
@@ -100,6 +104,13 @@ function parseArguments(array $argv): array
             $options['headless'] = true;
         } elseif (str_starts_with($arg, '--rom=')) {
             $options['rom'] = substr($arg, 6);
+        } elseif (str_starts_with($arg, '--display-mode=')) {
+            $mode = substr($arg, 15);
+            if (!in_array($mode, ['ansi-color', 'ascii', 'none'], true)) {
+                fwrite(STDERR, "Invalid display mode: $mode (must be: ansi-color, ascii, or none)\n");
+                exit(1);
+            }
+            $options['display_mode'] = $mode;
         } elseif (str_starts_with($arg, '--speed=')) {
             $options['speed'] = (float)substr($arg, 8);
         } elseif (str_starts_with($arg, '--save=')) {
@@ -163,6 +174,10 @@ try {
         echo "Mode: Normal\n";
     }
 
+    if (!$options['headless']) {
+        echo "Display: {$options['display_mode']}\n";
+    }
+
     if ($options['speed'] !== 1.0) {
         echo "Speed: {$options['speed']}x\n";
     }
@@ -192,10 +207,15 @@ try {
     }
 
     // Set up renderer
-    if (!$options['headless']) {
-        $renderer = new CliRenderer();
-        $emulator->setFramebuffer($renderer);
+    $renderer = new CliRenderer();
+    if ($options['headless']) {
+        // Headless mode - disable display
+        $renderer->setDisplayMode('none');
+    } else {
+        // Use the specified display mode
+        $renderer->setDisplayMode($options['display_mode']);
     }
+    $emulator->setFramebuffer($renderer);
 
     // Set up tracing
     $trace = null;
