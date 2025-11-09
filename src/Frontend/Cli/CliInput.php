@@ -15,14 +15,18 @@ use Gb\Input\InputInterface;
  * - Z → A button
  * - X → B button
  * - Enter → Start
- * - Right Shift → Select
+ * - Space → Select
+ * - W/A/S/D → D-pad (alternative)
  *
  * Note: Non-blocking keyboard input in PHP CLI is limited.
  * This implementation uses stream_select for non-blocking reads
  * when possible, but may require terminal mode setup for optimal behavior.
  *
+ * Limitation: Cannot detect key-up events in raw terminal mode, so buttons
+ * remain pressed until a different key is pressed.
+ *
  * Future enhancement: Use ncurses extension or external library
- * for better keyboard handling.
+ * for better keyboard handling with proper key-up detection.
  */
 final class CliInput implements InputInterface
 {
@@ -148,31 +152,47 @@ final class CliInput implements InputInterface
     /**
      * Parse input string and update button states.
      *
+     * When new input is detected, this method:
+     * 1. Identifies which buttons are pressed in the current input
+     * 2. Clears buttons that were NOT pressed in this input (simulating release)
+     * 3. Adds newly pressed buttons
+     *
+     * This approach allows:
+     * - Holding keys works (generates repeated events)
+     * - Multiple simultaneous button presses
+     * - Buttons get "released" when you press other keys
+     *
+     * Limitation: Cannot release ALL buttons without pressing at least one key
+     * (inherent PHP CLI limitation without ncurses)
+     *
      * @param string $input Raw input from STDIN
      */
     private function parseInput(string $input): void
     {
-        // Clear previous state (simple approach: buttons are only "pressed" during the frame they're detected)
-        $this->pressedButtons = [];
+        // Track which buttons are pressed in THIS input event
+        $buttonsInCurrentInput = [];
 
         // Check for arrow key escape sequences (3 characters)
         if (strlen($input) >= 3 && $input[0] === "\033" && $input[1] === '[') {
             $sequence = substr($input, 0, 3);
             if (isset(self::KEY_MAP[$sequence])) {
                 $button = self::KEY_MAP[$sequence];
-                $this->pressedButtons[$button->name] = $button;
+                $buttonsInCurrentInput[$button->name] = $button;
             }
-            return;
+        } else {
+            // Check for simple character mappings
+            for ($i = 0; $i < strlen($input); $i++) {
+                $char = $input[$i];
+                if (isset(self::KEY_MAP[$char])) {
+                    $button = self::KEY_MAP[$char];
+                    $buttonsInCurrentInput[$button->name] = $button;
+                }
+            }
         }
 
-        // Check for simple character mappings
-        for ($i = 0; $i < strlen($input); $i++) {
-            $char = $input[$i];
-            if (isset(self::KEY_MAP[$char])) {
-                $button = self::KEY_MAP[$char];
-                $this->pressedButtons[$button->name] = $button;
-            }
-        }
+        // Clear buttons that were NOT in this input event (they were released)
+        // This simulates button release behavior
+        $this->pressedButtons = $buttonsInCurrentInput;
     }
 
     /**
