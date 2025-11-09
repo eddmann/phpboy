@@ -32,7 +32,7 @@ final class SavestateManagerTest extends TestCase
     public function testSerializeReturnsValidStructure(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $manager = new SavestateManager($emulator);
         $state = $manager->serialize();
@@ -53,7 +53,7 @@ final class SavestateManagerTest extends TestCase
     public function testSaveAndLoadState(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         // Run for a few frames
         for ($i = 0; $i < 100; $i++) {
@@ -91,7 +91,7 @@ final class SavestateManagerTest extends TestCase
     public function testSavestateFileFormat(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $emulator->saveState($this->tempFile);
 
@@ -110,7 +110,7 @@ final class SavestateManagerTest extends TestCase
         $this->expectExceptionMessage('not found');
 
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $emulator->loadState('/nonexistent/file.state');
     }

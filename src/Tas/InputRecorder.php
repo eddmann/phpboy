@@ -236,7 +236,7 @@ final class InputRecorder
         $buttonNames = $this->playbackInputs[$this->playbackFrame] ?? [];
 
         // Convert button names back to Button enums
-        $buttons = array_map(fn(string $name) => Button::from($name), $buttonNames);
+        $buttons = array_map(fn(string $name) => Button::fromName($name), $buttonNames);
 
         $this->playbackFrame++;
 
