@@ -208,7 +208,7 @@ final class SavestateManager
      */
     private function deserializePpu(\Gb\Ppu\Ppu $ppu, array $data): void
     {
-        $ppu->setMode(\Gb\Ppu\PpuMode::from($data['mode']));
+        $ppu->restoreMode(\Gb\Ppu\PpuMode::from($data['mode']));
         $ppu->setModeClock($data['modeClock']);
         $ppu->setLY($data['ly']);
         $ppu->setLYC($data['lyc']);

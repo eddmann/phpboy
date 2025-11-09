@@ -582,7 +582,7 @@ final class Ppu implements DeviceInterface
         return $this->mode;
     }
 
-    public function setMode(PpuMode $mode): void
+    public function restoreMode(PpuMode $mode): void
     {
         $this->mode = $mode;
     }

@@ -18,7 +18,7 @@ final class RewindBufferTest extends TestCase
     public function testBufferRecording(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $buffer = new RewindBuffer($emulator, maxSeconds: 5, framesPerSavestate: 60);
 
@@ -48,7 +48,7 @@ final class RewindBufferTest extends TestCase
     public function testRewind(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $buffer = new RewindBuffer($emulator, maxSeconds: 5, framesPerSavestate: 60);
 
@@ -89,7 +89,7 @@ final class RewindBufferTest extends TestCase
         $this->expectExceptionMessage('Insufficient rewind history');
 
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $buffer = new RewindBuffer($emulator, maxSeconds: 5);
 
@@ -100,7 +100,7 @@ final class RewindBufferTest extends TestCase
     public function testClearBuffer(): void
     {
         $emulator = new Emulator();
-        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/01-special.gb');
+        $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
 
         $buffer = new RewindBuffer($emulator, maxSeconds: 5, framesPerSavestate: 60);
 
