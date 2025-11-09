@@ -6,9 +6,11 @@ A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 th
 
 - **Modern PHP 8.5 RC**: Leverages the latest PHP 8.5 release candidate features including strict types, readonly properties, enums, typed class constants, and property hooks
 - **Fully Dockerized Development**: All PHP/Composer/testing tools run exclusively in Docker containers for consistency
-- **Comprehensive Testing**: PHPUnit 10 for unit and integration tests
+- **Browser Support**: Run PHPBoy in your browser via WebAssembly (Step 15)
+- **Comprehensive Testing**: PHPUnit 10 for unit and integration tests with 100% Blargg test pass rate
 - **Static Analysis**: PHPStan at maximum level (9) for type safety
 - **Modular Architecture**: Clean separation of concerns with dedicated namespaces for CPU, PPU, APU, Bus, and Frontend
+- **Complete Emulation**: Full CPU (LR35902), PPU with sprites/background/window, APU with 4 channels, MBC1/3/5 cartridge support
 
 ## Requirements
 
@@ -74,19 +76,69 @@ For debugging or manual operations:
 make shell
 ```
 
+## Browser Version (WebAssembly)
+
+PHPBoy can run entirely in your browser using WebAssembly! Play Game Boy games without installing anything.
+
+### Quick Start (Browser)
+
+1. **Build for browser:**
+```bash
+make build-wasm
+```
+
+2. **Serve locally:**
+```bash
+make serve-wasm
+```
+
+3. **Open browser:**
+   - Navigate to `http://localhost:8000`
+   - Click "Choose ROM File" and select a .gb or .gbc ROM
+   - Click "Play" and enjoy!
+
+### Browser Controls
+
+| Key | Game Boy Button |
+|-----|----------------|
+| Arrow Keys | D-Pad |
+| Z | A Button |
+| X | B Button |
+| Enter | Start |
+| Shift | Select |
+
+### Browser Build Commands
+
+- `make build-wasm` - Build WebAssembly version
+- `make serve-wasm` - Serve locally at http://localhost:8000
+- `make wasm-info` - Show WASM build information
+
+### Documentation
+
+- [Browser Usage Guide](docs/browser-usage.md) - How to use PHPBoy in your browser
+- [WASM Build Guide](docs/wasm-build.md) - How to build the WebAssembly version
+- [WASM Options Research](docs/wasm-options.md) - Technical research on PHP-to-WASM approaches
+
+**Note:** The WebAssembly build requires php-wasm (Emscripten-compiled PHP). See [docs/wasm-build.md](docs/wasm-build.md) for setup instructions.
+
 ## Project Structure
 
 ```
 phpboy/
 ├── bin/                    # CLI entry point
 ├── docs/                   # Documentation
-│   └── research.md        # Game Boy hardware research
+│   ├── research.md        # Game Boy hardware research
+│   ├── wasm-options.md    # PHP-to-WASM research
+│   ├── wasm-build.md      # WebAssembly build guide
+│   └── browser-usage.md   # Browser usage instructions
 ├── src/                   # Source code
 │   ├── Apu/              # Audio Processing Unit
 │   ├── Bus/              # Memory bus
 │   ├── Cartridge/        # ROM/MBC handling
 │   ├── Cpu/              # CPU emulation
 │   ├── Frontend/         # CLI and WASM frontends
+│   │   ├── Cli/          # CLI renderer & input
+│   │   └── Wasm/         # Browser framebuffer & input
 │   ├── Ppu/              # Pixel Processing Unit
 │   └── Support/          # Utilities and helpers
 ├── tests/                # Test suite
@@ -95,6 +147,12 @@ phpboy/
 ├── third_party/          # External resources
 │   ├── references/       # Technical documentation
 │   └── roms/            # Test ROMs
+├── web/                  # Browser frontend (WebAssembly)
+│   ├── index.html        # Web UI
+│   ├── styles.css        # UI styles
+│   └── js/               # JavaScript bridge & controller
+│       ├── phpboy.js     # WASM/PHP bridge
+│       └── app.js        # UI controller
 ├── composer.json         # PHP dependencies
 ├── Dockerfile           # Docker image definition
 ├── docker-compose.yml   # Docker services

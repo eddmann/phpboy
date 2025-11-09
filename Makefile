@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint shell run clean rebuild
+.PHONY: help setup install test lint shell run clean rebuild build-wasm serve-wasm wasm-info
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -92,3 +92,74 @@ memory-profile: ## Run with memory profiling (usage: make memory-profile ROM=pat
 		exit 1; \
 	fi
 	docker compose run --rm phpboy php -d memory_limit=512M bin/phpboy.php $(ROM) --headless --frames=$(or $(FRAMES),1000) --memory-profile
+
+build-wasm: ## Build WebAssembly version for browser (Step 15)
+	@echo "Building PHPBoy for WebAssembly..."
+	@echo ""
+	@echo "⚠️  WASM Build Prerequisites:"
+	@echo "   1. Install Emscripten SDK: https://emscripten.org/docs/getting_started/downloads.html"
+	@echo "   2. Install php-wasm builder: npm install -g php-wasm-builder (if available)"
+	@echo "   3. Or use seanmorris/php-wasm: https://github.com/seanmorris/php-wasm"
+	@echo ""
+	@echo "📦 Build Steps (to be implemented):"
+	@echo "   1. Compile PHP 8.3+ to WebAssembly using Emscripten"
+	@echo "   2. Bundle PHPBoy PHP source files"
+	@echo "   3. Generate php-wasm.js loader"
+	@echo "   4. Copy web/ assets to dist/"
+	@echo "   5. Create dist/ directory with all browser files"
+	@echo ""
+	@echo "📁 Expected output: dist/"
+	@echo "   - dist/php-wasm.js       (PHP WASM runtime)"
+	@echo "   - dist/php-wasm.wasm     (PHP interpreter binary)"
+	@echo "   - dist/index.html        (Web UI)"
+	@echo "   - dist/styles.css        (Styles)"
+	@echo "   - dist/js/phpboy.js      (Emulator bridge)"
+	@echo "   - dist/js/app.js         (UI controller)"
+	@echo "   - dist/phpboy/           (PHP source files)"
+	@echo ""
+	@echo "📖 See docs/wasm-build.md for detailed build instructions"
+	@echo ""
+	@mkdir -p dist
+	@cp -r web/* dist/
+	@mkdir -p dist/phpboy
+	@cp -r src dist/phpboy/
+	@cp -r vendor dist/phpboy/ 2>/dev/null || echo "Note: Run 'make install' first to include vendor/"
+	@echo ""
+	@echo "✅ Static files copied to dist/"
+	@echo "⚠️  PHP WASM compilation not yet implemented - see docs/wasm-build.md"
+
+serve-wasm: ## Serve WebAssembly build locally (requires Python 3)
+	@echo "Starting local web server for PHPBoy WASM..."
+	@echo ""
+	@echo "🌐 Open browser to: http://localhost:8000"
+	@echo "Press Ctrl+C to stop"
+	@echo ""
+	@cd dist && python3 -m http.server 8000
+
+wasm-info: ## Show information about WebAssembly build setup
+	@echo "PHPBoy WebAssembly Build Information"
+	@echo "======================================"
+	@echo ""
+	@echo "Current Status: Infrastructure complete, awaiting WASM compiler"
+	@echo ""
+	@echo "✅ Completed Components:"
+	@echo "  - WasmFramebuffer implementation (src/Frontend/Wasm/WasmFramebuffer.php)"
+	@echo "  - WasmInput implementation (src/Frontend/Wasm/WasmInput.php)"
+	@echo "  - BufferSink for audio (src/Apu/Sink/BufferSink.php)"
+	@echo "  - JavaScript bridge (web/js/phpboy.js)"
+	@echo "  - Web UI (web/index.html, web/styles.css, web/js/app.js)"
+	@echo "  - Build target (make build-wasm)"
+	@echo ""
+	@echo "⏳ Pending:"
+	@echo "  - PHP to WASM compilation setup"
+	@echo "  - WASM module loading and integration"
+	@echo "  - Browser testing with actual ROM"
+	@echo ""
+	@echo "📖 Documentation:"
+	@echo "  - docs/wasm-options.md     - Research on PHP-to-WASM options"
+	@echo "  - docs/wasm-build.md       - Build instructions (to be created)"
+	@echo "  - docs/browser-usage.md    - Browser usage guide (to be created)"
+	@echo ""
+	@echo "🎯 Recommended Approach:"
+	@echo "  Use seanmorris/php-wasm (WordPress Playground approach)"
+	@echo "  See: https://github.com/seanmorris/php-wasm"
