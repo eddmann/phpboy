@@ -1,6 +1,5 @@
-# Use PHP 8.5 RC (Release Candidate)
-# Note: If 8.5-rc-cli is not available, this will build from 8.5.0RC4 source
-FROM php:8.5-rc-cli
+# Use PHP 8.4
+FROM php:8.4-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -29,7 +28,7 @@ RUN docker-php-ext-install opcache \
     && echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Configure PHP 8.5 JIT (disabled by default, can be enabled via environment variable)
+# Configure PHP 8.4 JIT (disabled by default, can be enabled via environment variable)
 RUN echo "opcache.jit_buffer_size=0" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.jit=off" >> /usr/local/etc/php/conf.d/opcache.ini
 
