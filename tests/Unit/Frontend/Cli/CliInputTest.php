@@ -101,7 +101,7 @@ final class CliInputTest extends TestCase
     }
 
     #[Test]
-    public function it_clears_button_state_on_each_parse(): void
+    public function it_holds_buttons_for_minimum_frames(): void
     {
         $input = new CliInput();
         $reflection = new \ReflectionClass($input);
@@ -114,12 +114,18 @@ final class CliInputTest extends TestCase
         $this->assertCount(1, $buttons);
         $this->assertContains(Button::A, $buttons);
 
-        // Next parse with different button - previous button should be cleared
-        $parseMethod->invoke($input, 'x');
+        // Button should still be pressed for MIN_HOLD_FRAMES (3) polls
+        // Poll 1: hold counter = 2
         $buttons = $input->poll();
-        $this->assertCount(1, $buttons);
-        $this->assertContains(Button::B, $buttons);
-        $this->assertNotContains(Button::A, $buttons);
+        $this->assertContains(Button::A, $buttons);
+
+        // Poll 2: hold counter = 1
+        $buttons = $input->poll();
+        $this->assertContains(Button::A, $buttons);
+
+        // Poll 3: hold counter = 0, button released
+        $buttons = $input->poll();
+        $this->assertEmpty($buttons);
     }
 
     #[Test]

@@ -61,6 +61,12 @@ final class CliInput implements InputInterface
     /** @var Button[] Currently pressed buttons */
     private array $pressedButtons = [];
 
+    /** @var array<string, int> Button hold duration (button name => frames remaining) */
+    private array $buttonHoldFrames = [];
+
+    /** Minimum frames to hold a button after detection */
+    private const MIN_HOLD_FRAMES = 4;
+
     /** @var resource|null STDIN resource */
     private $stdin;
 
@@ -84,11 +90,15 @@ final class CliInput implements InputInterface
      * Attempts to read keyboard input in a non-blocking manner.
      * Returns the set of buttons currently considered "pressed".
      *
+     * Buttons are held for a minimum number of frames after detection
+     * to ensure they register properly in games (terminal input can be brief).
+     *
      * @return Button[] Array of currently pressed buttons
      */
     public function poll(): array
     {
         $this->readAvailableInput();
+        $this->updateButtonHolds();
         return array_values($this->pressedButtons);
     }
 
@@ -157,14 +167,31 @@ final class CliInput implements InputInterface
     }
 
     /**
+     * Update button hold timers and remove expired buttons.
+     */
+    private function updateButtonHolds(): void
+    {
+        foreach ($this->buttonHoldFrames as $buttonName => $framesRemaining) {
+            if ($framesRemaining <= 1) {
+                // Button hold expired, remove it
+                unset($this->pressedButtons[$buttonName]);
+                unset($this->buttonHoldFrames[$buttonName]);
+            } else {
+                // Decrement hold counter
+                $this->buttonHoldFrames[$buttonName]--;
+            }
+        }
+    }
+
+    /**
      * Parse input string and update button states.
      *
      * @param string $input Raw input from STDIN
      */
     private function parseInput(string $input): void
     {
-        // Clear previous state (simple approach: buttons are only "pressed" during the frame they're detected)
-        $this->pressedButtons = [];
+        // Note: We don't clear $pressedButtons here anymore
+        // Buttons are cleared by updateButtonHolds() based on their hold duration
 
         // Check for Ctrl+C (in raw mode, this comes through as ASCII 3)
         if (str_contains($input, self::CTRL_C)) {
@@ -180,6 +207,7 @@ final class CliInput implements InputInterface
             if (isset(self::KEY_MAP[$sequence])) {
                 $button = self::KEY_MAP[$sequence];
                 $this->pressedButtons[$button->name] = $button;
+                $this->buttonHoldFrames[$button->name] = self::MIN_HOLD_FRAMES;
             }
             return;
         }
@@ -190,6 +218,7 @@ final class CliInput implements InputInterface
             if (isset(self::KEY_MAP[$char])) {
                 $button = self::KEY_MAP[$char];
                 $this->pressedButtons[$button->name] = $button;
+                $this->buttonHoldFrames[$button->name] = self::MIN_HOLD_FRAMES;
             }
         }
     }
