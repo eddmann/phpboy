@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Memory;
 
 use Gb\Memory\Vram;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class VramBankTest extends TestCase
@@ -16,18 +17,21 @@ final class VramBankTest extends TestCase
         $this->vram = new Vram();
     }
 
-    public function testDefaultBankIsZero(): void
+    #[Test]
+    public function it_defaults_to_bank_zero(): void
     {
         $this->assertSame(0, $this->vram->getBank());
     }
 
-    public function testSetBankToOne(): void
+    #[Test]
+    public function it_sets_bank_to_one(): void
     {
         $this->vram->setBank(1);
         $this->assertSame(1, $this->vram->getBank());
     }
 
-    public function testSetBankMasksToOneBit(): void
+    #[Test]
+    public function it_masks_bank_to_one_bit(): void
     {
         // Only bit 0 should be used
         $this->vram->setBank(0xFF);
@@ -37,7 +41,8 @@ final class VramBankTest extends TestCase
         $this->assertSame(0, $this->vram->getBank());
     }
 
-    public function testWriteAndReadFromBank0(): void
+    #[Test]
+    public function it_writes_and_reads_from_bank_0(): void
     {
         $this->vram->setBank(0);
         $this->vram->writeByte(0x0100, 0xAB);
@@ -46,7 +51,8 @@ final class VramBankTest extends TestCase
         $this->assertSame(0xAB, $value);
     }
 
-    public function testWriteAndReadFromBank1(): void
+    #[Test]
+    public function it_writes_and_reads_from_bank_1(): void
     {
         $this->vram->setBank(1);
         $this->vram->writeByte(0x0100, 0xCD);
@@ -55,7 +61,8 @@ final class VramBankTest extends TestCase
         $this->assertSame(0xCD, $value);
     }
 
-    public function testBanksAreIndependent(): void
+    #[Test]
+    public function it_keeps_banks_independent(): void
     {
         // Write to bank 0
         $this->vram->setBank(0);
@@ -74,7 +81,8 @@ final class VramBankTest extends TestCase
         $this->assertSame(0x22, $this->vram->readByte(0x0200));
     }
 
-    public function testGetDataReturnsCorrectBank(): void
+    #[Test]
+    public function it_returns_correct_bank_data(): void
     {
         // Write to both banks
         $this->vram->setBank(0);
@@ -91,7 +99,8 @@ final class VramBankTest extends TestCase
         $this->assertSame(0xBB, $bank1Data[0x0300]);
     }
 
-    public function testAddressMasking(): void
+    #[Test]
+    public function it_masks_addresses(): void
     {
         // VRAM is 8KB, so addresses should wrap
         $this->vram->setBank(0);

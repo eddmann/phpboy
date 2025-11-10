@@ -6,6 +6,7 @@ namespace Tests\Unit\Cartridge;
 
 use Gb\Cartridge\CartridgeHeader;
 use Gb\Cartridge\CartridgeType;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class CartridgeHeaderTest extends TestCase
@@ -41,7 +42,8 @@ final class CartridgeHeaderTest extends TestCase
         return $rom;
     }
 
-    public function testParseHeaderWithCgbEnhanced(): void
+    #[Test]
+    public function it_parses_header_with_cgb_enhanced(): void
     {
         $rom = $this->createRomWithHeader([
             0x0134 => ord('T'),
@@ -61,7 +63,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isDmgOnly());
     }
 
-    public function testParseHeaderWithCgbOnly(): void
+    #[Test]
+    public function it_parses_header_with_cgb_only(): void
     {
         $rom = $this->createRomWithHeader([
             0x0143 => 0xC0, // CGB only
@@ -75,7 +78,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isDmgOnly());
     }
 
-    public function testParseHeaderWithDmgOnly(): void
+    #[Test]
+    public function it_parses_header_with_dmg_only(): void
     {
         $rom = $this->createRomWithHeader([
             0x0143 => 0x00, // DMG only
@@ -89,7 +93,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertTrue($header->isDmgOnly());
     }
 
-    public function testTitleParsing(): void
+    #[Test]
+    public function it_parses_title(): void
     {
         $title = 'POKEMON RED';
         $headerData = [];
@@ -103,7 +108,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertSame($title, $header->title);
     }
 
-    public function testTitleNullTermination(): void
+    #[Test]
+    public function it_handles_title_null_termination(): void
     {
         $rom = $this->createRomWithHeader([
             0x0134 => ord('A'),
@@ -116,7 +122,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertSame('AB', $header->title);
     }
 
-    public function testCartridgeTypes(): void
+    #[Test]
+    public function it_parses_cartridge_types(): void
     {
         $rom = $this->createRomWithHeader([
             0x0147 => 0x03, // MBC1+RAM+BATTERY
@@ -126,7 +133,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertSame(CartridgeType::MBC1_RAM_BATTERY, $header->cartridgeType);
     }
 
-    public function testRomSizeCalculation(): void
+    #[Test]
+    public function it_calculates_rom_size(): void
     {
         $testCases = [
             0x00 => 32 * 1024,      // 32 KiB
@@ -151,7 +159,8 @@ final class CartridgeHeaderTest extends TestCase
         }
     }
 
-    public function testRamSizeCalculation(): void
+    #[Test]
+    public function it_calculates_ram_size(): void
     {
         $testCases = [
             0x00 => 0,          // No RAM
@@ -172,7 +181,8 @@ final class CartridgeHeaderTest extends TestCase
         }
     }
 
-    public function testMbc2RamSize(): void
+    #[Test]
+    public function it_handles_mbc2_ram_size(): void
     {
         $rom = $this->createRomWithHeader([
             0x0147 => 0x05, // MBC2
@@ -183,7 +193,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertSame(512, $header->getRamSize()); // MBC2 has built-in 512 bytes
     }
 
-    public function testNintendoLogoValidation(): void
+    #[Test]
+    public function it_validates_nintendo_logo(): void
     {
         $rom = $this->createRomWithHeader([]);
         $header = CartridgeHeader::fromRom($rom);
@@ -195,7 +206,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isLogoValid);
     }
 
-    public function testHeaderChecksumValidation(): void
+    #[Test]
+    public function it_validates_header_checksum(): void
     {
         // Create ROM with valid checksum
         $rom = $this->createRomWithHeader([
@@ -222,7 +234,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isHeaderChecksumValid);
     }
 
-    public function testSgbSupport(): void
+    #[Test]
+    public function it_detects_sgb_support(): void
     {
         $rom = $this->createRomWithHeader([
             0x0146 => 0x03, // SGB enhanced
@@ -237,7 +250,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isSgbSupported());
     }
 
-    public function testDestinationCode(): void
+    #[Test]
+    public function it_parses_destination_code(): void
     {
         $rom = $this->createRomWithHeader([
             0x014A => 0x00, // Japan
@@ -252,7 +266,8 @@ final class CartridgeHeaderTest extends TestCase
         $this->assertFalse($header->isJapanese());
     }
 
-    public function testToArray(): void
+    #[Test]
+    public function it_converts_to_array(): void
     {
         $rom = $this->createRomWithHeader([
             0x0134 => ord('T'),

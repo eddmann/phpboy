@@ -7,11 +7,13 @@ namespace Tests\Unit\Apu;
 use Gb\Apu\Apu;
 use Gb\Apu\Sink\BufferSink;
 use Gb\Apu\Sink\NullSink;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ApuTest extends TestCase
 {
-    public function testInitiallyDisabled(): void
+    #[Test]
+    public function it_is_initially_disabled(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -19,7 +21,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x70, $apu->readByte(0xFF26));
     }
 
-    public function testEnableApu(): void
+    #[Test]
+    public function it_can_enable_apu(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -28,7 +31,8 @@ final class ApuTest extends TestCase
         self::assertSame(0xF0, $apu->readByte(0xFF26) & 0xF0);
     }
 
-    public function testDisableApuClearsChannels(): void
+    #[Test]
+    public function it_clears_channels_when_disabled(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -49,7 +53,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x00, $apu->readByte(0xFF26) & 0x0F);
     }
 
-    public function testCannotWriteRegistersWhenDisabled(): void
+    #[Test]
+    public function it_cannot_write_registers_when_disabled(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -60,7 +65,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x00, $apu->readByte(0xFF12));
     }
 
-    public function testWaveRamAccessWhenDisabled(): void
+    #[Test]
+    public function it_allows_wave_ram_access_when_disabled(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -70,7 +76,8 @@ final class ApuTest extends TestCase
         self::assertSame(0xAB, $apu->readByte(0xFF30));
     }
 
-    public function testChannel1Registers(): void
+    #[Test]
+    public function it_handles_channel_1_registers(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -90,7 +97,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x40, $apu->readByte(0xFF14) & 0x40);
     }
 
-    public function testChannel2Registers(): void
+    #[Test]
+    public function it_handles_channel_2_registers(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -107,7 +115,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x40, $apu->readByte(0xFF19) & 0x40);
     }
 
-    public function testChannel3Registers(): void
+    #[Test]
+    public function it_handles_channel_3_registers(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -126,7 +135,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x40, $apu->readByte(0xFF1E) & 0x40);
     }
 
-    public function testChannel4Registers(): void
+    #[Test]
+    public function it_handles_channel_4_registers(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -143,7 +153,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x40, $apu->readByte(0xFF23) & 0x40);
     }
 
-    public function testMasterVolumeRegister(): void
+    #[Test]
+    public function it_handles_master_volume_register(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -153,7 +164,8 @@ final class ApuTest extends TestCase
         self::assertSame(0xFF, $apu->readByte(0xFF24));
     }
 
-    public function testPanningRegister(): void
+    #[Test]
+    public function it_handles_panning_register(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -163,7 +175,8 @@ final class ApuTest extends TestCase
         self::assertSame(0xAB, $apu->readByte(0xFF25));
     }
 
-    public function testWaveRamReadWrite(): void
+    #[Test]
+    public function it_can_read_and_write_wave_ram(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -180,7 +193,8 @@ final class ApuTest extends TestCase
         }
     }
 
-    public function testFrameSequencerStepsChannels(): void
+    #[Test]
+    public function it_steps_channels_through_frame_sequencer(): void
     {
         $apu = new Apu(new NullSink());
 
@@ -202,7 +216,8 @@ final class ApuTest extends TestCase
         self::assertSame(0x00, $apu->readByte(0xFF26) & 0x01);
     }
 
-    public function testAudioSampleGeneration(): void
+    #[Test]
+    public function it_generates_audio_samples(): void
     {
         $sink = new BufferSink();
         $apu = new Apu($sink);
@@ -224,7 +239,8 @@ final class ApuTest extends TestCase
         self::assertGreaterThan(0, $sink->getSampleCount());
     }
 
-    public function testStereoMixing(): void
+    #[Test]
+    public function it_mixes_stereo_audio(): void
     {
         $sink = new BufferSink();
         $apu = new Apu($sink);
@@ -245,7 +261,8 @@ final class ApuTest extends TestCase
         self::assertGreaterThan(0, $sink->getSampleCount());
     }
 
-    public function testNR52ChannelStatus(): void
+    #[Test]
+    public function it_reports_channel_status_in_nr52(): void
     {
         $apu = new Apu(new NullSink());
 

@@ -7,6 +7,7 @@ namespace Tests\Unit\Cpu;
 use Gb\Bus\MockBus;
 use Gb\Cpu\Cpu;
 use Gb\Interrupts\InterruptController;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,7 +22,8 @@ final class InstructionSetTest extends TestCase
     // 8-BIT LOAD INSTRUCTIONS
     // ============================================================================
 
-    public function testLdRegReg(): void
+    #[Test]
+    public function it_loads_register_to_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x47, // LD B,A
@@ -34,7 +36,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x42, $cpu->getB());
     }
 
-    public function testLdRegImm(): void
+    #[Test]
+    public function it_loads_immediate_to_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x06, // LD B,n
@@ -47,7 +50,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x37, $cpu->getB());
     }
 
-    public function testLdRegIndirectHL(): void
+    #[Test]
+    public function it_loads_indirect_hl_to_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x46, // LD B,(HL)
@@ -61,7 +65,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0xAB, $cpu->getB());
     }
 
-    public function testLdIndirectHLReg(): void
+    #[Test]
+    public function it_loads_register_to_indirect_hl(): void
     {
         $bus = new MockBus([
             0x0100 => 0x70, // LD (HL),B
@@ -79,7 +84,8 @@ final class InstructionSetTest extends TestCase
     // 16-BIT LOAD INSTRUCTIONS
     // ============================================================================
 
-    public function testLd16Imm(): void
+    #[Test]
+    public function it_loads_16_bit_immediate(): void
     {
         $bus = new MockBus([
             0x0100 => 0x01, // LD BC,nn
@@ -93,7 +99,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x1234, $cpu->getBC()->get());
     }
 
-    public function testLdHLIncDec(): void
+    #[Test]
+    public function it_loads_with_hl_increment_and_decrement(): void
     {
         $bus = new MockBus([
             0x0100 => 0x22, // LD (HL+),A
@@ -116,7 +123,8 @@ final class InstructionSetTest extends TestCase
     // 8-BIT ALU INSTRUCTIONS
     // ============================================================================
 
-    public function testAddBasic(): void
+    #[Test]
+    public function it_performs_basic_addition(): void
     {
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
@@ -134,7 +142,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testAddWithCarry(): void
+    #[Test]
+    public function it_performs_addition_with_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
@@ -152,7 +161,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC());
     }
 
-    public function testAddWithHalfCarry(): void
+    #[Test]
+    public function it_performs_addition_with_half_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
@@ -169,7 +179,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testAdcWithCarryFlag(): void
+    #[Test]
+    public function it_performs_adc_with_carry_flag(): void
     {
         $bus = new MockBus([
             0x0100 => 0x88, // ADC A,B
@@ -184,7 +195,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x16, $cpu->getA()); // 0x10 + 0x05 + 1
     }
 
-    public function testSubBasic(): void
+    #[Test]
+    public function it_performs_basic_subtraction(): void
     {
         $bus = new MockBus([
             0x0100 => 0x90, // SUB B
@@ -202,7 +214,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testSubWithBorrow(): void
+    #[Test]
+    public function it_performs_subtraction_with_borrow(): void
     {
         $bus = new MockBus([
             0x0100 => 0x90, // SUB B
@@ -220,7 +233,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC());
     }
 
-    public function testSubSelf(): void
+    #[Test]
+    public function it_subtracts_register_from_itself(): void
     {
         $bus = new MockBus([
             0x0100 => 0x97, // SUB A
@@ -237,7 +251,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testAndOperation(): void
+    #[Test]
+    public function it_performs_and_operation(): void
     {
         $bus = new MockBus([
             0x0100 => 0xA0, // AND B
@@ -255,7 +270,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testOrOperation(): void
+    #[Test]
+    public function it_performs_or_operation(): void
     {
         $bus = new MockBus([
             0x0100 => 0xB0, // OR B
@@ -273,7 +289,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testXorOperation(): void
+    #[Test]
+    public function it_performs_xor_operation(): void
     {
         $bus = new MockBus([
             0x0100 => 0xA8, // XOR B
@@ -288,7 +305,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getZ());
     }
 
-    public function testXorSelf(): void
+    #[Test]
+    public function it_xors_register_with_itself(): void
     {
         $bus = new MockBus([
             0x0100 => 0xAF, // XOR A
@@ -305,7 +323,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testCpOperation(): void
+    #[Test]
+    public function it_performs_compare_operation(): void
     {
         $bus = new MockBus([
             0x0100 => 0xB8, // CP B
@@ -323,7 +342,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getN());
     }
 
-    public function testCpEqual(): void
+    #[Test]
+    public function it_compares_equal_values(): void
     {
         $bus = new MockBus([
             0x0100 => 0xB8, // CP B
@@ -342,7 +362,8 @@ final class InstructionSetTest extends TestCase
     // INC/DEC INSTRUCTIONS
     // ============================================================================
 
-    public function testInc8Bit(): void
+    #[Test]
+    public function it_increments_8_bit_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x04, // INC B
@@ -358,7 +379,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getH());
     }
 
-    public function testIncWrapToZero(): void
+    #[Test]
+    public function it_increments_and_wraps_to_zero(): void
     {
         $bus = new MockBus([
             0x0100 => 0x04, // INC B
@@ -374,7 +396,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getH());
     }
 
-    public function testDec8Bit(): void
+    #[Test]
+    public function it_decrements_8_bit_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x05, // DEC B
@@ -390,7 +413,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getH());
     }
 
-    public function testDecToZero(): void
+    #[Test]
+    public function it_decrements_to_zero(): void
     {
         $bus = new MockBus([
             0x0100 => 0x05, // DEC B
@@ -409,7 +433,8 @@ final class InstructionSetTest extends TestCase
     // 16-BIT ARITHMETIC
     // ============================================================================
 
-    public function testAddHL16Bit(): void
+    #[Test]
+    public function it_performs_16_bit_hl_addition(): void
     {
         $bus = new MockBus([
             0x0100 => 0x09, // ADD HL,BC
@@ -426,7 +451,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getC());
     }
 
-    public function testAddHL16BitWithCarry(): void
+    #[Test]
+    public function it_performs_16_bit_addition_with_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x09, // ADD HL,BC
@@ -443,7 +469,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC());
     }
 
-    public function testInc16Bit(): void
+    #[Test]
+    public function it_increments_16_bit_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x03, // INC BC
@@ -457,7 +484,8 @@ final class InstructionSetTest extends TestCase
         // 16-bit INC doesn't affect flags
     }
 
-    public function testDec16Bit(): void
+    #[Test]
+    public function it_decrements_16_bit_register(): void
     {
         $bus = new MockBus([
             0x0100 => 0x0B, // DEC BC
@@ -474,7 +502,8 @@ final class InstructionSetTest extends TestCase
     // DAA (DECIMAL ADJUST ACCUMULATOR)
     // ============================================================================
 
-    public function testDaaAfterAddition(): void
+    #[Test]
+    public function it_performs_daa_after_addition(): void
     {
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
@@ -490,7 +519,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x17, $cpu->getA());
     }
 
-    public function testDaaAfterAdditionWithCarry(): void
+    #[Test]
+    public function it_performs_daa_after_addition_with_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x80, // ADD A,B
@@ -507,7 +537,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC());
     }
 
-    public function testDaaAfterSubtraction(): void
+    #[Test]
+    public function it_performs_daa_after_subtraction(): void
     {
         $bus = new MockBus([
             0x0100 => 0x90, // SUB B
@@ -527,7 +558,8 @@ final class InstructionSetTest extends TestCase
     // SPECIAL OPERATIONS
     // ============================================================================
 
-    public function testCpl(): void
+    #[Test]
+    public function it_performs_complement_operation(): void
     {
         $bus = new MockBus([
             0x0100 => 0x2F, // CPL
@@ -542,7 +574,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getH());
     }
 
-    public function testScf(): void
+    #[Test]
+    public function it_sets_carry_flag(): void
     {
         $bus = new MockBus([
             0x0100 => 0x37, // SCF
@@ -556,7 +589,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getH());
     }
 
-    public function testCcf(): void
+    #[Test]
+    public function it_complements_carry_flag(): void
     {
         $bus = new MockBus([
             0x0100 => 0x3F, // CCF
@@ -576,7 +610,8 @@ final class InstructionSetTest extends TestCase
     // ROTATE & SHIFT OPERATIONS
     // ============================================================================
 
-    public function testRlca(): void
+    #[Test]
+    public function it_rotates_left_circular_accumulator(): void
     {
         $bus = new MockBus([
             0x0100 => 0x07, // RLCA
@@ -593,7 +628,8 @@ final class InstructionSetTest extends TestCase
         $this->assertFalse($cpu->getFlags()->getH());
     }
 
-    public function testRrca(): void
+    #[Test]
+    public function it_rotates_right_circular_accumulator(): void
     {
         $bus = new MockBus([
             0x0100 => 0x0F, // RRCA
@@ -607,7 +643,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC()); // Bit 0 was set
     }
 
-    public function testRla(): void
+    #[Test]
+    public function it_rotates_left_accumulator_through_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x17, // RLA
@@ -622,7 +659,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC()); // Old bit 7
     }
 
-    public function testRra(): void
+    #[Test]
+    public function it_rotates_right_accumulator_through_carry(): void
     {
         $bus = new MockBus([
             0x0100 => 0x1F, // RRA
@@ -641,7 +679,8 @@ final class InstructionSetTest extends TestCase
     // STACK OPERATIONS
     // ============================================================================
 
-    public function testPushPop(): void
+    #[Test]
+    public function it_pushes_and_pops_from_stack(): void
     {
         $bus = new MockBus([
             0x0100 => 0xC5, // PUSH BC
@@ -666,7 +705,8 @@ final class InstructionSetTest extends TestCase
     // JUMP & BRANCH OPERATIONS
     // ============================================================================
 
-    public function testJpAbsolute(): void
+    #[Test]
+    public function it_performs_absolute_jump(): void
     {
         $bus = new MockBus([
             0x0100 => 0xC3, // JP nn
@@ -680,7 +720,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x0150, $cpu->getPC()->get());
     }
 
-    public function testJrRelative(): void
+    #[Test]
+    public function it_performs_relative_jump(): void
     {
         $bus = new MockBus([
             0x0100 => 0x18, // JR e
@@ -693,7 +734,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x0107, $cpu->getPC()->get()); // 0x0102 + 5
     }
 
-    public function testJrRelativeNegative(): void
+    #[Test]
+    public function it_performs_negative_relative_jump(): void
     {
         $bus = new MockBus([
             0x0100 => 0x18, // JR e
@@ -706,7 +748,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0x0100, $cpu->getPC()->get()); // 0x0102 - 2
     }
 
-    public function testJrConditionalTaken(): void
+    #[Test]
+    public function it_takes_conditional_jump_when_condition_met(): void
     {
         $bus = new MockBus([
             0x0100 => 0x20, // JR NZ,e
@@ -721,7 +764,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(12, $cycles); // Taken branch = 12 cycles
     }
 
-    public function testJrConditionalNotTaken(): void
+    #[Test]
+    public function it_skips_conditional_jump_when_condition_not_met(): void
     {
         $bus = new MockBus([
             0x0100 => 0x20, // JR NZ,e
@@ -740,7 +784,8 @@ final class InstructionSetTest extends TestCase
     // CALL & RETURN
     // ============================================================================
 
-    public function testCallAndRet(): void
+    #[Test]
+    public function it_calls_and_returns_from_subroutine(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCD, // CALL nn
@@ -760,7 +805,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0xFFFE, $cpu->getSP()->get());
     }
 
-    public function testRst(): void
+    #[Test]
+    public function it_performs_restart_instruction(): void
     {
         $bus = new MockBus([
             0x0100 => 0xC7, // RST 00H
@@ -778,7 +824,8 @@ final class InstructionSetTest extends TestCase
     // CB-PREFIXED INSTRUCTIONS
     // ============================================================================
 
-    public function testCBRotateLeft(): void
+    #[Test]
+    public function it_performs_cb_rotate_left(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -794,7 +841,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getC()); // Bit 7 was set
     }
 
-    public function testCBBitTest(): void
+    #[Test]
+    public function it_performs_cb_bit_test(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -809,7 +857,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getH());
     }
 
-    public function testCBBitTestZero(): void
+    #[Test]
+    public function it_performs_cb_bit_test_for_zero(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -823,7 +872,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->getFlags()->getZ()); // Bit 0 is clear
     }
 
-    public function testCBSetBit(): void
+    #[Test]
+    public function it_performs_cb_set_bit(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -837,7 +887,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0b11111111, $cpu->getB());
     }
 
-    public function testCBResBit(): void
+    #[Test]
+    public function it_performs_cb_reset_bit(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -851,7 +902,8 @@ final class InstructionSetTest extends TestCase
         $this->assertSame(0b11111110, $cpu->getB());
     }
 
-    public function testCBSwap(): void
+    #[Test]
+    public function it_performs_cb_swap_nibbles(): void
     {
         $bus = new MockBus([
             0x0100 => 0xCB, // CB prefix
@@ -870,7 +922,8 @@ final class InstructionSetTest extends TestCase
     // HALT & STOP
     // ============================================================================
 
-    public function testHalt(): void
+    #[Test]
+    public function it_enters_halt_mode(): void
     {
         $bus = new MockBus([
             0x0100 => 0x76, // HALT
@@ -882,7 +935,8 @@ final class InstructionSetTest extends TestCase
         $this->assertTrue($cpu->isHalted());
     }
 
-    public function testStop(): void
+    #[Test]
+    public function it_enters_stop_mode(): void
     {
         $bus = new MockBus([
             0x0100 => 0x10, // STOP
@@ -900,7 +954,8 @@ final class InstructionSetTest extends TestCase
     // INTERRUPT CONTROL
     // ============================================================================
 
-    public function testDiEi(): void
+    #[Test]
+    public function it_disables_and_enables_interrupts(): void
     {
         $bus = new MockBus([
             0x0100 => 0xF3, // DI

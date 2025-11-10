@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Cartridge;
 
 use Gb\Cartridge\Mbc3;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Mbc3Test extends TestCase
@@ -23,7 +24,8 @@ final class Mbc3Test extends TestCase
         return $rom;
     }
 
-    public function testRomBank0Read(): void
+    #[Test]
+    public function it_reads_rom_bank_0(): void
     {
         $rom = $this->createRom(4);
         $mbc = new Mbc3($rom, count($rom), 0, false, false);
@@ -32,7 +34,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(0, $mbc->readByte(0x3FFF));
     }
 
-    public function testRomBankSwitching(): void
+    #[Test]
+    public function it_switches_rom_banks(): void
     {
         $rom = $this->createRom(8);
         $mbc = new Mbc3($rom, count($rom), 0, false, false);
@@ -46,7 +49,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(3, $mbc->readByte(0x4000));
     }
 
-    public function testRomBank0Quirk(): void
+    #[Test]
+    public function it_handles_rom_bank_0_quirk(): void
     {
         $rom = $this->createRom(4);
         $mbc = new Mbc3($rom, count($rom), 0, false, false);
@@ -56,7 +60,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(1, $mbc->readByte(0x4000));
     }
 
-    public function testRamEnable(): void
+    #[Test]
+    public function it_enables_ram(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 8192, false, false);
@@ -71,7 +76,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(0x42, $mbc->readByte(0xA000));
     }
 
-    public function testRamBanking(): void
+    #[Test]
+    public function it_switches_ram_banks(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 32 * 1024, false, false); // 4 banks
@@ -96,7 +102,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(0x22, $mbc->readByte(0xA000));
     }
 
-    public function testRtcRegisterAccess(): void
+    #[Test]
+    public function it_accesses_rtc_registers(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 0, false, true); // With RTC
@@ -117,7 +124,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(0x2A, $mbc->readByte(0xA000));
     }
 
-    public function testRtcLatching(): void
+    #[Test]
+    public function it_latches_rtc_values(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 0, false, true);
@@ -151,7 +159,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(20, $mbc->readByte(0xA000));
     }
 
-    public function testRtcTicking(): void
+    #[Test]
+    public function it_ticks_rtc_time(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 0, false, true);
@@ -184,7 +193,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(1, $mbc->readByte(0xA000)); // 1 minute
     }
 
-    public function testRtcHaltFlag(): void
+    #[Test]
+    public function it_respects_rtc_halt_flag(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 0, false, true);
@@ -214,7 +224,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame(10, $mbc->readByte(0xA000));
     }
 
-    public function testGetSetRtcState(): void
+    #[Test]
+    public function it_gets_and_sets_rtc_state(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc3($rom, count($rom), 0, false, true);
@@ -254,7 +265,8 @@ final class Mbc3Test extends TestCase
         $this->assertSame($rtcState, $retrieved);
     }
 
-    public function testBatteryBackedRam(): void
+    #[Test]
+    public function it_detects_battery_backed_ram(): void
     {
         $rom = $this->createRom(2);
 

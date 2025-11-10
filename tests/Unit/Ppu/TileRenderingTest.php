@@ -10,6 +10,7 @@ use Gb\Ppu\ArrayFramebuffer;
 use Gb\Ppu\Color;
 use Gb\Ppu\Oam;
 use Gb\Ppu\Ppu;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,7 +35,8 @@ final class TileRenderingTest extends TestCase
         $this->ppu = new Ppu($this->vram, $this->oam, $this->framebuffer, $this->interruptController);
     }
 
-    public function testRenderSolidColorTile(): void
+    #[Test]
+    public function it_renders_solid_color_tile(): void
     {
         // Create a tile with all pixels set to color 3 (black)
         // Each tile is 8x8 pixels, 2 bytes per row (16 bytes total)
@@ -70,7 +72,8 @@ final class TileRenderingTest extends TestCase
         }
     }
 
-    public function testRenderCheckerboardPattern(): void
+    #[Test]
+    public function it_renders_checkerboard_pattern(): void
     {
         // Create a checkerboard tile pattern
         // Alternating colors 0 and 3
@@ -103,7 +106,8 @@ final class TileRenderingTest extends TestCase
         }
     }
 
-    public function testBackgroundScrolling(): void
+    #[Test]
+    public function it_renders_background_scrolling(): void
     {
         // Create two different tiles
         // Tile 0: all color 0 (white)
@@ -143,7 +147,8 @@ final class TileRenderingTest extends TestCase
         $this->assertEquals($black, $buffer[0][15]);
     }
 
-    public function testSpriteRendering(): void
+    #[Test]
+    public function it_renders_sprites(): void
     {
         // Create a simple sprite tile (tile 0 in sprite area)
         // Vertical line on left side (color 3)
@@ -180,7 +185,8 @@ final class TileRenderingTest extends TestCase
         $this->assertEquals($white, $buffer[0][1], 'Second pixel should be white from background');
     }
 
-    public function testWindowRendering(): void
+    #[Test]
+    public function it_renders_window(): void
     {
         // Create different tiles for BG and Window
         // BG tile (tile 0): all white
@@ -223,7 +229,8 @@ final class TileRenderingTest extends TestCase
         $this->assertEquals($black, $buffer[0][10], 'Window should extend across scanline');
     }
 
-    public function testUnsignedTileAddressing(): void
+    #[Test]
+    public function it_handles_unsigned_tile_addressing(): void
     {
         // Test unsigned addressing mode (LCDC bit 4 = 1)
         // Tiles 0-255 at 0x8000-0x8FFF
@@ -258,7 +265,8 @@ final class TileRenderingTest extends TestCase
         $this->assertEquals($black, $buffer[0][0]);
     }
 
-    public function testSignedTileAddressing(): void
+    #[Test]
+    public function it_handles_signed_tile_addressing(): void
     {
         // Test signed addressing mode (LCDC bit 4 = 0)
         // Tiles -128 to 127 relative to 0x9000

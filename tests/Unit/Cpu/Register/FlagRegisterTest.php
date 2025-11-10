@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Cpu\Register;
 
 use Gb\Cpu\Register\FlagRegister;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class FlagRegisterTest extends TestCase
 {
-    public function testInitializesWithDefaultValue(): void
+    #[Test]
+    public function it_initializes_with_default_value(): void
     {
         $flags = new FlagRegister();
         $this->assertSame(0x00, $flags->get());
@@ -19,26 +21,30 @@ final class FlagRegisterTest extends TestCase
         $this->assertFalse($flags->getCarry());
     }
 
-    public function testInitializesWithSpecifiedValue(): void
+    #[Test]
+    public function it_initializes_with_specified_value(): void
     {
         $flags = new FlagRegister(0xF0);
         $this->assertSame(0xF0, $flags->get());
     }
 
-    public function testInitializationMasksLowerNibble(): void
+    #[Test]
+    public function it_masks_initialization_to_lower_nibble(): void
     {
         $flags = new FlagRegister(0xFF);
         $this->assertSame(0xF0, $flags->get());
     }
 
-    public function testSetMasksLowerNibble(): void
+    #[Test]
+    public function it_masks_set_to_lower_nibble(): void
     {
         $flags = new FlagRegister();
         $flags->set(0xFF);
         $this->assertSame(0xF0, $flags->get());
     }
 
-    public function testZeroFlagSetAndGet(): void
+    #[Test]
+    public function it_sets_and_gets_zero_flag(): void
     {
         $flags = new FlagRegister();
         $flags->setZero(true);
@@ -46,7 +52,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x80, $flags->get());
     }
 
-    public function testZeroFlagClear(): void
+    #[Test]
+    public function it_clears_zero_flag(): void
     {
         $flags = new FlagRegister(0xFF);
         $flags->setZero(false);
@@ -54,7 +61,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x70, $flags->get());
     }
 
-    public function testSubtractFlagSetAndGet(): void
+    #[Test]
+    public function it_sets_and_gets_subtract_flag(): void
     {
         $flags = new FlagRegister();
         $flags->setSubtract(true);
@@ -62,7 +70,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x40, $flags->get());
     }
 
-    public function testSubtractFlagClear(): void
+    #[Test]
+    public function it_clears_subtract_flag(): void
     {
         $flags = new FlagRegister(0xFF);
         $flags->setSubtract(false);
@@ -70,7 +79,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0xB0, $flags->get());
     }
 
-    public function testHalfCarryFlagSetAndGet(): void
+    #[Test]
+    public function it_sets_and_gets_half_carry_flag(): void
     {
         $flags = new FlagRegister();
         $flags->setHalfCarry(true);
@@ -78,7 +88,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x20, $flags->get());
     }
 
-    public function testHalfCarryFlagClear(): void
+    #[Test]
+    public function it_clears_half_carry_flag(): void
     {
         $flags = new FlagRegister(0xFF);
         $flags->setHalfCarry(false);
@@ -86,7 +97,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0xD0, $flags->get());
     }
 
-    public function testCarryFlagSetAndGet(): void
+    #[Test]
+    public function it_sets_and_gets_carry_flag(): void
     {
         $flags = new FlagRegister();
         $flags->setCarry(true);
@@ -94,7 +106,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x10, $flags->get());
     }
 
-    public function testCarryFlagClear(): void
+    #[Test]
+    public function it_clears_carry_flag(): void
     {
         $flags = new FlagRegister(0xFF);
         $flags->setCarry(false);
@@ -102,7 +115,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0xE0, $flags->get());
     }
 
-    public function testMultipleFlagsCanBeSetIndependently(): void
+    #[Test]
+    public function it_sets_multiple_flags_independently(): void
     {
         $flags = new FlagRegister();
         $flags->setZero(true);
@@ -115,7 +129,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertSame(0x90, $flags->get());
     }
 
-    public function testClearResetsAllFlags(): void
+    #[Test]
+    public function it_resets_all_flags_with_clear(): void
     {
         $flags = new FlagRegister(0xFF);
         $flags->clear();
@@ -127,7 +142,8 @@ final class FlagRegisterTest extends TestCase
         $this->assertFalse($flags->getCarry());
     }
 
-    public function testFlagBitPositions(): void
+    #[Test]
+    public function it_maintains_correct_flag_bit_positions(): void
     {
         $flags = new FlagRegister();
 

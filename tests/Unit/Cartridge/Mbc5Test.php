@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Cartridge;
 
 use Gb\Cartridge\Mbc5;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Mbc5Test extends TestCase
@@ -23,7 +24,8 @@ final class Mbc5Test extends TestCase
         return $rom;
     }
 
-    public function testRomBank0Read(): void
+    #[Test]
+    public function it_reads_rom_bank_0(): void
     {
         $rom = $this->createRom(4);
         $mbc = new Mbc5($rom, count($rom), 0, false, false);
@@ -32,7 +34,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(0, $mbc->readByte(0x3FFF));
     }
 
-    public function testRomBankSwitching(): void
+    #[Test]
+    public function it_switches_rom_banks(): void
     {
         $rom = $this->createRom(8);
         $mbc = new Mbc5($rom, count($rom), 0, false, false);
@@ -49,7 +52,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(3, $mbc->readByte(0x4000));
     }
 
-    public function test9BitBankNumber(): void
+    #[Test]
+    public function it_supports_9_bit_bank_numbers(): void
     {
         // Use 300 banks to test 9-bit addressing without excessive memory usage
         $rom = $this->createRom(300);
@@ -74,7 +78,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(43, $mbc->readByte(0x4000));
     }
 
-    public function testBank0IsValid(): void
+    #[Test]
+    public function it_allows_bank_0_selection(): void
     {
         $rom = $this->createRom(4);
         $mbc = new Mbc5($rom, count($rom), 0, false, false);
@@ -85,7 +90,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(0, $mbc->readByte(0x4000));
     }
 
-    public function testRamEnable(): void
+    #[Test]
+    public function it_enables_ram(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc5($rom, count($rom), 8192, false, false);
@@ -100,7 +106,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(0x42, $mbc->readByte(0xA000));
     }
 
-    public function testRamBanking(): void
+    #[Test]
+    public function it_switches_ram_banks(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc5($rom, count($rom), 128 * 1024, false, false); // 16 banks
@@ -121,7 +128,8 @@ final class Mbc5Test extends TestCase
         }
     }
 
-    public function testRamBankingWith4BitRegister(): void
+    #[Test]
+    public function it_uses_4_bit_ram_bank_register(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc5($rom, count($rom), 128 * 1024, false, false);
@@ -142,7 +150,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame(0xFF, $mbc->readByte(0xA000)); // Should read same as 0x0F
     }
 
-    public function testGetSetRam(): void
+    #[Test]
+    public function it_gets_and_sets_ram(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc5($rom, count($rom), 8192, false, false);
@@ -157,7 +166,8 @@ final class Mbc5Test extends TestCase
         $this->assertSame($ram, $retrieved);
     }
 
-    public function testBatteryBackedRam(): void
+    #[Test]
+    public function it_detects_battery_backed_ram(): void
     {
         $rom = $this->createRom(2);
 
@@ -171,7 +181,8 @@ final class Mbc5Test extends TestCase
         $this->assertFalse($mbcWithBatteryNoRam->hasBatteryBackedRam());
     }
 
-    public function testRumbleDoesNotAffectBanking(): void
+    #[Test]
+    public function it_handles_rumble_without_affecting_banking(): void
     {
         $rom = $this->createRom(2);
         $mbc = new Mbc5($rom, count($rom), 16 * 1024, false, true); // With rumble, 2 banks

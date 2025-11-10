@@ -7,6 +7,7 @@ namespace Tests\Unit\Cpu;
 use Gb\Bus\MockBus;
 use Gb\Cpu\Cpu;
 use Gb\Interrupts\InterruptController;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +21,8 @@ final class CpuTest extends TestCase
     /**
      * Test that CPU registers are initialized to correct power-up values.
      */
-    public function testRegisterInitialization(): void
+    #[Test]
+    public function it_initializes_registers_with_correct_power_up_values(): void
     {
         $bus = new MockBus();
         $cpu = new Cpu($bus, new InterruptController());
@@ -42,7 +44,8 @@ final class CpuTest extends TestCase
      * Test NOP instruction execution.
      * NOP (0x00) should increment PC by 1 and return 4 cycles.
      */
-    public function testNopExecution(): void
+    #[Test]
+    public function it_executes_nop_instruction(): void
     {
         $bus = new MockBus([
             0x0100 => 0x00, // NOP at starting address
@@ -59,7 +62,8 @@ final class CpuTest extends TestCase
     /**
      * Test fetch operation reads from bus at PC address.
      */
-    public function testFetchReadsFromBusAtPc(): void
+    #[Test]
+    public function it_reads_from_bus_at_pc_during_fetch(): void
     {
         $bus = new MockBus([
             0x0100 => 0x42, // Some opcode at PC
@@ -75,7 +79,8 @@ final class CpuTest extends TestCase
     /**
      * Test flag register operations.
      */
-    public function testFlagRegisterOperations(): void
+    #[Test]
+    public function it_operates_flag_register(): void
     {
         $bus = new MockBus();
         $cpu = new Cpu($bus, new InterruptController());
@@ -110,7 +115,8 @@ final class CpuTest extends TestCase
     /**
      * Test multiple NOP instructions in sequence.
      */
-    public function testMultipleNopInstructions(): void
+    #[Test]
+    public function it_executes_multiple_nop_instructions_in_sequence(): void
     {
         $bus = new MockBus([
             0x0100 => 0x00, // NOP
@@ -133,7 +139,8 @@ final class CpuTest extends TestCase
     /**
      * Test 8-bit register accessors.
      */
-    public function testEightBitRegisterAccessors(): void
+    #[Test]
+    public function it_accesses_eight_bit_registers(): void
     {
         $bus = new MockBus();
         $cpu = new Cpu($bus, new InterruptController());
@@ -170,7 +177,8 @@ final class CpuTest extends TestCase
     /**
      * Test that 8-bit register changes affect 16-bit register pairs.
      */
-    public function testRegisterPairConsistency(): void
+    #[Test]
+    public function it_maintains_register_pair_consistency(): void
     {
         $bus = new MockBus();
         $cpu = new Cpu($bus, new InterruptController());

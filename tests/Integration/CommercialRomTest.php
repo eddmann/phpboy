@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Gb\Emulator;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,7 +31,8 @@ final class CommercialRomTest extends TestCase
     /**
      * @dataProvider commercialRomProvider
      */
-    public function testCommercialRom(string $romName, string $romPath, int $framesToRun): void
+    #[Test]
+    public function it_runs_commercial_rom_without_crashing(string $romName, string $romPath, int $framesToRun): void
     {
         if (!file_exists($romPath)) {
             $this->markTestSkipped("ROM not found: {$romPath}");
@@ -132,7 +134,8 @@ final class CommercialRomTest extends TestCase
      * @dataProvider commercialRomProvider
      * @doesNotPerformAssertions
      */
-    public function testRomLoads(string $romName, string $romPath, int $framesToRun): void
+    #[Test]
+    public function it_loads_rom_successfully(string $romName, string $romPath, int $framesToRun): void
     {
         if (!file_exists($romPath)) {
             $this->markTestSkipped("ROM not found: {$romPath}");
