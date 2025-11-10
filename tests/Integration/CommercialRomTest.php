@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use Gb\Emulator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,10 +30,8 @@ final class CommercialRomTest extends TestCase
      */
     private const TEST_TIMEOUT = 180; // 3 minutes timeout
 
-    /**
-     * @dataProvider commercialRomProvider
-     */
     #[Test]
+    #[DataProvider('commercialRomProvider')]
     public function it_runs_commercial_rom_without_crashing(string $romName, string $romPath, int $framesToRun): void
     {
         if (!file_exists($romPath)) {
@@ -130,11 +130,10 @@ final class CommercialRomTest extends TestCase
 
     /**
      * Test loading ROMs without running them (quick sanity check)
-     *
-     * @dataProvider commercialRomProvider
-     * @doesNotPerformAssertions
      */
     #[Test]
+    #[DataProvider('commercialRomProvider')]
+    #[DoesNotPerformAssertions]
     public function it_loads_rom_successfully(string $romName, string $romPath, int $framesToRun): void
     {
         if (!file_exists($romPath)) {
