@@ -125,9 +125,9 @@ final class CliRenderer implements FramebufferInterface
 
             // Render full-color terminal output
             // Terminal chars are ~2:1 tall, half-blocks give us 2 pixels per char vertically
-            // Each character is now doubled horizontally for better visibility
-            // This gives us: 320x72 terminal chars (doubling each pixel horizontally)
-            $output .= $this->toAnsiColor(1, 2); // 320x72 chars - double width
+            // To maintain Game Boy aspect ratio (160:144 = 1.11:1), use 1x horizontal scale
+            // This gives us: 160x72 terminal chars (160:72 = 2.22:1, accounting for 2:1 char aspect = ~1.11:1 visual)
+            $output .= $this->toAnsiColor(1, 2); // 160x72 chars - wider display
             $output .= sprintf("\nFrame: %d (%.1fs) | Press Ctrl+C to exit\e[K", $this->frameCount, $this->frameCount / 60.0);
 
             // Single atomic write to minimize flicker
@@ -313,7 +313,7 @@ final class CliRenderer implements FramebufferInterface
                     $topColor->g === $bottomColor->g &&
                     $topColor->b === $bottomColor->b) {
                     // Same color - use full block with background color
-                    $char = sprintf(
+                    $output .= sprintf(
                         "\e[48;2;%d;%d;%dm ",
                         $topColor->r,
                         $topColor->g,
@@ -322,7 +322,7 @@ final class CliRenderer implements FramebufferInterface
                 } else {
                     // Different colors - use upper half block
                     // Foreground = top color, Background = bottom color
-                    $char = sprintf(
+                    $output .= sprintf(
                         "\e[38;2;%d;%d;%dm\e[48;2;%d;%d;%dm▀",
                         $topColor->r,
                         $topColor->g,
@@ -332,9 +332,6 @@ final class CliRenderer implements FramebufferInterface
                         $bottomColor->b
                     );
                 }
-
-                // Repeat character twice for wider display (double horizontal width)
-                $output .= $char . $char;
             }
             // Reset colors at end of line
             $output .= "\e[0m\n";

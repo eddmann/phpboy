@@ -48,6 +48,9 @@ final class InputRecorder
     /** @var int Current frame number */
     private int $currentFrame = 0;
 
+    /** @var array<string> Previous frame's button state for change detection */
+    private array $previousButtons = [];
+
     /** @var bool Whether playback is active */
     private bool $playing = false;
 
@@ -60,6 +63,9 @@ final class InputRecorder
     /** @var int Total frames in loaded recording */
     private int $totalFrames = 0;
 
+    /** @var array<string> Current button state during playback */
+    private array $currentPlaybackButtons = [];
+
     /**
      * Start recording inputs.
      */
@@ -68,6 +74,7 @@ final class InputRecorder
         $this->recording = true;
         $this->inputs = [];
         $this->currentFrame = 0;
+        $this->previousButtons = [];
     }
 
     /**
@@ -97,13 +104,15 @@ final class InputRecorder
             return;
         }
 
-        // Convert Button enums to strings
+        // Convert Button enums to strings and sort for consistent comparison
         $buttonNames = array_map(fn(Button $btn) => $btn->name, $pressedButtons);
+        sort($buttonNames);
 
         // Only record frames with input changes to save space
-        // Always record frame 0
-        if ($this->currentFrame === 0 || !empty($buttonNames)) {
+        // Record frame 0 or when button state changes
+        if ($this->currentFrame === 0 || $buttonNames !== $this->previousButtons) {
             $this->inputs[$this->currentFrame] = $buttonNames;
+            $this->previousButtons = $buttonNames;
         }
 
         $this->currentFrame++;
@@ -215,6 +224,7 @@ final class InputRecorder
 
         $this->playing = true;
         $this->playbackFrame = 0;
+        $this->currentPlaybackButtons = [];
     }
 
     /**
@@ -250,11 +260,17 @@ final class InputRecorder
             return [];
         }
 
-        // Get inputs for this frame, if any
-        $buttonNames = $this->playbackInputs[$this->playbackFrame] ?? [];
+        // Check if there's a state change for this frame
+        if (isset($this->playbackInputs[$this->playbackFrame])) {
+            // Update current button state
+            $this->currentPlaybackButtons = $this->playbackInputs[$this->playbackFrame];
+        }
 
         // Convert button names back to Button enums
-        $buttons = array_map(fn(string $name) => Button::fromName($name), $buttonNames);
+        $buttons = array_map(
+            fn(string $name) => Button::fromName($name),
+            $this->currentPlaybackButtons
+        );
 
         $this->playbackFrame++;
 
