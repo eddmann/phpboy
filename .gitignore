@@ -34,4 +34,5 @@ web/phpboy-wasm-bundled.php
 web/phpboy-wasm.php
 
 # Commercial ROMs (not redistributable)
-third_party/roms/commerical/
+third_party/roms/commerical/*
+!third_party/roms/commerical/.gitkeep
