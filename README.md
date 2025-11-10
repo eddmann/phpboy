@@ -2,7 +2,7 @@
   <img src="docs/heading.png" alt="PHPBoy - Game Boy Emulator" />
 </p>
 
-A readable, well-architected Game Boy (DMG) emulator written in PHP 8.4 with multiple frontend options: CLI terminal (primary), browser via WebAssembly, and native SDL2 desktop (WIP).
+Game Boy (DMG) emulator written in PHP 8.4 with multiple frontend options: CLI terminal (primary), browser via WebAssembly (WIP), and native SDL2 desktop (WIP).
 
 ## Current Status
 
@@ -21,6 +21,11 @@ PHPBoy is a highly accurate DMG (original Game Boy) emulator with:
 
 <p align="center">
   <img src="docs/cartridges.png" alt="Supported Cartridges" />
+</p>
+
+<p align="center">
+  <img src="docs/pokered-1.png" alt="Pokemon Red gameplay" width="400" />
+  <img src="docs/pokered-2.png" alt="Pokemon Red gameplay" width="400" />
 </p>
 
 ## Features
