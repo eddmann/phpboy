@@ -62,7 +62,7 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/eddmann/phpboy.git
 cd phpboy
 ```
 
