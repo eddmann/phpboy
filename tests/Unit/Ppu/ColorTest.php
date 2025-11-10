@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Ppu;
 
 use Gb\Ppu\Color;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ColorTest extends TestCase
 {
-    public function testDmgShade0IsWhite(): void
+    #[Test]
+    public function it_creates_dmg_shade_0_as_white(): void
     {
         $color = Color::fromDmgShade(0);
 
@@ -18,7 +20,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(0xFF, $color->b, 'Blue should be 0xFF for white');
     }
 
-    public function testDmgShade1IsLightGray(): void
+    #[Test]
+    public function it_creates_dmg_shade_1_as_light_gray(): void
     {
         $color = Color::fromDmgShade(1);
 
@@ -27,7 +30,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(0xAA, $color->b, 'Blue should be 0xAA for light gray');
     }
 
-    public function testDmgShade2IsDarkGray(): void
+    #[Test]
+    public function it_creates_dmg_shade_2_as_dark_gray(): void
     {
         $color = Color::fromDmgShade(2);
 
@@ -36,7 +40,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(0x55, $color->b, 'Blue should be 0x55 for dark gray');
     }
 
-    public function testDmgShade3IsBlack(): void
+    #[Test]
+    public function it_creates_dmg_shade_3_as_black(): void
     {
         $color = Color::fromDmgShade(3);
 
@@ -45,7 +50,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(0x00, $color->b, 'Blue should be 0x00 for black');
     }
 
-    public function testGbc15bitConversion(): void
+    #[Test]
+    public function it_converts_gbc_15bit_to_rgb(): void
     {
         // Test pure red (5 bits = 0x1F)
         $red = Color::fromGbc15bit(0x001F);
@@ -72,7 +78,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(255, $white->b);
     }
 
-    public function testToRgba(): void
+    #[Test]
+    public function it_converts_to_rgba_format(): void
     {
         $color = new Color(0x12, 0x34, 0x56);
         $rgba = $color->toRgba();
@@ -81,7 +88,8 @@ final class ColorTest extends TestCase
         $this->assertEquals(0x123456FF, $rgba);
     }
 
-    public function testColorIsReadonly(): void
+    #[Test]
+    public function it_enforces_readonly_properties(): void
     {
         $color = new Color(100, 150, 200);
 

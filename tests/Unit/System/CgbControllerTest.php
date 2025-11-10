@@ -6,6 +6,7 @@ namespace Tests\Unit\System;
 
 use Gb\Memory\Vram;
 use Gb\System\CgbController;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class CgbControllerTest extends TestCase
@@ -19,7 +20,8 @@ final class CgbControllerTest extends TestCase
         $this->controller = new CgbController($this->vram);
     }
 
-    public function testKey1InitialValue(): void
+    #[Test]
+    public function it_has_correct_key1_initial_value(): void
     {
         $value = $this->controller->readByte(0xFF4D);
 
@@ -28,7 +30,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0x7E, $value);
     }
 
-    public function testKey1PrepareSpeedSwitch(): void
+    #[Test]
+    public function it_prepares_speed_switch_with_key1(): void
     {
         $this->controller->writeByte(0xFF4D, 0x01);
 
@@ -38,7 +41,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0x7F, $value);
     }
 
-    public function testSpeedSwitchToggle(): void
+    #[Test]
+    public function it_toggles_speed_switch(): void
     {
         // Prepare speed switch
         $this->controller->writeByte(0xFF4D, 0x01);
@@ -58,7 +62,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0xFE, $value);
     }
 
-    public function testSpeedSwitchBackToNormal(): void
+    #[Test]
+    public function it_switches_back_to_normal_speed(): void
     {
         // Switch to double speed
         $this->controller->writeByte(0xFF4D, 0x01);
@@ -74,7 +79,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0x7E, $value);
     }
 
-    public function testSpeedSwitchWithoutPrepareDoesNothing(): void
+    #[Test]
+    public function it_does_nothing_on_speed_switch_without_prepare(): void
     {
         // Try to trigger without preparing
         $this->controller->triggerSpeedSwitch();
@@ -83,7 +89,8 @@ final class CgbControllerTest extends TestCase
         $this->assertFalse($this->controller->isDoubleSpeed());
     }
 
-    public function testVbkRegisterReadWrite(): void
+    #[Test]
+    public function it_reads_and_writes_vbk_register(): void
     {
         // VBK should control VRAM bank
         $this->controller->writeByte(0xFF4F, 0x01);
@@ -96,7 +103,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0xFF, $value);
     }
 
-    public function testVbkRegisterMasking(): void
+    #[Test]
+    public function it_masks_vbk_register(): void
     {
         // Only bit 0 should be used for bank selection
         $this->controller->writeByte(0xFF4F, 0xFF);
@@ -106,7 +114,8 @@ final class CgbControllerTest extends TestCase
         $this->assertSame(0, $this->vram->getBank());
     }
 
-    public function testRpRegisterStub(): void
+    #[Test]
+    public function it_stubs_rp_register(): void
     {
         // RP register (infrared) should always return 0xFF
         $value = $this->controller->readByte(0xFF56);

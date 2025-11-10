@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Apu;
 
 use Gb\Apu\Channel\Channel3;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Channel3Test extends TestCase
 {
-    public function testInitiallyDisabled(): void
+    #[Test]
+    public function it_is_initially_disabled(): void
     {
         $channel = new Channel3();
         self::assertFalse($channel->isEnabled());
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testTriggerEnablesChannel(): void
+    #[Test]
+    public function it_enables_channel_when_triggered(): void
     {
         $channel = new Channel3();
 
@@ -26,7 +29,8 @@ final class Channel3Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testWaveRamReadWrite(): void
+    #[Test]
+    public function it_can_read_and_write_wave_ram(): void
     {
         $channel = new Channel3();
 
@@ -41,7 +45,8 @@ final class Channel3Test extends TestCase
         }
     }
 
-    public function testOutputLevel100Percent(): void
+    #[Test]
+    public function it_outputs_at_100_percent_level(): void
     {
         $channel = new Channel3();
 
@@ -60,7 +65,8 @@ final class Channel3Test extends TestCase
         self::assertGreaterThan(0.0, $sample);
     }
 
-    public function testOutputLevel50Percent(): void
+    #[Test]
+    public function it_outputs_at_50_percent_level(): void
     {
         $channel = new Channel3();
 
@@ -77,7 +83,8 @@ final class Channel3Test extends TestCase
         self::assertNotSame(0.0, $sample);
     }
 
-    public function testOutputLevelMute(): void
+    #[Test]
+    public function it_mutes_output_at_zero_level(): void
     {
         $channel = new Channel3();
 
@@ -93,7 +100,8 @@ final class Channel3Test extends TestCase
         self::assertSame(-1.0, $channel->getSample());
     }
 
-    public function testLengthCounter(): void
+    #[Test]
+    public function it_disables_when_length_counter_expires(): void
     {
         $channel = new Channel3();
 
@@ -107,7 +115,8 @@ final class Channel3Test extends TestCase
         self::assertFalse($channel->isEnabled());
     }
 
-    public function testDacDisable(): void
+    #[Test]
+    public function it_stops_output_when_dac_disabled(): void
     {
         $channel = new Channel3();
 
@@ -120,7 +129,8 @@ final class Channel3Test extends TestCase
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testSamplePositionAdvances(): void
+    #[Test]
+    public function it_advances_sample_position(): void
     {
         $channel = new Channel3();
 

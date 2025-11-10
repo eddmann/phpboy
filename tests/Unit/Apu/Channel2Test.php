@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Apu;
 
 use Gb\Apu\Channel\Channel2;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Channel2Test extends TestCase
 {
-    public function testInitiallyDisabled(): void
+    #[Test]
+    public function it_is_initially_disabled(): void
     {
         $channel = new Channel2();
         self::assertFalse($channel->isEnabled());
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testTriggerEnablesChannel(): void
+    #[Test]
+    public function it_enables_channel_when_triggered(): void
     {
         $channel = new Channel2();
 
@@ -26,7 +29,8 @@ final class Channel2Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testDutyPattern50Percent(): void
+    #[Test]
+    public function it_produces_50_percent_duty_pattern(): void
     {
         $channel = new Channel2();
 
@@ -51,7 +55,8 @@ final class Channel2Test extends TestCase
         self::assertLessThan(-0.5, $samples[2]);
     }
 
-    public function testVolumeEnvelope(): void
+    #[Test]
+    public function it_applies_volume_envelope(): void
     {
         $channel = new Channel2();
 
@@ -63,7 +68,8 @@ final class Channel2Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testLengthCounter(): void
+    #[Test]
+    public function it_disables_when_length_counter_expires(): void
     {
         $channel = new Channel2();
 
@@ -77,7 +83,8 @@ final class Channel2Test extends TestCase
         self::assertFalse($channel->isEnabled());
     }
 
-    public function testDacDisable(): void
+    #[Test]
+    public function it_stops_output_when_dac_disabled(): void
     {
         $channel = new Channel2();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Ppu;
 
 use Gb\Ppu\ColorPalette;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ColorPaletteTest extends TestCase
@@ -16,7 +17,8 @@ final class ColorPaletteTest extends TestCase
         $this->palette = new ColorPalette();
     }
 
-    public function testBgIndexReadReturnsValueWithBit6Set(): void
+    #[Test]
+    public function it_returns_bg_index_read_with_bit_6_set(): void
     {
         $this->palette->writeBgIndex(0x00);
         $value = $this->palette->readBgIndex();
@@ -25,7 +27,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x40, $value & 0x40);
     }
 
-    public function testBgIndexWriteAndRead(): void
+    #[Test]
+    public function it_writes_and_reads_bg_index(): void
     {
         $this->palette->writeBgIndex(0x85); // Auto-increment + index 5
         $value = $this->palette->readBgIndex();
@@ -34,7 +37,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x85 | 0x40, $value);
     }
 
-    public function testBgDataWriteAndRead(): void
+    #[Test]
+    public function it_writes_and_reads_bg_data(): void
     {
         // Set index to 0
         $this->palette->writeBgIndex(0x00);
@@ -49,7 +53,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0xAB, $value);
     }
 
-    public function testBgDataAutoIncrement(): void
+    #[Test]
+    public function it_auto_increments_bg_data_index(): void
     {
         // Enable auto-increment (bit 7) and set index to 0
         $this->palette->writeBgIndex(0x80);
@@ -63,7 +68,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x82, $index & 0xBF); // Mask out bit 6
     }
 
-    public function testBgDataAutoIncrementWraps(): void
+    #[Test]
+    public function it_wraps_bg_data_auto_increment(): void
     {
         // Set index to 63 with auto-increment
         $this->palette->writeBgIndex(0x80 | 0x3F);
@@ -76,7 +82,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x80, $index & 0xBF); // Mask out bit 6
     }
 
-    public function testBgDataWithoutAutoIncrement(): void
+    #[Test]
+    public function it_maintains_bg_data_index_without_auto_increment(): void
     {
         // Set index to 5 without auto-increment
         $this->palette->writeBgIndex(0x05);
@@ -89,7 +96,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x05, $index & 0x3F);
     }
 
-    public function testObjIndexAndData(): void
+    #[Test]
+    public function it_handles_obj_index_and_data(): void
     {
         // Object palette should work the same as background palette
         $this->palette->writeObjIndex(0x80 | 0x02);
@@ -104,7 +112,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0x34, $this->palette->readObjData());
     }
 
-    public function testGetBgColorFrom15BitRgb(): void
+    #[Test]
+    public function it_gets_bg_color_from_15_bit_rgb(): void
     {
         // Write a 15-bit color to palette 0, color 1
         // Color: 0x7FFF (white: all bits set)
@@ -121,7 +130,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(255, $color->b);
     }
 
-    public function testGetBgColorBlack(): void
+    #[Test]
+    public function it_gets_bg_color_black(): void
     {
         // Write black (0x0000) to palette 1, color 2
         // Index: palette 1, color 2 = (1*8) + (2*2) = 12
@@ -137,7 +147,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0, $color->b);
     }
 
-    public function testGetBgColorRed(): void
+    #[Test]
+    public function it_gets_bg_color_red(): void
     {
         // Pure red: 0b0000000000011111 = 0x001F
         // Index: palette 2, color 3 = (2*8) + (3*2) = 22
@@ -153,7 +164,8 @@ final class ColorPaletteTest extends TestCase
         $this->assertSame(0, $color->b);
     }
 
-    public function testGetObjColor(): void
+    #[Test]
+    public function it_gets_obj_color(): void
     {
         // Write a color to object palette 3, color 1
         // Index: palette 3, color 1 = (3*8) + (1*2) = 26

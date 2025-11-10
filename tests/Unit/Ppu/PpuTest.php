@@ -10,6 +10,7 @@ use Gb\Memory\Vram;
 use Gb\Ppu\ArrayFramebuffer;
 use Gb\Ppu\Oam;
 use Gb\Ppu\Ppu;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class PpuTest extends TestCase
@@ -29,7 +30,8 @@ final class PpuTest extends TestCase
         $this->ppu = new Ppu($this->vram, $this->oam, $this->framebuffer, $this->interruptController);
     }
 
-    public function testInitialState(): void
+    #[Test]
+    public function it_has_correct_initial_state(): void
     {
         // LCDC should be initialized with LCD enabled
         $lcdc = $this->ppu->readByte(0xFF40);
@@ -43,7 +45,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(2, $stat & 0x03, 'Initial mode should be OAM Search (mode 2)');
     }
 
-    public function testModeTransitionOamSearchToPixelTransfer(): void
+    #[Test]
+    public function it_transitions_from_oam_search_to_pixel_transfer(): void
     {
         // Step through OAM search (80 dots)
         $this->ppu->step(80);
@@ -53,7 +56,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(3, $stat & 0x03, 'Should transition to Pixel Transfer (mode 3)');
     }
 
-    public function testModeTransitionPixelTransferToHBlank(): void
+    #[Test]
+    public function it_transitions_from_pixel_transfer_to_hblank(): void
     {
         // Step through OAM search (80 dots) and pixel transfer (172 dots)
         $this->ppu->step(80 + 172);
@@ -63,7 +67,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0, $stat & 0x03, 'Should transition to H-Blank (mode 0)');
     }
 
-    public function testScanlineIncrement(): void
+    #[Test]
+    public function it_increments_scanline(): void
     {
         $this->assertEquals(0, $this->ppu->readByte(0xFF44), 'LY should start at 0');
 
@@ -73,7 +78,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(1, $this->ppu->readByte(0xFF44), 'LY should increment after scanline');
     }
 
-    public function testVBlankEntry(): void
+    #[Test]
+    public function it_enters_vblank(): void
     {
         // Enable V-Blank interrupt in IE register
         $this->interruptController->writeByte(0xFFFF, 0x01); // Enable VBlank interrupt
@@ -102,7 +108,8 @@ final class PpuTest extends TestCase
         );
     }
 
-    public function testVBlankDuration(): void
+    #[Test]
+    public function it_maintains_correct_vblank_duration(): void
     {
         // Step to V-Blank
         $this->ppu->step(144 * 456);
@@ -124,7 +131,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(2, $stat & 0x03, 'Should return to OAM Search after V-Blank');
     }
 
-    public function testLycCoincidence(): void
+    #[Test]
+    public function it_detects_lyc_coincidence(): void
     {
         // Set LYC to 5
         $this->ppu->writeByte(0xFF45, 5);
@@ -139,7 +147,8 @@ final class PpuTest extends TestCase
         $this->assertNotEquals(0, $stat & 0x04, 'STAT LYC=LY flag should be set');
     }
 
-    public function testLycCoincidenceInterrupt(): void
+    #[Test]
+    public function it_triggers_lyc_coincidence_interrupt(): void
     {
         // Enable LCD STAT interrupt in IE register
         $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
@@ -160,7 +169,8 @@ final class PpuTest extends TestCase
         );
     }
 
-    public function testStatMode0Interrupt(): void
+    #[Test]
+    public function it_triggers_stat_mode_0_interrupt(): void
     {
         // Enable LCD STAT interrupt in IE register
         $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
@@ -178,7 +188,8 @@ final class PpuTest extends TestCase
         );
     }
 
-    public function testStatMode1Interrupt(): void
+    #[Test]
+    public function it_triggers_stat_mode_1_interrupt(): void
     {
         // Enable LCD STAT interrupt in IE register
         $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
@@ -196,7 +207,8 @@ final class PpuTest extends TestCase
         );
     }
 
-    public function testStatMode2Interrupt(): void
+    #[Test]
+    public function it_triggers_stat_mode_2_interrupt(): void
     {
         // Enable LCD STAT interrupt in IE register
         $this->interruptController->writeByte(0xFFFF, 0x02); // Enable LCD STAT interrupt
@@ -217,7 +229,8 @@ final class PpuTest extends TestCase
         );
     }
 
-    public function testLcdDisable(): void
+    #[Test]
+    public function it_handles_lcd_disable(): void
     {
         // Disable LCD
         $this->ppu->writeByte(0xFF40, 0x00);
@@ -229,7 +242,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0, $this->ppu->readByte(0xFF44), 'LY should not advance when LCD is disabled');
     }
 
-    public function testScrollRegisters(): void
+    #[Test]
+    public function it_handles_scroll_registers(): void
     {
         $this->ppu->writeByte(0xFF42, 0x12); // SCY
         $this->ppu->writeByte(0xFF43, 0x34); // SCX
@@ -238,7 +252,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0x34, $this->ppu->readByte(0xFF43), 'SCX should be readable');
     }
 
-    public function testWindowRegisters(): void
+    #[Test]
+    public function it_handles_window_registers(): void
     {
         $this->ppu->writeByte(0xFF4A, 0x56); // WY
         $this->ppu->writeByte(0xFF4B, 0x78); // WX
@@ -247,7 +262,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0x78, $this->ppu->readByte(0xFF4B), 'WX should be readable');
     }
 
-    public function testPaletteRegisters(): void
+    #[Test]
+    public function it_handles_palette_registers(): void
     {
         $this->ppu->writeByte(0xFF47, 0xE4); // BGP
         $this->ppu->writeByte(0xFF48, 0xD2); // OBP0
@@ -258,7 +274,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0xA9, $this->ppu->readByte(0xFF49), 'OBP1 should be readable');
     }
 
-    public function testLyIsReadOnly(): void
+    #[Test]
+    public function it_treats_ly_as_read_only(): void
     {
         // Try to write to LY (should be ignored)
         $this->ppu->writeByte(0xFF44, 0xFF);
@@ -267,7 +284,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(0, $this->ppu->readByte(0xFF44), 'LY should be read-only');
     }
 
-    public function testStatBit7AlwaysSet(): void
+    #[Test]
+    public function it_keeps_stat_bit_7_always_set(): void
     {
         // Bit 7 of STAT is always set when reading
         $this->ppu->writeByte(0xFF41, 0x00);
@@ -276,7 +294,8 @@ final class PpuTest extends TestCase
         $this->assertNotEquals(0, $stat & 0x80, 'STAT bit 7 should always be set');
     }
 
-    public function testFullFrameTiming(): void
+    #[Test]
+    public function it_maintains_correct_full_frame_timing(): void
     {
         // One full frame: 154 scanlines × 456 dots = 70224 dots
         $this->ppu->step(70224);
@@ -288,7 +307,8 @@ final class PpuTest extends TestCase
         $this->assertEquals(2, $stat & 0x03, 'Should be back in OAM Search mode');
     }
 
-    public function testBackgroundRendering(): void
+    #[Test]
+    public function it_renders_background(): void
     {
         // Set up a simple tile in VRAM (all white pixels = color 0)
         $vramData = $this->vram->getData();
