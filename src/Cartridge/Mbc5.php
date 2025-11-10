@@ -173,4 +173,35 @@ final class Mbc5 implements MbcInterface
     {
         // No-op for MBC5
     }
+
+    public function getCurrentRomBank(): int
+    {
+        return $this->romBank;
+    }
+
+    public function getCurrentRamBank(): int
+    {
+        return $this->ramBank;
+    }
+
+    public function isRamEnabled(): bool
+    {
+        return $this->ramEnabled;
+    }
+
+    public function setCurrentRomBank(int $bank): void
+    {
+        $this->romBank = $bank & 0x1FF; // 9-bit bank number
+    }
+
+    public function setCurrentRamBank(int $bank): void
+    {
+        $mask = $this->hasRumble ? 0x07 : 0x0F;
+        $this->ramBank = $bank & $mask;
+    }
+
+    public function setRamEnabled(bool $enabled): void
+    {
+        $this->ramEnabled = $enabled;
+    }
 }

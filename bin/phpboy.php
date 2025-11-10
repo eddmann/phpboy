@@ -44,38 +44,45 @@ Usage:
   php bin/phpboy.php --rom=<rom-file> [options]
 
 Options:
-  --rom=<path>         ROM file to load (can also be first positional argument)
-  --debug              Enable debugger mode with interactive shell
-  --trace              Enable CPU instruction tracing
-  --headless           Run without display (for testing)
-  --display-mode=<mode> Display mode: 'ansi-color', 'ascii', 'none' (default: ansi-color)
-  --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
-  --save=<path>        Save file location (default: <rom>.sav)
-  --audio              Enable real-time audio playback (requires aplay/ffplay)
-  --audio-out=<path>   WAV file to record audio output
-  --frames=<n>         Number of frames to run in headless mode (default: 60)
-  --benchmark          Enable benchmark mode with FPS measurement (requires --headless)
-  --memory-profile     Enable memory profiling (requires --headless)
-  --help               Show this help message
+  --rom=<path>           ROM file to load (can also be first positional argument)
+  --debug                Enable debugger mode with interactive shell
+  --trace                Enable CPU instruction tracing
+  --headless             Run without display (for testing)
+  --display-mode=<mode>  Display mode: 'ansi-color', 'ascii', 'none' (default: ansi-color)
+  --speed=<factor>       Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
+  --save=<path>          Save file location (default: <rom>.sav)
+  --audio                Enable real-time audio playback (requires aplay/ffplay)
+  --audio-out=<path>     WAV file to record audio output
+  --frames=<n>           Number of frames to run in headless mode (default: 60)
+  --benchmark            Enable benchmark mode with FPS measurement (requires --headless)
+  --memory-profile       Enable memory profiling (requires --headless)
+  --config=<path>        Load configuration from INI file
+  --savestate-save=<path>  Save emulator state after running
+  --savestate-load=<path>  Load emulator state before running
+  --enable-rewind        Enable rewind buffer (60 seconds default)
+  --rewind-buffer=<sec>  Rewind buffer size in seconds (default: 60)
+  --record=<path>        Record TAS input to JSON file
+  --playback=<path>      Playback TAS input from JSON file
+  --help                 Show this help message
 
 Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
   php bin/phpboy.php tetris.gb --display-mode=ansi-color
-  php bin/phpboy.php tetris.gb --display-mode=ascii
   php bin/phpboy.php tetris.gb --audio
-  php bin/phpboy.php tetris.gb --audio --audio-out=recording.wav
   php bin/phpboy.php tetris.gb --debug
-  php bin/phpboy.php tetris.gb --trace --headless
+  php bin/phpboy.php tetris.gb --savestate-load=save.state
+  php bin/phpboy.php tetris.gb --enable-rewind
+  php bin/phpboy.php tetris.gb --record=speedrun.json
+  php bin/phpboy.php tetris.gb --playback=speedrun.json
   php bin/phpboy.php tetris.gb --headless --frames=3600 --benchmark
-  php bin/phpboy.php tetris.gb --headless --frames=1000 --memory-profile
 
 HELP;
 }
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null}
  */
 function parseArguments(array $argv): array
 {
@@ -93,6 +100,13 @@ function parseArguments(array $argv): array
         'frames' => null,
         'benchmark' => false,
         'memory_profile' => false,
+        'config' => null,
+        'savestate_save' => null,
+        'savestate_load' => null,
+        'enable_rewind' => false,
+        'rewind_buffer' => 60,
+        'record' => null,
+        'playback' => null,
     ];
 
     // Parse arguments
@@ -130,6 +144,21 @@ function parseArguments(array $argv): array
             $options['benchmark'] = true;
         } elseif ($arg === '--memory-profile') {
             $options['memory_profile'] = true;
+        } elseif (str_starts_with($arg, '--config=')) {
+            $options['config'] = substr($arg, 9);
+        } elseif (str_starts_with($arg, '--savestate-save=')) {
+            $options['savestate_save'] = substr($arg, 17);
+        } elseif (str_starts_with($arg, '--savestate-load=')) {
+            $options['savestate_load'] = substr($arg, 17);
+        } elseif ($arg === '--enable-rewind') {
+            $options['enable_rewind'] = true;
+        } elseif (str_starts_with($arg, '--rewind-buffer=')) {
+            $options['rewind_buffer'] = (int)substr($arg, 16);
+            $options['enable_rewind'] = true;
+        } elseif (str_starts_with($arg, '--record=')) {
+            $options['record'] = substr($arg, 9);
+        } elseif (str_starts_with($arg, '--playback=')) {
+            $options['playback'] = substr($arg, 11);
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -191,6 +220,18 @@ try {
 
     echo "\n";
 
+    // Load configuration
+    if ($options['config'] !== null) {
+        $config = new \Gb\Config\Config();
+        $config->loadFromFile($options['config']);
+        echo "Config: Loaded from {$options['config']}\n";
+    } else {
+        $config = new \Gb\Config\Config();
+        if ($config->loadFromDefaultLocations()) {
+            echo "Config: Loaded from default location\n";
+        }
+    }
+
     // Create emulator
     $emulator = new Emulator();
     $emulator->loadRom($options['rom']);
@@ -198,6 +239,11 @@ try {
     // Set speed multiplier
     if ($options['speed'] !== 1.0) {
         $emulator->setSpeed($options['speed']);
+    } elseif ($config !== null) {
+        $speed = $config->get('emulation', 'speed', 1.0);
+        if ($speed !== 1.0) {
+            $emulator->setSpeed((float) $speed);
+        }
     }
 
     // Set up audio output
@@ -248,6 +294,40 @@ try {
         echo "CPU tracing enabled\n\n";
     }
 
+    // Load savestate if specified
+    if ($options['savestate_load'] !== null) {
+        if (!file_exists($options['savestate_load'])) {
+            fwrite(STDERR, "Error: Savestate file not found: {$options['savestate_load']}\n");
+            exit(1);
+        }
+        $emulator->loadState($options['savestate_load']);
+        echo "Loaded savestate from {$options['savestate_load']}\n";
+    }
+
+    // Set up rewind buffer if enabled
+    $rewindBuffer = null;
+    if ($options['enable_rewind']) {
+        $rewindBuffer = new \Gb\Rewind\RewindBuffer($emulator, $options['rewind_buffer']);
+        echo "Rewind: Enabled ({$options['rewind_buffer']} seconds)\n";
+    }
+
+    // Set up TAS recording/playback
+    $inputRecorder = null;
+    if ($options['record'] !== null) {
+        $inputRecorder = new \Gb\Tas\InputRecorder();
+        $inputRecorder->startRecording();
+        echo "TAS: Recording to {$options['record']}\n";
+    } elseif ($options['playback'] !== null) {
+        if (!file_exists($options['playback'])) {
+            fwrite(STDERR, "Error: TAS file not found: {$options['playback']}\n");
+            exit(1);
+        }
+        $inputRecorder = new \Gb\Tas\InputRecorder();
+        $inputRecorder->loadRecording($options['playback']);
+        $inputRecorder->startPlayback();
+        echo "TAS: Playing back from {$options['playback']}\n";
+    }
+
     // Run in appropriate mode
     if ($options['debug']) {
         // Run debugger
@@ -265,6 +345,16 @@ try {
 
             for ($i = 0; $i < $frames; $i++) {
                 $emulator->step();
+
+                // Record for rewind buffer
+                if ($rewindBuffer !== null) {
+                    $rewindBuffer->recordFrame();
+                }
+
+                // Record for TAS
+                if ($inputRecorder !== null && $inputRecorder->isRecording()) {
+                    $inputRecorder->recordFrame([]);
+                }
 
                 // Progress indicator every 600 frames (10 seconds at 60 FPS)
                 if (($i + 1) % 600 === 0 && !$options['memory_profile']) {
@@ -300,6 +390,16 @@ try {
 
             for ($i = 0; $i < $frames; $i++) {
                 $emulator->step();
+
+                // Record for rewind buffer
+                if ($rewindBuffer !== null) {
+                    $rewindBuffer->recordFrame();
+                }
+
+                // Record for TAS
+                if ($inputRecorder !== null && $inputRecorder->isRecording()) {
+                    $inputRecorder->recordFrame([]);
+                }
 
                 // Measure memory every 60 frames (1 second at 60 FPS)
                 if ($i % 60 === 0 || $i === $frames - 1) {
@@ -347,6 +447,16 @@ try {
             echo "Running headless for $frames frames...\n";
             for ($i = 0; $i < $frames; $i++) {
                 $emulator->step();
+
+                // Record for rewind buffer
+                if ($rewindBuffer !== null) {
+                    $rewindBuffer->recordFrame();
+                }
+
+                // Record for TAS
+                if ($inputRecorder !== null && $inputRecorder->isRecording()) {
+                    $inputRecorder->recordFrame([]);
+                }
             }
             echo "Completed successfully\n";
         }
@@ -366,6 +476,20 @@ try {
     }
 
     echo "\nEmulation stopped.\n";
+
+    // Save savestate if specified
+    if ($options['savestate_save'] !== null) {
+        $emulator->saveState($options['savestate_save']);
+        echo "Saved savestate to {$options['savestate_save']}\n";
+    }
+
+    // Save TAS recording if recording was enabled
+    if ($inputRecorder !== null && $inputRecorder->isRecording() && $options['record'] !== null) {
+        $inputRecorder->stopRecording();
+        $inputRecorder->saveRecording($options['record']);
+        echo "Saved TAS recording to {$options['record']}\n";
+    }
+
     exit(0);
 
 } catch (\Throwable $e) {

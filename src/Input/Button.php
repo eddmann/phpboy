@@ -61,4 +61,22 @@ enum Button
             self::A => 0,
         };
     }
+
+    /**
+     * Convert a button name string to a Button enum case.
+     */
+    public static function fromName(string $name): self
+    {
+        return match ($name) {
+            'A' => self::A,
+            'B' => self::B,
+            'Start' => self::Start,
+            'Select' => self::Select,
+            'Up' => self::Up,
+            'Down' => self::Down,
+            'Left' => self::Left,
+            'Right' => self::Right,
+            default => throw new \ValueError("Invalid button name: $name"),
+        };
+    }
 }
