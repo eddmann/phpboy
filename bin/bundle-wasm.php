@@ -14,6 +14,7 @@ $iterator = new RecursiveIteratorIterator(
 
 $phpFiles = [];
 foreach ($iterator as $file) {
+    assert($file instanceof SplFileInfo);
     if ($file->isFile() && $file->getExtension() === 'php') {
         $realPath = $file->getRealPath();
         if ($realPath !== false) {
