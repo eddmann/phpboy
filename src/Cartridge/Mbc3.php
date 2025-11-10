@@ -291,9 +291,11 @@ final class Mbc3 implements MbcInterface
         // Bit 7: Day counter carry (1 = overflow occurred)
         // This bit is set when day counter overflows from 511 to 0
         // Writing 1 to this bit clears it
-        if (($value & 0x80) === 0) {
-            $this->rtcDayHigh = $value & 0xC1;
+        if (($value & 0x80) !== 0) {
+            // Writing 1 clears the carry bit
+            $this->rtcDayHigh = $value & 0x41;
         } else {
+            // Writing 0 preserves all bits
             $this->rtcDayHigh = $value & 0xC1;
         }
     }

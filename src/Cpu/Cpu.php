@@ -37,6 +37,7 @@ final class Cpu
     // CPU state
     private bool $halted = false;
     private bool $stopped = false;
+    private bool $haltBug = false; // HALT bug: PC fails to increment on next fetch
     private bool $ime = false; // Interrupt Master Enable
     private int $imeDelay = 0; // EI instruction has 1-instruction delay
 
@@ -104,8 +105,10 @@ final class Cpu
             // HALT wakes on any pending interrupt, even if IME=0
             if ($this->interruptController->hasAnyPendingInterrupt()) {
                 $this->halted = false;
-                // HALT bug: if IME=0 and interrupt pending, PC doesn't increment
-                // For now, we'll implement the simple behavior
+                // HALT bug: if IME=0 and interrupt pending, PC fails to increment on next fetch
+                if (!$this->ime) {
+                    $this->haltBug = true;
+                }
             } else {
                 // Still halted, consume 4 cycles
                 $this->advanceCycles(4);
@@ -171,7 +174,14 @@ final class Cpu
     public function fetch(): int
     {
         $opcode = $this->cycleRead($this->pc->get());
-        $this->pc->increment();
+
+        // HALT bug: if set, PC doesn't increment (byte is read twice)
+        if ($this->haltBug) {
+            $this->haltBug = false; // Clear flag after first fetch
+        } else {
+            $this->pc->increment();
+        }
+
         return $opcode;
     }
 

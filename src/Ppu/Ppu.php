@@ -93,6 +93,10 @@ final class Ppu implements DeviceInterface
     /** @var array<int, Color> */
     private array $scanlineBuffer = [];
 
+    // Background color buffer for sprite priority (stores raw color 0-3)
+    /** @var array<int, int> */
+    private array $bgColorBuffer = [];
+
     /** @var ColorPalette Color palette system (CGB) */
     private readonly ColorPalette $colorPalette;
 
@@ -234,8 +238,9 @@ final class Ppu implements DeviceInterface
 
     private function renderScanline(): void
     {
-        // Initialize scanline buffer
+        // Initialize scanline buffer and BG color buffer
         $this->scanlineBuffer = array_fill(0, ArrayFramebuffer::WIDTH, Color::fromDmgShade(0));
+        $this->bgColorBuffer = array_fill(0, ArrayFramebuffer::WIDTH, 0);
 
         // Render layers
         if (($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0) {
@@ -294,6 +299,9 @@ final class Ppu implements DeviceInterface
             // Get pixel color
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
 
+            // Store raw color for sprite priority checking
+            $this->bgColorBuffer[$x] = $color;
+
             // Apply palette
             if ($this->cgbMode) {
                 $this->scanlineBuffer[$x] = $this->colorPalette->getBgColor($paletteNum, $color);
@@ -348,6 +356,9 @@ final class Ppu implements DeviceInterface
             $tileDataAddr = $this->getTileDataAddress($tileIndex, $tileDataMode);
 
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
+
+            // Store raw color for sprite priority checking
+            $this->bgColorBuffer[$x] = $color;
 
             // Apply palette
             if ($this->cgbMode) {
@@ -455,9 +466,9 @@ final class Ppu implements DeviceInterface
             }
 
             // Check priority (behind BG)
-            if ($behindBg) {
-                // If BG pixel is not color 0, sprite is hidden
-                // For now, simplified: always draw sprite (TODO: track BG pixel colors)
+            if ($behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
+                // If BG pixel is not color 0, sprite is hidden behind BG
+                continue;
             }
 
             if ($this->cgbMode) {

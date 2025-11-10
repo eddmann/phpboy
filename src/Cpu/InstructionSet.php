@@ -741,22 +741,21 @@ final class InstructionSet
 
                     if (!$flags->getN()) {
                         // After addition (ADD, ADC, INC)
-                        // Upper nibble first
+                        // Calculate correction value first to avoid order-of-operations issues
+                        $correction = 0;
                         if ($flags->getC() || $a > 0x99) {
-                            $a = ($a + 0x60) & 0xFF;
+                            $correction |= 0x60;
                             $flags->setC(true);
                         }
-                        // Lower nibble second
                         if ($flags->getH() || ($a & 0x0F) > 0x09) {
-                            $a = ($a + 0x06) & 0xFF;
+                            $correction |= 0x06;
                         }
+                        $a = ($a + $correction) & 0xFF;
                     } else {
                         // After subtraction (SUB, SBC, DEC)
-                        // Carry first
                         if ($flags->getC()) {
                             $a = ($a - 0x60) & 0xFF;
                         }
-                        // Half-carry second
                         if ($flags->getH()) {
                             $a = ($a - 0x06) & 0xFF;
                         }
