@@ -18,3 +18,10 @@ parameters:
         - '#Parameter .* expects array, mixed given#'
         - '#does not accept array<.*mixed.*>#'
         - '#expects array<string, mixed>, array<mixed, mixed> given#'
+
+        # SDL extension types (optional runtime dependency)
+        - '#(Constant|Function|Class) SDL_.*not found#'
+        - '#Parameter \$event .* has invalid type (\\)?SDL_Event#'
+        - '#Access to property .* on an unknown class (\\)?SDL_Event#'
+        - '#Instantiated class (\\)?SDL_Event not found#'
+        - '#Property .*::\$(texture|renderer|window) .* in isset\(\) is not nullable#'
