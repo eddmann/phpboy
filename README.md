@@ -1,11 +1,14 @@
 # PHPBoy - Game Boy Color Emulator
 
-A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 that runs in the CLI and, via WebAssembly, in the browser.
+A readable, well-architected Game Boy Color (GBC) emulator written in PHP 8.5 with multiple frontend options: native SDL2 desktop, CLI terminal, and browser via WebAssembly.
 
 ## Features
 
 - **Modern PHP 8.5 RC**: Leverages the latest PHP 8.5 release candidate features including strict types, readonly properties, enums, typed class constants, and property hooks
-- **Browser Support**: Runs in the browser via WebAssembly using php-wasm - no backend required!
+- **Multiple Frontends**:
+  - **SDL2 Native Desktop**: Hardware-accelerated rendering with true native performance ⭐ **NEW!**
+  - **Browser (WebAssembly)**: Runs in the browser via php-wasm - no backend required!
+  - **CLI Terminal**: ANSI color rendering in your terminal
 - **Fully Dockerized Development**: All PHP/Composer/testing tools run exclusively in Docker containers for consistency
 - **Comprehensive Testing**: PHPUnit 10 for unit and integration tests
 - **Static Analysis**: PHPStan at maximum level (9) for type safety
@@ -77,6 +80,61 @@ For debugging or manual operations:
 make shell
 ```
 
+### Running with SDL2 Native Frontend
+
+PHPBoy supports true native desktop rendering using SDL2 for hardware-accelerated, low-latency gameplay.
+
+#### Prerequisites
+
+1. Install SDL2 development libraries:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install libsdl2-dev
+
+   # macOS
+   brew install sdl2
+   ```
+
+2. Install SDL2 PHP extension:
+   ```bash
+   sudo pecl install sdl-beta
+   echo "extension=sdl.so" | sudo tee -a $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||")
+   ```
+
+3. Verify installation:
+   ```bash
+   make check-sdl
+   ```
+
+#### Running a ROM
+
+```bash
+# Run with SDL2 frontend (on host machine)
+make run-sdl-host ROM=path/to/rom.gb
+
+# Or directly with PHP
+php bin/phpboy.php path/to/rom.gb --frontend=sdl
+```
+
+**Features**:
+- ✅ Hardware-accelerated rendering (GPU-based)
+- ✅ VSync support for smooth 60fps
+- ✅ Native desktop window
+- ✅ Low-latency keyboard input
+- ✅ Pixel-perfect integer scaling
+- ✅ Cross-platform (Linux, macOS, Windows)
+
+**Default Controls**:
+- Arrow Keys: D-pad
+- Z or A: A button
+- X or S: B button
+- Enter: Start
+- Right Shift: Select
+
+**Documentation**:
+- [SDL2 Setup Guide](docs/sdl2-setup.md) - Installation instructions
+- [SDL2 Usage Guide](docs/sdl2-usage.md) - Usage and customization
+
 ### Running in the Browser
 
 PHPBoy can run entirely in the browser via WebAssembly using [php-wasm](https://github.com/seanmorris/php-wasm).
@@ -121,6 +179,8 @@ phpboy/
 ├── bin/                    # CLI entry point
 ├── docs/                   # Documentation
 │   ├── research.md        # Game Boy hardware research
+│   ├── sdl2-setup.md      # SDL2 native frontend setup
+│   ├── sdl2-usage.md      # SDL2 usage guide
 │   ├── wasm-build.md      # WebAssembly build guide
 │   ├── browser-usage.md   # Browser usage guide
 │   └── wasm-options.md    # WASM implementation options
@@ -129,9 +189,10 @@ phpboy/
 │   ├── Bus/              # Memory bus
 │   ├── Cartridge/        # ROM/MBC handling
 │   ├── Cpu/              # CPU emulation
-│   ├── Frontend/         # CLI and WASM frontends
-│   │   ├── Cli/         # CLI implementation
-│   │   └── Wasm/        # WASM adapters
+│   ├── Frontend/         # Multiple frontend implementations
+│   │   ├── Cli/         # CLI terminal frontend
+│   │   ├── Sdl/         # SDL2 native desktop frontend
+│   │   └── Wasm/        # WebAssembly browser frontend
 │   ├── Ppu/              # Pixel Processing Unit
 │   └── Support/          # Utilities and helpers
 ├── tests/                # Test suite

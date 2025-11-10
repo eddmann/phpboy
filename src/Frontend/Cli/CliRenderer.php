@@ -383,15 +383,6 @@ final class CliRenderer implements FramebufferInterface
     }
 
     /**
-     * Hide the terminal cursor.
-     */
-    private function hideCursor(): void
-    {
-        echo "\e[?25l";
-        $this->cursorHidden = true;
-    }
-
-    /**
      * Show the terminal cursor.
      */
     public function showCursor(): void
