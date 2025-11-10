@@ -28,3 +28,8 @@ package-lock.json
 # Build artifacts
 build/
 dist/
+
+# Generated WASM bundles (run bin/bundle-wasm.php to regenerate)
+web/phpboy-wasm-full.php
+web/phpboy-wasm-bundled.php
+web/phpboy-wasm.php

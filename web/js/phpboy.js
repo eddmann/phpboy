@@ -57,9 +57,31 @@ class PHPBoy {
         const { PhpWeb } = await import('https://cdn.jsdelivr.net/npm/php-wasm/PhpWeb.mjs');
 
         console.log('Loading PHP runtime...');
-        this.php = new PhpWeb();
+        this.php = new PhpWeb({
+            persist: true,
+            ini: {
+                'opcache.enable': '1',
+                'opcache.jit': '1255',
+                'opcache.jit_buffer_size': '100M'
+            }
+        });
+
+        // Set up error/output listeners
+        this.php.addEventListener('output', (event) => {
+            console.log('[PHP stdout]:', event.detail);
+        });
+        this.php.addEventListener('error', (event) => {
+            console.error('[PHP stderr]:', event.detail);
+        });
 
         // Wait for PHP to be ready
+        await new Promise((resolve) => {
+            this.php.addEventListener('ready', () => {
+                console.log('PHP runtime ready');
+                resolve();
+            });
+        });
+
         await this.php.binary;
         console.log('PHP runtime loaded');
 
@@ -93,18 +115,64 @@ class PHPBoy {
             const arrayBuffer = await file.arrayBuffer();
             const romData = new Uint8Array(arrayBuffer);
 
-            // Write ROM to PHP filesystem
-            await this.php.writeFile('/rom.gb', romData);
+            // Write ROM to PHP filesystem using Emscripten FS API
+            const phpInstance = await this.php.binary;
+            phpInstance.FS.writeFile('/rom.gb', romData);
             console.log(`ROM written to filesystem: ${romData.length} bytes`);
 
-            // Load and execute the PHP emulator script
-            // This script will be loaded from phpboy-wasm.php
-            const result = await this.php.run(`<?php
-                require_once '/php/vendor/autoload.php';
-                require_once '/php/web/phpboy-wasm.php';
+            // First, let's test if PHP is working at all
+            console.log('Testing PHP execution...');
+
+            // Capture output via event listener
+            let testOutput = '';
+            const outputHandler = (e) => { testOutput += e.detail; };
+            this.php.addEventListener('output', outputHandler);
+
+            await this.php.run(`<?php echo "PHP is working!\\n"; `);
+            console.log('PHP test result:', testOutput);
+
+            // Try to check what files exist
+            let filesOutput = '';
+            const filesHandler = (e) => { filesOutput += e.detail; };
+            this.php.removeEventListener('output', outputHandler);
+            this.php.addEventListener('output', filesHandler);
+
+            await this.php.run(`<?php
+                echo "Checking filesystem...\\n";
+                echo "CWD: " . getcwd() . "\\n";
+                echo "ROM exists: " . (file_exists('/rom.gb') ? 'YES' : 'NO') . "\\n";
+                if (file_exists('/rom.gb')) {
+                    echo "ROM size: " . filesize('/rom.gb') . " bytes\\n";
+                }
+            `);
+            console.log('Filesystem check:', filesOutput);
+            this.php.removeEventListener('output', filesHandler);
+
+            // Now we need to fetch and mount the PHP files into the WASM filesystem
+            console.log('Mounting PHP files into WASM filesystem...');
+
+            // Fetch the full bundled emulator (all 69 source files)
+            const phpboyResponse = await fetch('/phpboy-wasm-full.php');
+            const phpboyCode = await phpboyResponse.text();
+            console.log(`Loaded ${phpboyCode.length} bytes of PHP code`);
+
+            // Write file to WASM FS
+            phpInstance.FS.writeFile('/phpboy-wasm.php', phpboyCode);
+
+            console.log('PHP files mounted successfully');
+
+            // Now load the actual emulator
+            console.log('Loading emulator...');
+            let initOutput = '';
+            const initHandler = (e) => { initOutput += e.detail; };
+            this.php.addEventListener('output', initHandler);
+
+            await this.php.run(`<?php
+                require_once '/phpboy-wasm.php';
             `);
 
-            console.log('Emulator initialized:', result);
+            console.log('Emulator init result:', initOutput);
+            this.php.removeEventListener('output', initHandler);
 
             this.updateStatus(`Running ${file.name}`);
 
@@ -144,10 +212,22 @@ class PHPBoy {
         if (!this.isRunning || this.isPaused) return;
 
         try {
-            // Execute one frame in PHP
-            const result = await this.php.run(`<?php
-                // Step the emulator for one frame
-                $emulator->step();
+            // Run multiple frames per render to improve performance
+            const framesPerRender = 4; // Render every 4 frames
+
+            // Capture frame output
+            let frameOutput = '';
+            const frameHandler = (e) => { frameOutput += e.detail; };
+            this.php.addEventListener('output', frameHandler);
+
+            // Execute multiple frames in PHP to reduce overhead
+            await this.php.run(`<?php
+                global $emulator;
+
+                // Step the emulator multiple times
+                for ($i = 0; $i < ${framesPerRender}; $i++) {
+                    $emulator->step();
+                }
 
                 // Get framebuffer data
                 $framebuffer = $emulator->getFramebuffer();
@@ -164,7 +244,9 @@ class PHPBoy {
                 ]);
             `);
 
-            const data = JSON.parse(result.body);
+            this.php.removeEventListener('output', frameHandler);
+
+            const data = JSON.parse(frameOutput);
 
             // Render frame
             if (data.pixels && data.pixels.length > 0) {
@@ -412,13 +494,13 @@ class PHPBoy {
 
         try {
             // Serialize the emulator state
-            const result = await this.php.run(`<?php
+            const result = await this.php.exec(`<?php
                 $manager = new \\Gb\\Savestate\\SavestateManager($emulator);
                 $state = $manager->serialize();
                 echo json_encode($state);
             `);
 
-            const state = JSON.parse(result.body);
+            const state = JSON.parse(result);
 
             // Save to localStorage
             localStorage.setItem('phpboy_savestate', JSON.stringify(state));
