@@ -14,8 +14,11 @@ $iterator = new RecursiveIteratorIterator(
 
 $phpFiles = [];
 foreach ($iterator as $file) {
-    if ($file->getExtension() === 'php') {
-        $phpFiles[] = $file->getRealPath();
+    if ($file->isFile() && $file->getExtension() === 'php') {
+        $realPath = $file->getRealPath();
+        if ($realPath !== false) {
+            $phpFiles[] = $realPath;
+        }
     }
 }
 
@@ -39,16 +42,32 @@ foreach ($phpFiles as $file) {
     echo "Adding: $relativePath\n";
 
     $content = file_get_contents($file);
+    if ($content === false) {
+        echo "Warning: Could not read file $file, skipping\n";
+        continue;
+    }
 
     // Remove <?php opening tag (only at the very beginning)
     $content = preg_replace('/^\s*<\?php\s*\n?/', '', $content, 1);
+    if ($content === null) {
+        echo "Warning: preg_replace failed for <?php tag in $file, skipping\n";
+        continue;
+    }
 
     // Remove declare(strict_types=1); (only at the beginning)
     $content = preg_replace('/^\s*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;\s*\n?/', '', $content, 1);
+    if ($content === null) {
+        echo "Warning: preg_replace failed for declare statement in $file, skipping\n";
+        continue;
+    }
 
     // Remove typed class constants (PHP 8.3 feature, not supported in PHP 8.2)
     // Convert: private const int FOO = 1; -> private const FOO = 1;
     $content = preg_replace('/\bconst\s+(int|string|float|bool|array)\s+/', 'const ', $content);
+    if ($content === null) {
+        echo "Warning: preg_replace failed for typed constants in $file, skipping\n";
+        continue;
+    }
 
     // Convert namespace declaration to bracketed syntax if it exists
     // From: namespace Foo\Bar;
@@ -56,6 +75,10 @@ foreach ($phpFiles as $file) {
     if (preg_match('/^\s*namespace\s+([^;{]+);/m', $content, $matches)) {
         $namespace = trim($matches[1]);
         $content = preg_replace('/^\s*namespace\s+[^;]+;\s*\n?/m', "namespace $namespace {\n", $content, 1);
+        if ($content === null) {
+            echo "Warning: preg_replace failed for namespace in $file, skipping\n";
+            continue;
+        }
 
         // Add closing brace at the end
         $content = trim($content) . "\n} // end namespace $namespace\n";
@@ -115,4 +138,7 @@ PHP;
 file_put_contents($outputFile, $bundle);
 
 echo "\nBundle created: $outputFile\n";
-echo "Size: " . number_format(filesize($outputFile)) . " bytes\n";
+$fileSize = filesize($outputFile);
+if ($fileSize !== false) {
+    echo "Size: " . number_format($fileSize) . " bytes\n";
+}
