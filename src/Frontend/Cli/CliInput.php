@@ -36,14 +36,22 @@ final class CliInput implements InputInterface
         "\033[B" => Button::Down,
         "\033[C" => Button::Right,
         "\033[D" => Button::Left,
-        // Alternative WASD controls
+        // Alternative WASD controls (lowercase)
         'w' => Button::Up,
         's' => Button::Down,
         'a' => Button::Left,
         'd' => Button::Right,
-        // Action buttons
+        // Alternative WASD controls (uppercase)
+        'W' => Button::Up,
+        'S' => Button::Down,
+        'A' => Button::Left,
+        'D' => Button::Right,
+        // Action buttons (lowercase)
         'z' => Button::A,
         'x' => Button::B,
+        // Action buttons (uppercase)
+        'Z' => Button::A,
+        'X' => Button::B,
         // System buttons
         "\n" => Button::Start,    // Enter key
         "\r" => Button::Start,    // Carriage return

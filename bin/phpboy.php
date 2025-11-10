@@ -464,6 +464,12 @@ try {
         // Run normal emulation
         echo "Starting emulation...\n";
         echo "Press Ctrl+C to stop\n\n";
+        echo "Controls:\n";
+        echo "  Arrow Keys / WASD: D-pad\n";
+        echo "  Z: A button\n";
+        echo "  X: B button\n";
+        echo "  Enter: Start\n";
+        echo "  Space: Select\n\n";
 
         // Set up signal handler for graceful shutdown
         if (function_exists('pcntl_signal')) {
