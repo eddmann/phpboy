@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint shell run clean rebuild build-wasm serve-wasm
+.PHONY: help setup install test lint shell run clean rebuild build-wasm serve-wasm check-sdl install-sdl run-sdl run-sdl-host
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -121,3 +121,56 @@ serve-wasm: ## Serve WASM build locally (requires Python 3)
 	fi
 	@echo "Starting HTTP server on http://localhost:8080"
 	@cd dist && python3 -m http.server 8080
+
+# SDL2 Native Frontend Targets
+
+check-sdl: ## Check if SDL2 extension is installed
+	@echo "Checking SDL2 extension..."
+	@php -m | grep -q sdl && echo "✓ SDL2 extension is installed" || (echo "✗ SDL2 extension not found. See docs/sdl2-setup.md for installation." && exit 1)
+	@echo "SDL2 version: $$(php -r 'echo SDL_GetVersion();')"
+
+install-sdl: ## Install SDL2 PHP extension (requires sudo)
+	@echo "Installing SDL2 PHP extension..."
+	@echo "This requires SDL2 development libraries to be installed first."
+	@echo ""
+	@echo "Ubuntu/Debian:"
+	@echo "  sudo apt-get install libsdl2-dev"
+	@echo ""
+	@echo "macOS:"
+	@echo "  brew install sdl2"
+	@echo ""
+	@echo "After installing SDL2 libraries, run:"
+	@echo "  sudo pecl install sdl-beta"
+	@echo ""
+	@echo "Then add 'extension=sdl.so' to your php.ini"
+	@echo ""
+	@echo "See docs/sdl2-setup.md for detailed instructions."
+
+run-sdl: ## Run emulator with SDL2 native frontend in Docker (usage: make run-sdl ROM=path/to/rom.gb)
+	@if [ -z "$(ROM)" ]; then \
+		echo "Error: ROM parameter is required. Usage: make run-sdl ROM=path/to/rom.gb"; \
+		exit 1; \
+	fi
+	@echo "Note: SDL2 GUI applications typically work better on host. Try: make run-sdl-host ROM=$(ROM)"
+	docker compose run --rm -e DISPLAY=$$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix phpboy php bin/phpboy.php $(ROM) --frontend=sdl
+
+run-sdl-host: ## Run emulator with SDL2 on host (not in Docker) (usage: make run-sdl-host ROM=path/to/rom.gb)
+	@if [ -z "$(ROM)" ]; then \
+		echo "Error: ROM parameter is required. Usage: make run-sdl-host ROM=path/to/rom.gb"; \
+		exit 1; \
+	fi
+	@echo "Running SDL2 frontend on host..."
+	@php -m | grep -q sdl || (echo "Error: SDL2 extension not installed. Run 'make install-sdl' or see docs/sdl2-setup.md" && exit 1)
+	php bin/phpboy.php $(ROM) --frontend=sdl
+
+test-sdl: ## Test SDL2 installation with simple window
+	@echo "Testing SDL2 installation..."
+	@php -m | grep -q sdl || (echo "Error: SDL2 extension not installed." && exit 1)
+	@php -r '\
+		if (!extension_loaded("sdl")) { die("SDL not loaded\n"); } \
+		SDL_Init(SDL_INIT_VIDEO); \
+		$$w = SDL_CreateWindow("SDL Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN); \
+		if ($$w) { echo "✓ SDL2 working! Window created.\n"; sleep(2); SDL_DestroyWindow($$w); } \
+		else { echo "✗ Failed: " . SDL_GetError() . "\n"; } \
+		SDL_Quit(); \
+	'
