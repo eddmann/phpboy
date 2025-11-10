@@ -26,6 +26,9 @@ use Gb\Input\InputInterface;
  */
 final class CliInput implements InputInterface
 {
+    /** Control character for Ctrl+C (ASCII 3) */
+    private const CTRL_C = "\x03";
+
     /** @var array<string, Button> Keyboard key to button mapping */
     private const KEY_MAP = [
         // Arrow keys (ANSI escape sequences)
@@ -154,6 +157,14 @@ final class CliInput implements InputInterface
     {
         // Clear previous state (simple approach: buttons are only "pressed" during the frame they're detected)
         $this->pressedButtons = [];
+
+        // Check for Ctrl+C (in raw mode, this comes through as ASCII 3)
+        if (str_contains($input, self::CTRL_C)) {
+            // Restore terminal and exit gracefully
+            $this->restoreTerminal();
+            echo "\n\nEmulation stopped.\n";
+            exit(0);
+        }
 
         // Check for arrow key escape sequences (3 characters)
         if (strlen($input) >= 3 && $input[0] === "\033" && $input[1] === '[') {

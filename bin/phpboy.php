@@ -467,6 +467,9 @@ try {
 
         // Set up signal handler for graceful shutdown
         if (function_exists('pcntl_signal')) {
+            // Enable async signals so handlers are invoked during execution
+            pcntl_async_signals(true);
+
             pcntl_signal(SIGINT, function () use ($emulator) {
                 $emulator->stop();
             });
