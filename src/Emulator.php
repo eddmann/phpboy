@@ -131,6 +131,11 @@ final class Emulator
             $this->interruptController
         );
 
+        // Enable CGB mode if cartridge supports it
+        if ($this->cartridge->getHeader()->isCgbSupported()) {
+            $this->ppu->enableCgbMode(true);
+        }
+
         // Create APU
         $this->apu = new Apu($this->audioSink);
 
