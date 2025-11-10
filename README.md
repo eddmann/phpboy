@@ -224,4 +224,4 @@ See `docs/test-results.md` for detailed test results.
 
 ## License
 
-MIT License
+[MIT License](LICENSE)
