@@ -16,17 +16,17 @@ use Gb\Interrupts\InterruptType;
  *
  * Register layout:
  * Bit 7-6: Not used (always 1)
- * Bit 5: Select direction keys (0=selected)
- * Bit 4: Select button keys (0=selected)
+ * Bit 5: Select action/button keys (0=selected)
+ * Bit 4: Select direction keys (0=selected)
  * Bit 3-0: Input lines (0=pressed, 1=not pressed)
  *
- * When bit 5 is clear (direction mode):
+ * When bit 4 is clear (direction mode):
  *   Bit 3: Down
  *   Bit 2: Up
  *   Bit 1: Left
  *   Bit 0: Right
  *
- * When bit 4 is clear (button mode):
+ * When bit 5 is clear (button mode):
  *   Bit 3: Start
  *   Bit 2: Select
  *   Bit 1: B
@@ -115,8 +115,8 @@ final class Joypad implements DeviceInterface
         // Start with bits 7-6 set, bits 5-4 from joyp, input bits set (unpressed)
         $value = 0xC0 | ($this->joyp & 0x30) | 0x0F; // Bits 7-6=1, bits 5-4 echoed, bits 3-0=1
 
-        // Check direction keys (when bit 5 is clear)
-        $selectDirections = ($this->joyp & 0x20) === 0;
+        // Check direction keys (when bit 4 is clear)
+        $selectDirections = ($this->joyp & 0x10) === 0;
         if ($selectDirections) {
             // Bits are 0 when pressed, 1 when not pressed
             // Clear bits for pressed buttons
@@ -134,8 +134,8 @@ final class Joypad implements DeviceInterface
             }
         }
 
-        // Check action/system buttons (when bit 4 is clear)
-        $selectButtons = ($this->joyp & 0x10) === 0;
+        // Check action/system buttons (when bit 5 is clear)
+        $selectButtons = ($this->joyp & 0x20) === 0;
         if ($selectButtons) {
             // Bits are 0 when pressed, 1 when not pressed
             // Clear bits for pressed buttons

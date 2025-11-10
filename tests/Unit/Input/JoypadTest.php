@@ -30,64 +30,64 @@ final class JoypadTest extends TestCase
     }
 
     #[Test]
-    public function it_reads_direction_keys_when_bit_5_is_clear(): void
+    public function it_reads_direction_keys_when_bit_4_is_clear(): void
     {
-        // Select direction keys (bit 5 = 0)
-        $this->joypad->writeByte(0xFF00, 0xDF);
+        // Select direction keys (bit 4 = 0)
+        $this->joypad->writeByte(0xFF00, 0xEF);
 
         // Press Down button (bit 3 should become 0)
         $this->joypad->pressButton(Button::Down);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xD7, $value); // Bits 7-6=1, bits 5-4=01, bit 3=0, bits 2-0=1
+        $this->assertSame(0xE7, $value); // Bits 7-6=1, bits 5-4=10, bit 3=0, bits 2-0=1
 
         // Press Up button (bit 2 should become 0)
         $this->joypad->pressButton(Button::Up);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xD3, $value); // Bits 3 and 2 now 0
+        $this->assertSame(0xE3, $value); // Bits 3 and 2 now 0
 
         // Press Left button (bit 1 should become 0)
         $this->joypad->pressButton(Button::Left);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xD1, $value); // Bits 3, 2, 1 now 0
+        $this->assertSame(0xE1, $value); // Bits 3, 2, 1 now 0
 
         // Press Right button (bit 0 should become 0)
         $this->joypad->pressButton(Button::Right);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xD0, $value); // All direction bits now 0
+        $this->assertSame(0xE0, $value); // All direction bits now 0
     }
 
     #[Test]
-    public function it_reads_action_keys_when_bit_4_is_clear(): void
+    public function it_reads_action_keys_when_bit_5_is_clear(): void
     {
-        // Select action keys (bit 4 = 0)
-        $this->joypad->writeByte(0xFF00, 0xEF);
+        // Select action keys (bit 5 = 0)
+        $this->joypad->writeByte(0xFF00, 0xDF);
 
         // Press Start button (bit 3 should become 0)
         $this->joypad->pressButton(Button::Start);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xE7, $value); // Bits 7-6=1, bits 5-4=10, bit 3=0, bits 2-0=1
+        $this->assertSame(0xD7, $value); // Bits 7-6=1, bits 5-4=01, bit 3=0, bits 2-0=1
 
         // Press Select button (bit 2 should become 0)
         $this->joypad->pressButton(Button::Select);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xE3, $value); // Bits 3 and 2 now 0
+        $this->assertSame(0xD3, $value); // Bits 3 and 2 now 0
 
         // Press B button (bit 1 should become 0)
         $this->joypad->pressButton(Button::B);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xE1, $value); // Bits 3, 2, 1 now 0
+        $this->assertSame(0xD1, $value); // Bits 3, 2, 1 now 0
 
         // Press A button (bit 0 should become 0)
         $this->joypad->pressButton(Button::A);
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xE0, $value); // All action bits now 0
+        $this->assertSame(0xD0, $value); // All action bits now 0
     }
 
     #[Test]
-    public function it_ignores_direction_keys_when_bit_5_is_set(): void
+    public function it_ignores_direction_keys_when_bit_4_is_set(): void
     {
-        // Select action keys only (bit 5 = 1, bit 4 = 0)
-        $this->joypad->writeByte(0xFF00, 0xEF);
+        // Select action keys only (bit 5 = 0, bit 4 = 1)
+        $this->joypad->writeByte(0xFF00, 0xDF);
 
         // Press direction buttons - they should not show up
         $this->joypad->pressButton(Button::Down);
@@ -97,14 +97,14 @@ final class JoypadTest extends TestCase
 
         // Reading should show no buttons pressed (bits 3-0 all 1)
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xEF, $value); // Bits 5-4=10, bits 3-0 all set (direction buttons ignored)
+        $this->assertSame(0xDF, $value); // Bits 5-4=01, bits 3-0 all set (direction buttons ignored)
     }
 
     #[Test]
-    public function it_ignores_action_keys_when_bit_4_is_set(): void
+    public function it_ignores_action_keys_when_bit_5_is_set(): void
     {
-        // Select direction keys only (bit 5 = 0, bit 4 = 1)
-        $this->joypad->writeByte(0xFF00, 0xDF);
+        // Select direction keys only (bit 5 = 1, bit 4 = 0)
+        $this->joypad->writeByte(0xFF00, 0xEF);
 
         // Press action buttons - they should not show up
         $this->joypad->pressButton(Button::Start);
@@ -114,7 +114,7 @@ final class JoypadTest extends TestCase
 
         // Reading should show no buttons pressed (bits 3-0 all 1)
         $value = $this->joypad->readByte(0xFF00);
-        $this->assertSame(0xDF, $value); // Only bits 7-6 and 4 and 3-0 set
+        $this->assertSame(0xEF, $value); // Bits 5-4=10, bits 3-0 all set (action buttons ignored)
     }
 
     #[Test]
@@ -187,14 +187,14 @@ final class JoypadTest extends TestCase
     public function it_shows_released_buttons_as_not_pressed(): void
     {
         // Select action keys
-        $this->joypad->writeByte(0xFF00, 0xEF);
+        $this->joypad->writeByte(0xFF00, 0xDF);
 
         // Press and release A button
         $this->joypad->pressButton(Button::A);
-        $this->assertSame(0xEE, $this->joypad->readByte(0xFF00)); // Bits 5-4=10, bit 0 = 0
+        $this->assertSame(0xDE, $this->joypad->readByte(0xFF00)); // Bits 5-4=01, bit 0 = 0
 
         $this->joypad->releaseButton(Button::A);
-        $this->assertSame(0xEF, $this->joypad->readByte(0xFF00)); // Bits 5-4=10, bit 0 = 1
+        $this->assertSame(0xDF, $this->joypad->readByte(0xFF00)); // Bits 5-4=01, bit 0 = 1
     }
 
     #[Test]
@@ -218,28 +218,28 @@ final class JoypadTest extends TestCase
     public function it_updates_from_input_array(): void
     {
         // Select direction keys
-        $this->joypad->writeByte(0xFF00, 0xDF);
+        $this->joypad->writeByte(0xFF00, 0xEF);
 
         // Update with array of pressed buttons
         $this->joypad->updateFromInput([Button::Up, Button::Right]);
 
         $value = $this->joypad->readByte(0xFF00);
         // Bit 2 (Up) and bit 0 (Right) should be 0
-        $this->assertSame(0xDA, $value); // Bits 5-4=01, bit 3=1, bit 2=0, bit 1=1, bit 0=0
+        $this->assertSame(0xEA, $value); // Bits 5-4=10, bit 3=1, bit 2=0, bit 1=1, bit 0=0
 
         // Update again with different buttons
         $this->joypad->updateFromInput([Button::Down, Button::Left]);
 
         $value = $this->joypad->readByte(0xFF00);
         // Bit 3 (Down) and bit 1 (Left) should be 0
-        $this->assertSame(0xD5, $value); // Bits 5-4=01, bit 3=0, bit 1=0
+        $this->assertSame(0xE5, $value); // Bits 5-4=10, bit 3=0, bit 1=0
 
         // Update with no buttons
         $this->joypad->updateFromInput([]);
 
         $value = $this->joypad->readByte(0xFF00);
         // All bits should be 1 (no buttons pressed)
-        $this->assertSame(0xDF, $value); // Bits 5-4=01, bits 3-0=1
+        $this->assertSame(0xEF, $value); // Bits 5-4=10, bits 3-0=1
     }
 
     #[Test]
