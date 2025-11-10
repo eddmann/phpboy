@@ -42,8 +42,15 @@ final class ColorPalette
     public function __construct()
     {
         // Initialize palettes with white (0x7FFF = all 1s in 15-bit RGB)
-        $this->bgPalette = array_fill(0, 64, 0xFF);
-        $this->objPalette = array_fill(0, 64, 0xFF);
+        // Each color is 2 bytes: low byte (0xFF), high byte (0x7F)
+        $this->bgPalette = [];
+        $this->objPalette = [];
+        for ($i = 0; $i < 64; $i += 2) {
+            $this->bgPalette[$i] = 0xFF;     // Low byte
+            $this->bgPalette[$i + 1] = 0x7F; // High byte
+            $this->objPalette[$i] = 0xFF;     // Low byte
+            $this->objPalette[$i + 1] = 0x7F; // High byte
+        }
     }
 
     /**
