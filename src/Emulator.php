@@ -467,4 +467,45 @@ final class Emulator
     {
         return $this->serial;
     }
+
+    /**
+     * Save the current emulator state to a file.
+     *
+     * @param string $path Path to save the savestate file
+     * @throws \RuntimeException If savestate cannot be created or saved
+     */
+    public function saveState(string $path): void
+    {
+        $manager = new \Gb\Savestate\SavestateManager($this);
+        $manager->save($path);
+    }
+
+    /**
+     * Load an emulator state from a file.
+     *
+     * @param string $path Path to the savestate file
+     * @throws \RuntimeException If savestate cannot be loaded or is invalid
+     */
+    public function loadState(string $path): void
+    {
+        $manager = new \Gb\Savestate\SavestateManager($this);
+        $manager->load($path);
+    }
+
+    /**
+     * Save a screenshot of the current framebuffer.
+     *
+     * @param string $path Path to save the screenshot (.ppm or .txt)
+     * @param string $format Format: 'ppm', 'ppm-binary', or 'text' (default: 'ppm-binary')
+     * @throws \RuntimeException If screenshot cannot be saved
+     */
+    public function screenshot(string $path, string $format = 'ppm-binary'): void
+    {
+        match($format) {
+            'ppm' => \Gb\Support\Screenshot::savePPM($this->framebuffer, $path),
+            'ppm-binary' => \Gb\Support\Screenshot::savePPMBinary($this->framebuffer, $path),
+            'text' => \Gb\Support\Screenshot::saveText($this->framebuffer, $path),
+            default => throw new \InvalidArgumentException("Invalid screenshot format: {$format}"),
+        };
+    }
 }

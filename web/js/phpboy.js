@@ -314,6 +314,31 @@ class PHPBoy {
         document.getElementById('volumeControl').addEventListener('change', (e) => {
             this.setVolume(parseFloat(e.target.value));
         });
+
+        // Save state button
+        document.getElementById('saveStateBtn').addEventListener('click', () => {
+            this.saveState();
+        });
+
+        // Load state button
+        document.getElementById('loadStateBtn').addEventListener('click', () => {
+            this.loadState();
+        });
+
+        // Screenshot button
+        document.getElementById('screenshotBtn').addEventListener('click', () => {
+            this.takeScreenshot();
+        });
+
+        // Fast forward button
+        let fastForwardActive = false;
+        document.getElementById('fastForwardBtn').addEventListener('click', () => {
+            fastForwardActive = !fastForwardActive;
+            this.setSpeed(fastForwardActive ? 4.0 : 1.0);
+            document.getElementById('fastForwardBtn').textContent =
+                fastForwardActive ? 'Normal Speed' : 'Fast Forward';
+            document.getElementById('fastForwardBtn').classList.toggle('active', fastForwardActive);
+        });
     }
 
     /**
@@ -373,6 +398,107 @@ class PHPBoy {
         if (this.audioContext) {
             // TODO: Implement volume control when audio is working
             console.log(`Volume set to ${volume}`);
+        }
+    }
+
+    /**
+     * Save emulator state to browser storage
+     */
+    async saveState() {
+        if (!this.isRunning) {
+            this.updateSavestateInfo('No ROM loaded');
+            return;
+        }
+
+        try {
+            // Serialize the emulator state
+            const result = await this.php.run(`<?php
+                $manager = new \\Gb\\Savestate\\SavestateManager($emulator);
+                $state = $manager->serialize();
+                echo json_encode($state);
+            `);
+
+            const state = JSON.parse(result.body);
+
+            // Save to localStorage
+            localStorage.setItem('phpboy_savestate', JSON.stringify(state));
+
+            this.updateSavestateInfo('State saved!');
+            setTimeout(() => this.updateSavestateInfo(''), 3000);
+
+            console.log('Savestate saved to localStorage');
+        } catch (error) {
+            console.error('Error saving state:', error);
+            this.updateSavestateInfo('Error saving state');
+        }
+    }
+
+    /**
+     * Load emulator state from browser storage
+     */
+    async loadState() {
+        if (!this.isRunning) {
+            this.updateSavestateInfo('No ROM loaded');
+            return;
+        }
+
+        try {
+            const savedState = localStorage.getItem('phpboy_savestate');
+
+            if (!savedState) {
+                this.updateSavestateInfo('No saved state found');
+                setTimeout(() => this.updateSavestateInfo(''), 3000);
+                return;
+            }
+
+            const state = JSON.parse(savedState);
+
+            // Deserialize the state into the emulator
+            await this.php.run(`<?php
+                $manager = new \\Gb\\Savestate\\SavestateManager($emulator);
+                $stateData = json_decode('${JSON.stringify(state).replace(/'/g, "\\'")}', true);
+                $manager->deserialize($stateData);
+            `);
+
+            this.updateSavestateInfo('State loaded!');
+            setTimeout(() => this.updateSavestateInfo(''), 3000);
+
+            console.log('Savestate loaded from localStorage');
+        } catch (error) {
+            console.error('Error loading state:', error);
+            this.updateSavestateInfo('Error loading state');
+        }
+    }
+
+    /**
+     * Take a screenshot and download it
+     */
+    takeScreenshot() {
+        if (!this.canvas) {
+            return;
+        }
+
+        // Convert canvas to blob and download
+        this.canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phpboy-screenshot-${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.updateSavestateInfo('Screenshot saved!');
+            setTimeout(() => this.updateSavestateInfo(''), 3000);
+        });
+    }
+
+    /**
+     * Update savestate info text
+     */
+    updateSavestateInfo(message) {
+        const infoElement = document.getElementById('savestateInfo');
+        if (infoElement) {
+            infoElement.textContent = message;
         }
     }
 

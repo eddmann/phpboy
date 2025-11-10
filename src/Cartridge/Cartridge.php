@@ -176,4 +176,75 @@ final class Cartridge implements DeviceInterface
             $this->mbc->setRtcState($state);
         }
     }
+
+    /**
+     * Get current ROM bank number (for savestates).
+     * Returns 0 for cartridges without MBC.
+     */
+    public function getCurrentRomBank(): int
+    {
+        return $this->mbc->getCurrentRomBank();
+    }
+
+    /**
+     * Get current RAM bank number (for savestates).
+     * Returns 0 for cartridges without RAM banking.
+     */
+    public function getCurrentRamBank(): int
+    {
+        return $this->mbc->getCurrentRamBank();
+    }
+
+    /**
+     * Check if RAM is currently enabled (for savestates).
+     */
+    public function isRamEnabled(): bool
+    {
+        return $this->mbc->isRamEnabled();
+    }
+
+    /**
+     * Set current ROM bank (for savestates).
+     */
+    public function setCurrentRomBank(int $bank): void
+    {
+        $this->mbc->setCurrentRomBank($bank);
+    }
+
+    /**
+     * Set current RAM bank (for savestates).
+     */
+    public function setCurrentRamBank(int $bank): void
+    {
+        $this->mbc->setCurrentRamBank($bank);
+    }
+
+    /**
+     * Set RAM enabled state (for savestates).
+     */
+    public function setRamEnabled(bool $enabled): void
+    {
+        $this->mbc->setRamEnabled($enabled);
+    }
+
+    /**
+     * Get RAM data as base64-encoded string (for savestates).
+     */
+    public function getRamData(): string
+    {
+        return base64_encode(pack('C*', ...$this->getRam()));
+    }
+
+    /**
+     * Load RAM data from base64-encoded string (for savestates).
+     */
+    public function loadRamData(string $data): void
+    {
+        $unpacked = unpack('C*', base64_decode($data));
+        if ($unpacked === false) {
+            throw new \RuntimeException('Failed to unpack RAM data');
+        }
+        $ram = array_values($unpacked);
+        $this->setRam($ram);
+    }
 }
