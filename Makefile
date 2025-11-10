@@ -1,4 +1,4 @@
-.PHONY: help setup install test lint shell run clean rebuild build-wasm serve-wasm check-sdl install-sdl run-sdl run-sdl-host
+.PHONY: help setup install test lint shell run run-no-jit clean rebuild build-wasm serve-wasm check-sdl install-sdl run-sdl run-sdl-host
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,7 +6,7 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-setup: ## Build Docker image with PHP 8.5 RC4
+setup: ## Build Docker image with PHP 8.4
 	docker compose build
 
 rebuild: ## Rebuild Docker image from scratch (no cache)
@@ -27,9 +27,19 @@ lint: ## Run PHPStan static analysis in Docker
 shell: ## Open bash shell in Docker container
 	docker compose run --rm phpboy bash
 
-run: ## Run emulator with ROM in Docker (usage: make run ROM=path/to/rom.gb)
+run: ## Run emulator with ROM in Docker with JIT enabled (usage: make run ROM=path/to/rom.gb)
 	@if [ -z "$(ROM)" ]; then \
 		echo "Error: ROM parameter is required. Usage: make run ROM=path/to/rom.gb"; \
+		exit 1; \
+	fi
+	docker compose run --rm -it \
+		-e PHP_INI_SCAN_DIR=/usr/local/etc/php/conf.d:/app/docker/php-jit \
+		phpboy php -d opcache.jit_buffer_size=100M -d opcache.jit=tracing \
+		bin/phpboy.php $(ROM)
+
+run-no-jit: ## Run emulator without JIT for baseline performance (usage: make run-no-jit ROM=path/to/rom.gb)
+	@if [ -z "$(ROM)" ]; then \
+		echo "Error: ROM parameter is required. Usage: make run-no-jit ROM=path/to/rom.gb"; \
 		exit 1; \
 	fi
 	docker compose run --rm phpboy php bin/phpboy.php $(ROM)
