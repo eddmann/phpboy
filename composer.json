@@ -1,6 +1,6 @@
 {
     "name": "phpboy/emulator",
-    "description": "A readable, well-architected Game Boy Color emulator written in PHP 8.5",
+    "description": "Game Boy Color emulator written in PHP 8.4 with full DMG backward compatibility",
     "type": "project",
     "license": "MIT",
     "require": {

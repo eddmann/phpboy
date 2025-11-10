@@ -2,18 +2,21 @@
   <img src="docs/heading.png" alt="PHPBoy - Game Boy Emulator" />
 </p>
 
-Game Boy (DMG) emulator written in PHP 8.4 with multiple frontend options: CLI terminal (primary), browser via WebAssembly (WIP), and native SDL2 desktop (WIP).
+Game Boy Color emulator written in PHP 8.4. Includes CLI terminal frontend, browser WebAssembly frontend (WIP), and native SDL2 desktop (WIP).
 
 ## Current Status
 
-PHPBoy is a highly accurate DMG (original Game Boy) emulator with:
+**Note: Color support is WIP (Work in Progress)**
+
+Game Boy Color emulator with backward compatibility for DMG (original Game Boy) games:
 
 - ✅ CLI Terminal Frontend: Fully working, 25-30 FPS baseline, 60+ FPS with PHP JIT enabled
-- ✅ DMG Emulation: Complete CPU, PPU, memory bus, input, and cartridge support (MBC1/MBC3/MBC5)
-- ✅ Test Accuracy: 100% pass rate on Blargg's test suite (11/11 CPU tests + timing test)
-- ✅ Commercial ROMs: Tetris, Pokemon Red, Zelda all run stably
+- ✅ GBC Emulation: Complete CPU, PPU with color support, memory bus, input, and cartridge support (MBC1/MBC3/MBC5)
+- ✅ Color Support: Full GBC color palette system with 15-bit RGB color, background/sprite palettes, and palette RAM
+- ✅ DMG Compatibility: Full backward compatibility mode for original Game Boy games
+- ✅ Test Accuracy: Passes Blargg's CPU instruction tests (11/11)
+- ✅ Commercial ROMs: Tetris (GBC), Pokemon Red, Zelda DX run with color support
 - ✅ Browser (WASM): Renderer works but very slow due to WASM overhead
-- ⏳ GBC Color Support: Planned for future implementation after DMG emulation is fully complete
 - 🔄 Audio: APU implemented, working on output integration (CLI/SDL2/WASM)
 - 🔄 Mooneye Test Suite: Working on full support (10/39 currently passing)
 - 🔄 Acid Tests: Working on dmg-acid2/cgb-acid2 support
@@ -30,17 +33,21 @@ PHPBoy is a highly accurate DMG (original Game Boy) emulator with:
 
 ## Features
 
-- Modern PHP 8.4: Leverages the latest PHP 8.4 features including strict types, readonly properties, enums, typed class constants, and property hooks
-- Excellent Performance: Achieves 60+ FPS with PHP JIT enabled on typical hardware
+- PHP 8.4: Uses strict types, readonly properties, enums, typed class constants, and property hooks
+- Performance: 60+ FPS with PHP JIT enabled
+- Game Boy Color Support:
+  - 15-bit RGB color system (32,768 colors)
+  - Background and sprite color palettes
+  - Color palette RAM with auto-increment
+  - VRAM bank switching
+  - DMG backward compatibility mode
 - Multiple Frontends:
-  - CLI Terminal ✅: ANSI color rendering in your terminal - primary working frontend
-  - Browser (WebAssembly) ✅: Runs in the browser via php-wasm - no backend required! (slow performance)
-  - SDL2 Native Desktop 🔄: Hardware-accelerated rendering (WIP)
-- High Accuracy: 100% pass rate on Blargg's CPU instruction and timing tests
-- Fully Dockerized Development: All PHP/Composer/testing tools run exclusively in Docker containers for consistency
-- Comprehensive Testing: PHPUnit 10 for unit and integration tests
-- Static Analysis: PHPStan at maximum level (9) for type safety
-- Modular Architecture: Clean separation of concerns with dedicated namespaces for CPU, PPU, APU, Bus, and Frontend
+  - CLI Terminal ✅: ANSI color rendering, primary frontend
+  - Browser (WebAssembly) ✅: Runs via php-wasm (slow performance)
+  - SDL2 Native Desktop 🔄: WIP
+- Test Coverage: Passes Blargg's CPU instruction tests (11/11)
+- Development: Docker-based workflow with PHPUnit 10 and PHPStan level 9
+- Architecture: Modular design with separate namespaces for CPU, PPU, APU, Bus, and Frontend
 
 ## Requirements
 
@@ -71,13 +78,14 @@ make setup
 make install
 ```
 
-### Running a Game Boy ROM
+### Running Game Boy / Game Boy Color ROMs
 
-The CLI terminal frontend is the primary way to run PHPBoy:
+The CLI terminal frontend is the primary way to run PHPBoy. It supports both DMG (original Game Boy) and GBC (Game Boy Color) ROMs:
 
 ```bash
 # Run with CLI frontend (JIT enabled by default for 60+ FPS)
-make run ROM=path/to/rom.gb
+make run ROM=path/to/rom.gb    # DMG games
+make run ROM=path/to/rom.gbc   # GBC games
 
 # Run without JIT for baseline performance testing (25-30 FPS)
 make run-no-jit ROM=path/to/rom.gb
@@ -105,7 +113,7 @@ All development tasks are managed through the Makefile and run inside Docker con
 - `make test` - Run PHPUnit tests in Docker
 - `make lint` - Run PHPStan static analysis in Docker
 - `make shell` - Open bash shell in Docker container
-- `make run ROM=path/to/rom.gb` - Run emulator with JIT enabled (60+ FPS)
+- `make run ROM=path/to/rom.gb` - Run emulator with JIT enabled (60+ FPS) - supports .gb and .gbc files
 - `make run-no-jit ROM=path/to/rom.gb` - Run emulator without JIT (25-30 FPS baseline)
 - `make build-wasm` - Build WebAssembly version for browser
 - `make serve-wasm` - Serve WASM build locally on port 8080
@@ -134,21 +142,22 @@ make shell
 
 ## Performance
 
-PHPBoy achieves excellent performance thanks to PHP 8.4's JIT compiler:
+Performance with PHP 8.4's JIT compiler:
 
 - Baseline (no JIT): 25-30 FPS
-- With JIT enabled: 60+ FPS (full Game Boy speed!)
-- Commercial ROMs: Tetris, Pokemon Red, Zelda all run stably at full speed
+- With JIT enabled: 60+ FPS
+- Commercial ROMs: Tetris (GBC), Pokemon Red, Zelda DX run at target speed
+- GBC Mode: Color rendering included
 
-The JIT compiler provides a 2-3x performance improvement, allowing PHPBoy to exceed the original Game Boy's 60 FPS target on modern hardware.
+The JIT compiler provides approximately 2-3x performance improvement.
 
 ## Additional Frontends
 
 ### Running in the Browser (WebAssembly)
 
-PHPBoy can run entirely in the browser via WebAssembly using [php-wasm](https://github.com/seanmorris/php-wasm).
+Browser version via WebAssembly using [php-wasm](https://github.com/seanmorris/php-wasm).
 
-Note: The WASM frontend works but has significant performance overhead. Expect slower-than-realtime performance. Audio is work in progress.
+Note: WASM frontend has significant performance overhead. Audio is work in progress.
 
 #### Build for Browser
 
@@ -170,14 +179,10 @@ make serve-wasm
 
 Features:
 
-- ✅ Full emulation in the browser
-- ✅ No backend server required
-- ✅ Keyboard controls
-- ✅ Speed control
-- ✅ Pause/Resume
-- ✅ Works offline after first load
+- ✅ Runs in browser, no backend required
+- ✅ Keyboard controls, speed control, pause/resume
 - 🔄 Audio output integration in progress
-- ⚠️ Performance: Very slow due to WASM overhead
+- ⚠️ Performance: Slow due to WASM overhead
 
 Browser Requirements:
 
@@ -192,7 +197,7 @@ Documentation:
 
 ### Running with SDL2 Native Frontend (Work in Progress)
 
-PHPBoy has experimental support for native desktop rendering using SDL2 for hardware-accelerated, low-latency gameplay.
+Experimental native desktop rendering using SDL2.
 
 Status: 🔄 Work in progress - code implemented but not fully tested/integrated.
 
@@ -203,7 +208,7 @@ Documentation:
 
 ## Testing & Accuracy
 
-PHPBoy has excellent accuracy verified by industry-standard test ROMs:
+Test ROM results:
 
 ### Test Suite Results
 
