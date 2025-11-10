@@ -77,6 +77,10 @@ final class SavestateManager
             throw new \RuntimeException("Invalid savestate format: " . $e->getMessage());
         }
 
+        if (!is_array($state)) {
+            throw new \RuntimeException("Invalid savestate format: expected array");
+        }
+
         $this->validateState($state);
         $this->deserialize($state);
     }
@@ -129,13 +133,26 @@ final class SavestateManager
             throw new \RuntimeException("Cannot load savestate: emulator not initialized");
         }
 
+        if (!is_array($state['cpu'] ?? null)) {
+            throw new \RuntimeException("Invalid savestate: cpu data missing or invalid");
+        }
+        if (!is_array($state['ppu'] ?? null)) {
+            throw new \RuntimeException("Invalid savestate: ppu data missing or invalid");
+        }
+        if (!is_array($state['memory'] ?? null)) {
+            throw new \RuntimeException("Invalid savestate: memory data missing or invalid");
+        }
+        if (!is_array($state['cartridge'] ?? null)) {
+            throw new \RuntimeException("Invalid savestate: cartridge data missing or invalid");
+        }
+
         $this->deserializeCpu($cpu, $state['cpu']);
         $this->deserializePpu($ppu, $state['ppu']);
         $this->deserializeMemory($bus, $state['memory']);
         $this->deserializeCartridge($cartridge, $state['cartridge']);
 
         // Restore clock
-        if (isset($state['clock']['cycles'])) {
+        if (isset($state['clock']['cycles']) && is_int($state['clock']['cycles'])) {
             $clock->reset();
             $clock->tick($state['clock']['cycles']);
         }
@@ -167,14 +184,14 @@ final class SavestateManager
      */
     private function deserializeCpu(\Gb\Cpu\Cpu $cpu, array $data): void
     {
-        $cpu->setAF($data['af']);
-        $cpu->setBC($data['bc']);
-        $cpu->setDE($data['de']);
-        $cpu->setHL($data['hl']);
-        $cpu->setSP($data['sp']);
-        $cpu->setPC($data['pc']);
-        $cpu->setIME($data['ime']);
-        $cpu->setHalted($data['halted']);
+        $cpu->setAF((int) $data['af']);
+        $cpu->setBC((int) $data['bc']);
+        $cpu->setDE((int) $data['de']);
+        $cpu->setHL((int) $data['hl']);
+        $cpu->setSP((int) $data['sp']);
+        $cpu->setPC((int) $data['pc']);
+        $cpu->setIME((bool) $data['ime']);
+        $cpu->setHalted((bool) $data['halted']);
     }
 
     /**
@@ -208,19 +225,19 @@ final class SavestateManager
      */
     private function deserializePpu(\Gb\Ppu\Ppu $ppu, array $data): void
     {
-        $ppu->restoreMode(\Gb\Ppu\PpuMode::from($data['mode']));
-        $ppu->setModeClock($data['modeClock']);
-        $ppu->setLY($data['ly']);
-        $ppu->setLYC($data['lyc']);
-        $ppu->setSCX($data['scx']);
-        $ppu->setSCY($data['scy']);
-        $ppu->setWX($data['wx']);
-        $ppu->setWY($data['wy']);
-        $ppu->setLCDC($data['lcdc']);
-        $ppu->setSTAT($data['stat']);
-        $ppu->setBGP($data['bgp']);
-        $ppu->setOBP0($data['obp0']);
-        $ppu->setOBP1($data['obp1']);
+        $ppu->restoreMode(\Gb\Ppu\PpuMode::from((int) $data['mode']));
+        $ppu->setModeClock((int) $data['modeClock']);
+        $ppu->setLY((int) $data['ly']);
+        $ppu->setLYC((int) $data['lyc']);
+        $ppu->setSCX((int) $data['scx']);
+        $ppu->setSCY((int) $data['scy']);
+        $ppu->setWX((int) $data['wx']);
+        $ppu->setWY((int) $data['wy']);
+        $ppu->setLCDC((int) $data['lcdc']);
+        $ppu->setSTAT((int) $data['stat']);
+        $ppu->setBGP((int) $data['bgp']);
+        $ppu->setOBP0((int) $data['obp0']);
+        $ppu->setOBP1((int) $data['obp1']);
     }
 
     /**
@@ -267,25 +284,41 @@ final class SavestateManager
     private function deserializeMemory(\Gb\Bus\SystemBus $bus, array $data): void
     {
         // Restore VRAM
-        $vram = array_values(unpack('C*', base64_decode($data['vram'])));
+        $vramUnpacked = unpack('C*', base64_decode((string) $data['vram']));
+        if ($vramUnpacked === false) {
+            throw new \RuntimeException('Failed to unpack VRAM data');
+        }
+        $vram = array_values($vramUnpacked);
         for ($i = 0; $i < count($vram); $i++) {
             $bus->writeByte(0x8000 + $i, $vram[$i]);
         }
 
         // Restore WRAM
-        $wram = array_values(unpack('C*', base64_decode($data['wram'])));
+        $wramUnpacked = unpack('C*', base64_decode((string) $data['wram']));
+        if ($wramUnpacked === false) {
+            throw new \RuntimeException('Failed to unpack WRAM data');
+        }
+        $wram = array_values($wramUnpacked);
         for ($i = 0; $i < count($wram); $i++) {
             $bus->writeByte(0xC000 + $i, $wram[$i]);
         }
 
         // Restore HRAM
-        $hram = array_values(unpack('C*', base64_decode($data['hram'])));
+        $hramUnpacked = unpack('C*', base64_decode((string) $data['hram']));
+        if ($hramUnpacked === false) {
+            throw new \RuntimeException('Failed to unpack HRAM data');
+        }
+        $hram = array_values($hramUnpacked);
         for ($i = 0; $i < count($hram); $i++) {
             $bus->writeByte(0xFF80 + $i, $hram[$i]);
         }
 
         // Restore OAM
-        $oam = array_values(unpack('C*', base64_decode($data['oam'])));
+        $oamUnpacked = unpack('C*', base64_decode((string) $data['oam']));
+        if ($oamUnpacked === false) {
+            throw new \RuntimeException('Failed to unpack OAM data');
+        }
+        $oam = array_values($oamUnpacked);
         for ($i = 0; $i < count($oam); $i++) {
             $bus->writeByte(0xFE00 + $i, $oam[$i]);
         }
@@ -313,10 +346,10 @@ final class SavestateManager
      */
     private function deserializeCartridge(\Gb\Cartridge\Cartridge $cartridge, array $data): void
     {
-        $cartridge->setCurrentRomBank($data['romBank']);
-        $cartridge->setCurrentRamBank($data['ramBank']);
-        $cartridge->setRamEnabled($data['ramEnabled']);
-        $cartridge->loadRamData(base64_decode($data['ram']));
+        $cartridge->setCurrentRomBank((int) $data['romBank']);
+        $cartridge->setCurrentRamBank((int) $data['ramBank']);
+        $cartridge->setRamEnabled((bool) $data['ramEnabled']);
+        $cartridge->loadRamData((string) $data['ram']);
     }
 
     /**
@@ -339,7 +372,7 @@ final class SavestateManager
         // For now, we only support exact version match
         if ($state['version'] !== self::VERSION) {
             throw new \RuntimeException(
-                "Incompatible savestate version: {$state['version']} (expected " . self::VERSION . ")"
+                "Incompatible savestate version: " . (string) $state['version'] . " (expected " . self::VERSION . ")"
             );
         }
 

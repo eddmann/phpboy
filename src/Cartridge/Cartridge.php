@@ -240,7 +240,11 @@ final class Cartridge implements DeviceInterface
      */
     public function loadRamData(string $data): void
     {
-        $ram = array_values(unpack('C*', base64_decode($data)));
+        $unpacked = unpack('C*', base64_decode($data));
+        if ($unpacked === false) {
+            throw new \RuntimeException('Failed to unpack RAM data');
+        }
+        $ram = array_values($unpacked);
         $this->setRam($ram);
     }
 }

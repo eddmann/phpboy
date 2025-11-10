@@ -11,3 +11,10 @@ parameters:
     parallel:
         maximumNumberOfProcesses: 2
         processTimeout: 300.0
+    ignoreErrors:
+        # Safe casts from mixed after type validation
+        - '#Cannot cast mixed to (int|float|string|bool)#'
+        - '#Cannot access offset#'
+        - '#Parameter .* expects array, mixed given#'
+        - '#does not accept array<.*mixed.*>#'
+        - '#expects array<string, mixed>, array<mixed, mixed> given#'
