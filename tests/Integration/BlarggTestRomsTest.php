@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -25,10 +26,8 @@ final class BlarggTestRomsTest extends TestCase
         $this->runner = new TestRomRunner(self::TIMEOUT);
     }
 
-    /**
-     * @dataProvider cpuInstrsTestRomsProvider
-     */
     #[Test]
+    #[DataProvider('cpuInstrsTestRomsProvider')]
     public function it_runs_cpu_instrs_test_rom(string $romName, string $romPath): void
     {
         $result = $this->runner->run($romPath);
