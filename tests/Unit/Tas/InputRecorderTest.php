@@ -6,6 +6,7 @@ namespace Tests\Unit\Tas;
 
 use Gb\Input\Button;
 use Gb\Tas\InputRecorder;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +30,8 @@ final class InputRecorderTest extends TestCase
         }
     }
 
-    public function testRecordAndPlayback(): void
+    #[Test]
+    public function it_records_and_plays_back(): void
     {
         $recorder = new InputRecorder();
         $recorder->startRecording();
@@ -69,7 +71,8 @@ final class InputRecorderTest extends TestCase
         $this->assertCount(0, $frame2);
     }
 
-    public function testRecordingFormat(): void
+    #[Test]
+    public function it_uses_valid_recording_format(): void
     {
         $recorder = new InputRecorder();
         $recorder->startRecording();
@@ -92,7 +95,8 @@ final class InputRecorderTest extends TestCase
         $this->assertEquals('1.0', (string) $data['version']);
     }
 
-    public function testCannotSaveWhileRecording(): void
+    #[Test]
+    public function it_cannot_save_while_recording(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('recording is active');
@@ -102,7 +106,8 @@ final class InputRecorderTest extends TestCase
         $recorder->saveRecording($this->tempFile);
     }
 
-    public function testPlaybackFinished(): void
+    #[Test]
+    public function it_detects_when_playback_is_finished(): void
     {
         $recorder = new InputRecorder();
         $recorder->startRecording();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Cartridge;
 
 use Gb\Cartridge\SaveManager;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -36,7 +37,8 @@ final class SaveManagerTest extends TestCase
         }
     }
 
-    public function testSaveAndLoadRam(): void
+    #[Test]
+    public function it_saves_and_loads_ram(): void
     {
         $path = $this->tempDir . '/test.sav';
         $ram = array_fill(0, 8192, 0x00);
@@ -55,7 +57,8 @@ final class SaveManagerTest extends TestCase
         $this->assertSame($ram, $loaded);
     }
 
-    public function testLoadNonExistentRam(): void
+    #[Test]
+    public function it_loads_non_existent_ram(): void
     {
         $path = $this->tempDir . '/nonexistent.sav';
 
@@ -64,7 +67,8 @@ final class SaveManagerTest extends TestCase
         $this->assertSame(array_fill(0, 8192, 0x00), $loaded);
     }
 
-    public function testLoadRamPadding(): void
+    #[Test]
+    public function it_pads_loaded_ram(): void
     {
         $path = $this->tempDir . '/test.sav';
 
@@ -87,7 +91,8 @@ final class SaveManagerTest extends TestCase
         }
     }
 
-    public function testLoadRamTruncation(): void
+    #[Test]
+    public function it_truncates_loaded_ram(): void
     {
         $path = $this->tempDir . '/test.sav';
 
@@ -104,7 +109,8 @@ final class SaveManagerTest extends TestCase
         }
     }
 
-    public function testSaveAndLoadRtc(): void
+    #[Test]
+    public function it_saves_and_loads_rtc(): void
     {
         $path = $this->tempDir . '/test.rtc';
         $rtcState = [
@@ -129,7 +135,8 @@ final class SaveManagerTest extends TestCase
         $this->assertSame(100, $loaded['days']);
     }
 
-    public function testLoadNonExistentRtc(): void
+    #[Test]
+    public function it_loads_non_existent_rtc(): void
     {
         $path = $this->tempDir . '/nonexistent.rtc';
 
@@ -137,7 +144,8 @@ final class SaveManagerTest extends TestCase
         $this->assertNull($loaded);
     }
 
-    public function testRtcTimeElapsed(): void
+    #[Test]
+    public function it_advances_rtc_time_elapsed(): void
     {
         $path = $this->tempDir . '/test.rtc';
         $rtcState = [
@@ -167,7 +175,8 @@ final class SaveManagerTest extends TestCase
         $this->assertSame(100, $loaded['days']);
     }
 
-    public function testRtcTimeElapsedWithDayOverflow(): void
+    #[Test]
+    public function it_handles_rtc_time_elapsed_with_day_overflow(): void
     {
         $path = $this->tempDir . '/test.rtc';
         $rtcState = [
@@ -197,7 +206,8 @@ final class SaveManagerTest extends TestCase
         $this->assertSame(0x80, $loaded['dayHigh'] & 0x80); // Carry flag set
     }
 
-    public function testRtcHaltedDoesNotAdvance(): void
+    #[Test]
+    public function it_does_not_advance_halted_rtc(): void
     {
         $path = $this->tempDir . '/test.rtc';
         $rtcState = [
@@ -226,21 +236,24 @@ final class SaveManagerTest extends TestCase
         $this->assertSame(100, $loaded['days']);
     }
 
-    public function testGetSavePath(): void
+    #[Test]
+    public function it_gets_save_path_from_rom_path(): void
     {
         $this->assertSame('test.sav', $this->saveManager->getSavePath('test.gb'));
         $this->assertSame('test.sav', $this->saveManager->getSavePath('test.gbc'));
         $this->assertSame('path/to/test.sav', $this->saveManager->getSavePath('path/to/test.gb'));
     }
 
-    public function testGetRtcPath(): void
+    #[Test]
+    public function it_gets_rtc_path_from_rom_path(): void
     {
         $this->assertSame('test.rtc', $this->saveManager->getRtcPath('test.gb'));
         $this->assertSame('test.rtc', $this->saveManager->getRtcPath('test.gbc'));
         $this->assertSame('path/to/test.rtc', $this->saveManager->getRtcPath('path/to/test.gb'));
     }
 
-    public function testSaveExists(): void
+    #[Test]
+    public function it_checks_if_save_exists(): void
     {
         $path = $this->tempDir . '/test.sav';
 
@@ -251,7 +264,8 @@ final class SaveManagerTest extends TestCase
         $this->assertTrue($this->saveManager->saveExists($path));
     }
 
-    public function testDeleteSave(): void
+    #[Test]
+    public function it_deletes_save_file(): void
     {
         $path = $this->tempDir . '/test.sav';
 
@@ -267,7 +281,8 @@ final class SaveManagerTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testSaveEmptyRam(): void
+    #[Test]
+    public function it_does_not_save_empty_ram(): void
     {
         $path = $this->tempDir . '/test.sav';
 

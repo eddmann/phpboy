@@ -6,6 +6,7 @@ namespace Tests\Unit\Ppu;
 
 use Gb\Ppu\ArrayFramebuffer;
 use Gb\Ppu\Color;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ArrayFramebufferTest extends TestCase
@@ -17,7 +18,8 @@ final class ArrayFramebufferTest extends TestCase
         $this->framebuffer = new ArrayFramebuffer();
     }
 
-    public function testInitialState(): void
+    #[Test]
+    public function it_initializes_to_white_pixels(): void
     {
         $buffer = $this->framebuffer->getFramebuffer();
 
@@ -29,7 +31,8 @@ final class ArrayFramebufferTest extends TestCase
         $this->assertEquals($white, $buffer[0][0]);
     }
 
-    public function testSetPixel(): void
+    #[Test]
+    public function it_sets_pixel_at_coordinates(): void
     {
         $testColor = new Color(100, 150, 200);
 
@@ -39,7 +42,8 @@ final class ArrayFramebufferTest extends TestCase
         $this->assertEquals($testColor, $buffer[20][10]);
     }
 
-    public function testSetPixelOutOfBounds(): void
+    #[Test]
+    public function it_handles_out_of_bounds_pixels_gracefully(): void
     {
         $testColor = new Color(100, 150, 200);
 
@@ -54,7 +58,8 @@ final class ArrayFramebufferTest extends TestCase
         $this->assertCount(144, $buffer);
     }
 
-    public function testClear(): void
+    #[Test]
+    public function it_clears_framebuffer_to_white(): void
     {
         // Set a pixel
         $testColor = new Color(100, 150, 200);
@@ -70,7 +75,8 @@ final class ArrayFramebufferTest extends TestCase
         $this->assertEquals($white, $buffer[0][0]);
     }
 
-    public function testFullFrameRender(): void
+    #[Test]
+    public function it_renders_full_frame_pattern(): void
     {
         $colors = [
             Color::fromDmgShade(0),
@@ -97,7 +103,8 @@ final class ArrayFramebufferTest extends TestCase
         }
     }
 
-    public function testDimensions(): void
+    #[Test]
+    public function it_exposes_correct_dimensions(): void
     {
         $this->assertEquals(160, ArrayFramebuffer::WIDTH);
         $this->assertEquals(144, ArrayFramebuffer::HEIGHT);

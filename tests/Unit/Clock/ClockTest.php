@@ -5,24 +5,28 @@ declare(strict_types=1);
 namespace Tests\Unit\Clock;
 
 use Gb\Clock\Clock;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ClockTest extends TestCase
 {
-    public function testInitializesWithZeroCycles(): void
+    #[Test]
+    public function it_initializes_with_zero_cycles(): void
     {
         $clock = new Clock();
         $this->assertSame(0, $clock->getCycles());
     }
 
-    public function testTickIncrementsCycles(): void
+    #[Test]
+    public function it_increments_cycles_on_tick(): void
     {
         $clock = new Clock();
         $clock->tick(4);
         $this->assertSame(4, $clock->getCycles());
     }
 
-    public function testTickAccumulatesCycles(): void
+    #[Test]
+    public function it_accumulates_cycles_on_tick(): void
     {
         $clock = new Clock();
         $clock->tick(4);
@@ -31,7 +35,8 @@ final class ClockTest extends TestCase
         $this->assertSame(24, $clock->getCycles());
     }
 
-    public function testResetSetsCyclesToZero(): void
+    #[Test]
+    public function it_sets_cycles_to_zero_on_reset(): void
     {
         $clock = new Clock();
         $clock->tick(100);
@@ -39,7 +44,8 @@ final class ClockTest extends TestCase
         $this->assertSame(0, $clock->getCycles());
     }
 
-    public function testGetElapsedReturnsCorrectDelta(): void
+    #[Test]
+    public function it_returns_correct_elapsed_delta(): void
     {
         $clock = new Clock();
         $checkpoint = 0;
@@ -51,7 +57,8 @@ final class ClockTest extends TestCase
         $this->assertSame(4, $checkpoint);
     }
 
-    public function testGetElapsedUpdatesCheckpoint(): void
+    #[Test]
+    public function it_updates_checkpoint_on_get_elapsed(): void
     {
         $clock = new Clock();
         $checkpoint = 0;
@@ -66,7 +73,8 @@ final class ClockTest extends TestCase
         $this->assertSame(12, $checkpoint);
     }
 
-    public function testMultipleTicksWithVariousCycleCounts(): void
+    #[Test]
+    public function it_handles_multiple_ticks_with_various_cycle_counts(): void
     {
         $clock = new Clock();
 

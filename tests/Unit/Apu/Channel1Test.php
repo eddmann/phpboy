@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Apu;
 
 use Gb\Apu\Channel\Channel1;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Channel1Test extends TestCase
 {
-    public function testInitiallyDisabled(): void
+    #[Test]
+    public function it_is_initially_disabled(): void
     {
         $channel = new Channel1();
         self::assertFalse($channel->isEnabled());
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testTriggerEnablesChannel(): void
+    #[Test]
+    public function it_enables_channel_when_triggered(): void
     {
         $channel = new Channel1();
 
@@ -28,7 +31,8 @@ final class Channel1Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testDutyPattern25Percent(): void
+    #[Test]
+    public function it_produces_25_percent_duty_pattern(): void
     {
         $channel = new Channel1();
 
@@ -60,7 +64,8 @@ final class Channel1Test extends TestCase
         self::assertGreaterThan(0.5, $samples[7]); // 1
     }
 
-    public function testVolumeEnvelope(): void
+    #[Test]
+    public function it_applies_volume_envelope(): void
     {
         $channel = new Channel1();
 
@@ -81,7 +86,8 @@ final class Channel1Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testLengthCounter(): void
+    #[Test]
+    public function it_disables_when_length_counter_expires(): void
     {
         $channel = new Channel1();
 
@@ -98,7 +104,8 @@ final class Channel1Test extends TestCase
         self::assertFalse($channel->isEnabled());
     }
 
-    public function testSweepIncreaseFrequency(): void
+    #[Test]
+    public function it_increases_frequency_with_sweep(): void
     {
         $channel = new Channel1();
 
@@ -118,7 +125,8 @@ final class Channel1Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testSweepOverflowDisablesChannel(): void
+    #[Test]
+    public function it_disables_when_sweep_overflows(): void
     {
         $channel = new Channel1();
 
@@ -134,7 +142,8 @@ final class Channel1Test extends TestCase
         self::assertFalse($channel->isEnabled());
     }
 
-    public function testDacDisableStopsOutput(): void
+    #[Test]
+    public function it_stops_output_when_dac_disabled(): void
     {
         $channel = new Channel1();
 
@@ -151,7 +160,8 @@ final class Channel1Test extends TestCase
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testRegisterReadback(): void
+    #[Test]
+    public function it_reads_back_registers_correctly(): void
     {
         $channel = new Channel1();
 
@@ -171,7 +181,8 @@ final class Channel1Test extends TestCase
         self::assertSame(0x40, $channel->readNR14() & 0x40); // Only length enable readable
     }
 
-    public function testFrequencyGeneration(): void
+    #[Test]
+    public function it_generates_frequency_based_output(): void
     {
         $channel = new Channel1();
 

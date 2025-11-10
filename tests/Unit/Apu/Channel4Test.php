@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Apu;
 
 use Gb\Apu\Channel\Channel4;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class Channel4Test extends TestCase
 {
-    public function testInitiallyDisabled(): void
+    #[Test]
+    public function it_is_initially_disabled(): void
     {
         $channel = new Channel4();
         self::assertFalse($channel->isEnabled());
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testTriggerEnablesChannel(): void
+    #[Test]
+    public function it_enables_channel_when_triggered(): void
     {
         $channel = new Channel4();
 
@@ -26,7 +29,8 @@ final class Channel4Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testNoiseGeneration(): void
+    #[Test]
+    public function it_generates_noise(): void
     {
         $channel = new Channel4();
 
@@ -50,7 +54,8 @@ final class Channel4Test extends TestCase
         self::assertGreaterThan(1, count($uniqueSamples));
     }
 
-    public function testVolumeEnvelope(): void
+    #[Test]
+    public function it_applies_volume_envelope(): void
     {
         $channel = new Channel4();
 
@@ -63,7 +68,8 @@ final class Channel4Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testLengthCounter(): void
+    #[Test]
+    public function it_disables_when_length_counter_expires(): void
     {
         $channel = new Channel4();
 
@@ -77,7 +83,8 @@ final class Channel4Test extends TestCase
         self::assertFalse($channel->isEnabled());
     }
 
-    public function testDacDisable(): void
+    #[Test]
+    public function it_stops_output_when_dac_disabled(): void
     {
         $channel = new Channel4();
 
@@ -90,7 +97,8 @@ final class Channel4Test extends TestCase
         self::assertSame(0.0, $channel->getSample());
     }
 
-    public function testWidthMode7Bit(): void
+    #[Test]
+    public function it_operates_in_7_bit_width_mode(): void
     {
         $channel = new Channel4();
 
@@ -108,7 +116,8 @@ final class Channel4Test extends TestCase
         self::assertTrue($channel->isEnabled());
     }
 
-    public function testDivisorCodes(): void
+    #[Test]
+    public function it_supports_different_divisor_codes(): void
     {
         $channel = new Channel4();
 
@@ -122,7 +131,8 @@ final class Channel4Test extends TestCase
         }
     }
 
-    public function testClockShift(): void
+    #[Test]
+    public function it_handles_clock_shift(): void
     {
         $channel = new Channel4();
 

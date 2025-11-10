@@ -6,6 +6,7 @@ namespace Tests\Unit\Savestate;
 
 use Gb\Emulator;
 use Gb\Savestate\SavestateManager;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,7 +30,8 @@ final class SavestateManagerTest extends TestCase
         }
     }
 
-    public function testSerializeReturnsValidStructure(): void
+    #[Test]
+    public function it_returns_valid_structure_on_serialize(): void
     {
         $emulator = new Emulator();
         $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
@@ -50,7 +52,8 @@ final class SavestateManagerTest extends TestCase
         $this->assertEquals('1.0.0', $state['version']);
     }
 
-    public function testSaveAndLoadState(): void
+    #[Test]
+    public function it_saves_and_loads_state(): void
     {
         $emulator = new Emulator();
         $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
@@ -88,7 +91,8 @@ final class SavestateManagerTest extends TestCase
         $this->assertEquals($pcBefore, $pcRestored);
     }
 
-    public function testSavestateFileFormat(): void
+    #[Test]
+    public function it_uses_valid_json_file_format(): void
     {
         $emulator = new Emulator();
         $emulator->loadRom(__DIR__ . '/../../../third_party/roms/cpu_instrs/individual/01-special.gb');
@@ -104,7 +108,8 @@ final class SavestateManagerTest extends TestCase
         $this->assertIsArray($data);
     }
 
-    public function testLoadNonExistentFileFails(): void
+    #[Test]
+    public function it_fails_when_loading_non_existent_file(): void
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('not found');
