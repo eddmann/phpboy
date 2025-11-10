@@ -24,7 +24,6 @@ final class RewindBuffer
 {
     private const FRAMES_PER_SECOND = 60; // Game Boy runs at ~59.7 FPS, rounded to 60
 
-    private Emulator $emulator;
     private SavestateManager $savestateManager;
 
     /** @var array<int, array<string, mixed>> Circular buffer of savestates */
@@ -52,7 +51,6 @@ final class RewindBuffer
         int $maxSeconds = 60,
         int $framesPerSavestate = self::FRAMES_PER_SECOND
     ) {
-        $this->emulator = $emulator;
         $this->savestateManager = new SavestateManager($emulator);
         $this->maxStates = $maxSeconds;
         $this->framesPerSavestate = $framesPerSavestate;

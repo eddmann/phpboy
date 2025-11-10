@@ -170,13 +170,31 @@ final class InputRecorder
             throw new \RuntimeException("Invalid recording format: " . $e->getMessage());
         }
 
+        if (!is_array($data)) {
+            throw new \RuntimeException("Invalid recording format: expected array");
+        }
+
         if (!isset($data['version']) || $data['version'] !== self::VERSION) {
             throw new \RuntimeException("Incompatible recording version");
+        }
+
+        if (!isset($data['inputs']) || !is_array($data['inputs'])) {
+            throw new \RuntimeException("Invalid recording format: missing or invalid inputs");
+        }
+
+        if (!isset($data['frames']) || !is_int($data['frames'])) {
+            throw new \RuntimeException("Invalid recording format: missing or invalid frames count");
         }
 
         // Convert compact format back to frame-indexed array
         $this->playbackInputs = [];
         foreach ($data['inputs'] as $input) {
+            if (!is_array($input) || !isset($input['frame']) || !isset($input['buttons'])) {
+                continue;
+            }
+            if (!is_int($input['frame']) || !is_array($input['buttons'])) {
+                continue;
+            }
             $this->playbackInputs[$input['frame']] = $input['buttons'];
         }
 

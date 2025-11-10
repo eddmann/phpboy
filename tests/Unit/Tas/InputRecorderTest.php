@@ -85,11 +85,11 @@ final class InputRecorderTest extends TestCase
         $this->assertNotFalse($json);
 
         $data = json_decode($json, true);
-        $this->assertNotNull($data);
+        $this->assertIsArray($data);
         $this->assertArrayHasKey('version', $data);
         $this->assertArrayHasKey('frames', $data);
         $this->assertArrayHasKey('inputs', $data);
-        $this->assertEquals('1.0', $data['version']);
+        $this->assertEquals('1.0', (string) $data['version']);
     }
 
     public function testCannotSaveWhileRecording(): void

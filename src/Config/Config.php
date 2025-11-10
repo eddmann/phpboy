@@ -96,6 +96,9 @@ final class Config
 
         // Merge with defaults
         foreach ($ini as $section => $values) {
+            if (!is_array($values)) {
+                continue;
+            }
             if (!isset($this->config[$section])) {
                 $this->config[$section] = [];
             }
@@ -183,7 +186,8 @@ final class Config
      */
     public function getSection(string $section): array
     {
-        return $this->config[$section] ?? [];
+        $value = $this->config[$section] ?? [];
+        return is_array($value) ? $value : [];
     }
 
     /**
@@ -206,12 +210,15 @@ final class Config
     {
         $ini = '';
         foreach ($this->config as $section => $values) {
+            if (!is_array($values)) {
+                continue;
+            }
             $ini .= "[{$section}]\n";
             foreach ($values as $key => $value) {
                 if (is_bool($value)) {
                     $value = $value ? 'true' : 'false';
                 }
-                $ini .= "{$key} = {$value}\n";
+                $ini .= (string) $key . " = " . (string) $value . "\n";
             }
             $ini .= "\n";
         }

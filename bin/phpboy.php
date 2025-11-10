@@ -242,7 +242,7 @@ try {
     } elseif ($config !== null) {
         $speed = $config->get('emulation', 'speed', 1.0);
         if ($speed !== 1.0) {
-            $emulator->setSpeed($speed);
+            $emulator->setSpeed((float) $speed);
         }
     }
 
@@ -484,7 +484,7 @@ try {
     }
 
     // Save TAS recording if recording was enabled
-    if ($inputRecorder !== null && $inputRecorder->isRecording()) {
+    if ($inputRecorder !== null && $inputRecorder->isRecording() && $options['record'] !== null) {
         $inputRecorder->stopRecording();
         $inputRecorder->saveRecording($options['record']);
         echo "Saved TAS recording to {$options['record']}\n";
