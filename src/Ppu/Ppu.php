@@ -435,18 +435,23 @@ final class Ppu implements DeviceInterface
         }
 
         $line = $this->ly - $spriteY;
-        if ($yFlip) {
-            $line = $spriteHeight - 1 - $line;
-        }
 
-        // For 8x16 sprites, use tile index & 0xFE for top half, | 0x01 for bottom half
+        // For 8x16 sprites, select tile first based on unflipped position
+        // Then apply flip within the selected tile
         if ($spriteHeight === 16) {
             if ($line >= 8) {
+                // Bottom tile
                 $tileIndex = ($tileIndex & 0xFE) | 0x01;
                 $line -= 8;
             } else {
+                // Top tile
                 $tileIndex = $tileIndex & 0xFE;
             }
+        }
+
+        // Apply Y-flip within the selected tile
+        if ($yFlip) {
+            $line = 7 - $line;
         }
 
         $tileDataAddr = $tileIndex * 16;
@@ -466,9 +471,17 @@ final class Ppu implements DeviceInterface
             }
 
             // Check priority (behind BG)
+            // In CGB mode, if LCDC bit 0 (BG/Window Enable) is clear, BG loses priority
+            // and sprites are always on top (Master Priority disabled)
+            $masterPriorityEnabled = ($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0;
             if ($behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
-                // If BG pixel is not color 0, sprite is hidden behind BG
-                continue;
+                // In CGB mode with master priority disabled, sprites always on top
+                if ($this->cgbMode && !$masterPriorityEnabled) {
+                    // Sprite is drawn on top regardless of priority flag
+                } else {
+                    // If BG pixel is not color 0, sprite is hidden behind BG
+                    continue;
+                }
             }
 
             if ($this->cgbMode) {
