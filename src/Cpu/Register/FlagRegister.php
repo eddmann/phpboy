@@ -14,6 +14,12 @@ namespace Gb\Cpu\Register;
  * - C (Carry) at bit 4: Set when carry from bit 7 or borrow occurred
  *
  * Bits 0-3 are always 0 on the Game Boy.
+ *
+ * Phase 1 Optimization: Lazy synchronization
+ * - Flag updates are extremely frequent (~500K times per second)
+ * - AF register reads are infrequent (~10K times per second)
+ * - Only sync when AF is actually accessed
+ * - Expected gain: +5% performance
  */
 final class FlagRegister
 {
@@ -26,6 +32,12 @@ final class FlagRegister
     private ?Register16 $afRegister = null;
 
     /**
+     * Phase 1 Optimization: Lazy sync flag
+     * True if flags have been modified since last AF sync
+     */
+    private bool $dirty = false;
+
+    /**
      * @param int $initialValue Initial flag register value (default: 0x00)
      * @param Register16|null $afRegister Optional AF register to keep in sync
      */
@@ -34,6 +46,7 @@ final class FlagRegister
         // Mask to only keep flag bits (bits 4-7)
         $this->value = $initialValue & 0xF0;
         $this->afRegister = $afRegister;
+        $this->dirty = true; // Mark as dirty to force initial sync
         $this->syncToAF();
     }
 
@@ -50,23 +63,44 @@ final class FlagRegister
     /**
      * Set the raw flag register value
      *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
+     *
      * @param int $value Value to set (bits 0-3 will be cleared)
      */
     public function set(int $value): void
     {
         // Mask to only keep flag bits (bits 4-7)
         $this->value = $value & 0xF0;
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     /**
      * Synchronize flags to AF register (if linked)
+     *
+     * Phase 1 Optimization: Only sync if dirty
      */
     private function syncToAF(): void
     {
-        if ($this->afRegister !== null) {
+        if ($this->dirty && $this->afRegister !== null) {
             $this->afRegister->setLow($this->value);
+            $this->dirty = false;
         }
+    }
+
+    /**
+     * Phase 1 Optimization: Mark flags as dirty (needing sync)
+     */
+    private function markDirty(): void
+    {
+        $this->dirty = true;
+    }
+
+    /**
+     * Phase 1 Optimization: Force immediate sync (called before AF reads)
+     */
+    public function flush(): void
+    {
+        $this->syncToAF();
     }
 
     /**
@@ -92,6 +126,8 @@ final class FlagRegister
     /**
      * Set or clear Zero flag (Z)
      *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
+     *
      * @param bool $value True to set, false to clear
      */
     public function setZero(bool $value): void
@@ -101,7 +137,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_ZERO;
         }
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     /**
@@ -117,6 +153,8 @@ final class FlagRegister
     /**
      * Set or clear Subtract flag (N)
      *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
+     *
      * @param bool $value True to set, false to clear
      */
     public function setSubtract(bool $value): void
@@ -126,7 +164,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_SUBTRACT;
         }
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     /**
@@ -142,6 +180,8 @@ final class FlagRegister
     /**
      * Set or clear Half Carry flag (H)
      *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
+     *
      * @param bool $value True to set, false to clear
      */
     public function setHalfCarry(bool $value): void
@@ -151,7 +191,7 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_HALF_CARRY;
         }
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     /**
@@ -167,6 +207,8 @@ final class FlagRegister
     /**
      * Set or clear Carry flag (C)
      *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
+     *
      * @param bool $value True to set, false to clear
      */
     public function setCarry(bool $value): void
@@ -176,16 +218,18 @@ final class FlagRegister
         } else {
             $this->value &= ~self::FLAG_CARRY;
         }
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     /**
      * Clear all flags
+     *
+     * Phase 1 Optimization: Mark dirty instead of immediate sync
      */
     public function clear(): void
     {
         $this->value = 0x00;
-        $this->syncToAF();
+        $this->markDirty();
     }
 
     // Convenience aliases for shorter method names

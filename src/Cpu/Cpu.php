@@ -211,6 +211,8 @@ final class Cpu
 
     public function getAF(): Register16
     {
+        // Phase 1 Optimization: Flush flags before returning AF
+        $this->flags->flush();
         return $this->af;
     }
 

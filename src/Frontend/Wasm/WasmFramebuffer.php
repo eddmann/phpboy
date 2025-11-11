@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gb\Frontend\Wasm;
 
 use Gb\Ppu\Color;
+use Gb\Ppu\ColorPool;
 use Gb\Ppu\FramebufferInterface;
 
 /**
@@ -70,10 +71,13 @@ final class WasmFramebuffer implements FramebufferInterface
 
     /**
      * Clear the framebuffer to white.
+     *
+     * Phase 1 Optimization: Use ColorPool to avoid allocations
      */
     public function clear(): void
     {
-        $white = new Color(255, 255, 255);
+        // Use pooled color instead of creating new object
+        $white = ColorPool::get(255, 255, 255);
 
         for ($y = 0; $y < self::HEIGHT; $y++) {
             for ($x = 0; $x < self::WIDTH; $x++) {
