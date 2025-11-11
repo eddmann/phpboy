@@ -115,7 +115,9 @@ final class Emulator
         }
 
         // Determine if we're running in CGB mode
-        $isCgbMode = $this->cartridge->getHeader()->isCgbSupported();
+        // Only enable CGB mode for CGB-only ROMs (0xC0), not CGB-compatible ROMs (0x80)
+        // CGB-compatible ROMs should run in DMG mode for maximum compatibility
+        $isCgbMode = $this->cartridge->getHeader()->isCgbOnly();
 
         // Create interrupt controller
         $this->interruptController = new InterruptController();

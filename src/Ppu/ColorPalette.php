@@ -39,11 +39,27 @@ final class ColorPalette
     /** @var int Object palette index (0-63) with auto-increment flag */
     private int $objIndex = 0;
 
+    /**
+     * @var array<int, array<int, Color>> Cached converted background colors
+     * [palette_num][color_num] => Color object
+     */
+    private array $bgColorCache = [];
+
+    /**
+     * @var array<int, array<int, Color>> Cached converted object colors
+     * [palette_num][color_num] => Color object
+     */
+    private array $objColorCache = [];
+
     public function __construct()
     {
         // Initialize palettes with white (0x7FFF = all 1s in 15-bit RGB)
         $this->bgPalette = array_fill(0, 64, 0xFF);
         $this->objPalette = array_fill(0, 64, 0xFF);
+
+        // Pre-cache all colors
+        $this->rebuildBgCache();
+        $this->rebuildObjCache();
     }
 
     /**
@@ -78,6 +94,11 @@ final class ColorPalette
     {
         $index = $this->bgIndex & 0x3F; // Lower 6 bits = index
         $this->bgPalette[$index] = $value & 0xFF;
+
+        // Invalidate cache for the affected color
+        // Each color uses 2 bytes, so index/2 gives color number, index/8 gives palette
+        $paletteNum = $index >> 3; // Divide by 8
+        unset($this->bgColorCache[$paletteNum]);
 
         // Auto-increment if bit 7 is set
         if (($this->bgIndex & 0x80) !== 0) {
@@ -118,6 +139,11 @@ final class ColorPalette
         $index = $this->objIndex & 0x3F; // Lower 6 bits = index
         $this->objPalette[$index] = $value & 0xFF;
 
+        // Invalidate cache for the affected color
+        // Each color uses 2 bytes, so index/2 gives color number, index/8 gives palette
+        $paletteNum = $index >> 3; // Divide by 8
+        unset($this->objColorCache[$paletteNum]);
+
         // Auto-increment if bit 7 is set
         if (($this->objIndex & 0x80) !== 0) {
             $this->objIndex = ($this->objIndex & 0x80) | (($index + 1) & 0x3F);
@@ -133,11 +159,12 @@ final class ColorPalette
      */
     public function getBgColor(int $paletteNum, int $colorNum): Color
     {
-        $baseIndex = ($paletteNum * 8) + ($colorNum * 2);
-        $low = $this->bgPalette[$baseIndex];
-        $high = $this->bgPalette[$baseIndex + 1];
-        $rgb15 = ($high << 8) | $low;
-        return Color::fromGbc15bit($rgb15);
+        // Check cache first
+        if (!isset($this->bgColorCache[$paletteNum])) {
+            $this->rebuildBgPaletteCache($paletteNum);
+        }
+
+        return $this->bgColorCache[$paletteNum][$colorNum];
     }
 
     /**
@@ -149,10 +176,61 @@ final class ColorPalette
      */
     public function getObjColor(int $paletteNum, int $colorNum): Color
     {
-        $baseIndex = ($paletteNum * 8) + ($colorNum * 2);
-        $low = $this->objPalette[$baseIndex];
-        $high = $this->objPalette[$baseIndex + 1];
-        $rgb15 = ($high << 8) | $low;
-        return Color::fromGbc15bit($rgb15);
+        // Check cache first
+        if (!isset($this->objColorCache[$paletteNum])) {
+            $this->rebuildObjPaletteCache($paletteNum);
+        }
+
+        return $this->objColorCache[$paletteNum][$colorNum];
+    }
+
+    /**
+     * Rebuild background palette cache for a specific palette.
+     */
+    private function rebuildBgPaletteCache(int $paletteNum): void
+    {
+        $this->bgColorCache[$paletteNum] = [];
+        for ($colorNum = 0; $colorNum < 4; $colorNum++) {
+            $baseIndex = ($paletteNum * 8) + ($colorNum * 2);
+            $low = $this->bgPalette[$baseIndex];
+            $high = $this->bgPalette[$baseIndex + 1];
+            $rgb15 = ($high << 8) | $low;
+            $this->bgColorCache[$paletteNum][$colorNum] = Color::fromGbc15bit($rgb15);
+        }
+    }
+
+    /**
+     * Rebuild object palette cache for a specific palette.
+     */
+    private function rebuildObjPaletteCache(int $paletteNum): void
+    {
+        $this->objColorCache[$paletteNum] = [];
+        for ($colorNum = 0; $colorNum < 4; $colorNum++) {
+            $baseIndex = ($paletteNum * 8) + ($colorNum * 2);
+            $low = $this->objPalette[$baseIndex];
+            $high = $this->objPalette[$baseIndex + 1];
+            $rgb15 = ($high << 8) | $low;
+            $this->objColorCache[$paletteNum][$colorNum] = Color::fromGbc15bit($rgb15);
+        }
+    }
+
+    /**
+     * Rebuild entire background color cache.
+     */
+    private function rebuildBgCache(): void
+    {
+        for ($paletteNum = 0; $paletteNum < 8; $paletteNum++) {
+            $this->rebuildBgPaletteCache($paletteNum);
+        }
+    }
+
+    /**
+     * Rebuild entire object color cache.
+     */
+    private function rebuildObjCache(): void
+    {
+        for ($paletteNum = 0; $paletteNum < 8; $paletteNum++) {
+            $this->rebuildObjPaletteCache($paletteNum);
+        }
     }
 }
