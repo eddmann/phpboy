@@ -371,7 +371,7 @@ final class InstructionSet
                 },
             ),
 
-            // 0x10: STOP - Stop CPU and LCD until button press (or trigger speed switch in CGB)
+            // 0x10: STOP - Stop CPU and LCD until button press
             0x10 => new Instruction(
                 opcode: 0x10,
                 mnemonic: 'STOP',
@@ -380,8 +380,8 @@ final class InstructionSet
                 handler: static function (Cpu $cpu): int {
                     // Read next byte (should be 0x00)
                     self::readImm8($cpu);
-                    // Execute STOP - handles both speed switching and normal stop
-                    $cpu->executeStop();
+                    $cpu->setHalted(true);
+                    $cpu->setStopped(true);
                     return 4;
                 },
             ),
