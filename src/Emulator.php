@@ -114,6 +114,9 @@ final class Emulator
             throw new \RuntimeException("Cannot initialize system: no cartridge loaded");
         }
 
+        // Determine if we're running in CGB mode
+        $isCgbMode = $this->cartridge->getHeader()->isCgbSupported();
+
         // Create interrupt controller
         $this->interruptController = new InterruptController();
 
@@ -130,6 +133,11 @@ final class Emulator
             $this->framebuffer,
             $this->interruptController
         );
+
+        // Enable CGB mode in PPU if cartridge supports it
+        if ($isCgbMode) {
+            $this->ppu->enableCgbMode(true);
+        }
 
         // Create APU
         $this->apu = new Apu($this->audioSink);
@@ -178,9 +186,9 @@ final class Emulator
         $this->bus->attachIoDevice($this->hdma, 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55);
 
         // Create CGB controller
-        $this->cgb = new CgbController($vram);
-        // CGB registers: KEY1, VBK, RP, SVBK
-        $this->bus->attachIoDevice($this->cgb, 0xFF4D, 0xFF4F, 0xFF56, 0xFF70);
+        $this->cgb = new CgbController($vram, $isCgbMode);
+        // CGB registers: KEY0, KEY1, VBK, RP, OPRI
+        $this->bus->attachIoDevice($this->cgb, 0xFF4C, 0xFF4D, 0xFF4F, 0xFF56, 0xFF6C);
 
         // Create joypad
         $this->joypad = new Joypad($this->interruptController);
@@ -196,6 +204,24 @@ final class Emulator
 
         // Create CPU
         $this->cpu = new Cpu($this->bus, $this->interruptController);
+
+        // Initialize CPU registers to post-boot ROM values
+        // This simulates the state after the boot ROM has finished
+        if ($isCgbMode) {
+            // CGB mode register values (Pan Docs - Power Up Sequence)
+            $this->cpu->setAF(0x1180); // A=0x11 (CGB identifier), F=0x80 (Z flag set)
+            $this->cpu->setBC(0x0000); // B=0x00, C=0x00
+            $this->cpu->setDE(0xFF56); // D=0xFF, E=0x56
+            $this->cpu->setHL(0x000D); // H=0x00, L=0x0D
+        } else {
+            // DMG mode register values
+            $this->cpu->setAF(0x01B0); // A=0x01 (DMG identifier), F=0xB0 (Z=1, H=1, C=1)
+            $this->cpu->setBC(0x0013); // B=0x00, C=0x13
+            $this->cpu->setDE(0x00D8); // D=0x00, E=0xD8
+            $this->cpu->setHL(0x014D); // H=0x01, L=0x4D
+        }
+        $this->cpu->setSP(0xFFFE); // Stack pointer
+        $this->cpu->setPC(0x0100); // Start at cartridge entry point
 
         // Optimization (Step 14): Pre-build all 512 instructions for faster dispatch
         // Expected: 1-2% performance gain by eliminating lazy initialization checks
