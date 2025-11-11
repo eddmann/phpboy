@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gb\Frontend\Wasm;
 
 use Gb\Ppu\Color;
+use Gb\Ppu\ColorPool;
 use Gb\Ppu\FramebufferInterface;
 
 /**
