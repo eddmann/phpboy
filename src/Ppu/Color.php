@@ -53,10 +53,12 @@ final readonly class Color
         $b = ($rgb15 & 0x7C00) >> 10;
 
         // Scale 5-bit values (0-31) to 8-bit values (0-255)
+        // Using the formula from cgb-acid2: (r << 3) | (r >> 2)
+        // This ensures bit-perfect color accuracy for test ROMs
         return new self(
-            (int) (($r * 255) / 31),
-            (int) (($g * 255) / 31),
-            (int) (($b * 255) / 31),
+            ($r << 3) | ($r >> 2),
+            ($g << 3) | ($g >> 2),
+            ($b << 3) | ($b >> 2),
         );
     }
 
