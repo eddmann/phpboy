@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\System;
 
 use Gb\Memory\Vram;
+use Gb\Memory\Wram;
 use Gb\System\CgbController;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -13,11 +14,13 @@ final class CgbControllerTest extends TestCase
 {
     private CgbController $controller;
     private Vram $vram;
+    private Wram $wram;
 
     protected function setUp(): void
     {
         $this->vram = new Vram();
-        $this->controller = new CgbController($this->vram);
+        $this->wram = new Wram();
+        $this->controller = new CgbController($this->vram, $this->wram);
     }
 
     #[Test]

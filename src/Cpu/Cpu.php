@@ -8,6 +8,7 @@ use Gb\Bus\BusInterface;
 use Gb\Cpu\Register\FlagRegister;
 use Gb\Cpu\Register\Register16;
 use Gb\Interrupts\InterruptController;
+use Gb\System\CgbController;
 
 /**
  * LR35902 CPU (Sharp SM83)
@@ -44,6 +45,9 @@ final class Cpu
     // M-cycle tracking (1 M-cycle = 4 T-cycles)
     private int $pendingCycles = 0;
     private ?\Closure $cycleCallback = null;
+
+    // CGB controller for speed switching (optional, only needed for CGB)
+    private ?CgbController $cgbController = null;
 
     /**
      * @param BusInterface $bus Memory bus for reading/writing memory
@@ -452,6 +456,36 @@ final class Cpu
     public function setStopped(bool $stopped): void
     {
         $this->stopped = $stopped;
+    }
+
+    /**
+     * Set the CGB controller for speed switching support.
+     *
+     * @param CgbController $cgbController CGB controller instance
+     */
+    public function setCgbController(CgbController $cgbController): void
+    {
+        $this->cgbController = $cgbController;
+    }
+
+    /**
+     * Execute STOP instruction.
+     * In CGB mode with speed switch prepared, triggers speed switch.
+     * Otherwise, stops the CPU until button press.
+     */
+    public function executeStop(): void
+    {
+        // Check if CGB speed switch is prepared
+        if ($this->cgbController !== null && $this->cgbController->isSpeedSwitchPrepared()) {
+            // Trigger speed switch (toggles between normal and double speed)
+            $this->cgbController->triggerSpeedSwitch();
+            // Don't stop the CPU - execution continues at new speed
+            $this->stopped = false;
+        } else {
+            // Normal STOP behavior: halt and stop until button press
+            $this->halted = true;
+            $this->stopped = true;
+        }
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gb\Ppu;
 
 use Gb\Bus\DeviceInterface;
+use Gb\Dma\HdmaController;
 use Gb\Interrupts\InterruptController;
 use Gb\Interrupts\InterruptType;
 use Gb\Memory\Vram;
@@ -97,11 +98,18 @@ final class Ppu implements DeviceInterface
     /** @var array<int, int> */
     private array $bgColorBuffer = [];
 
+    // Background priority buffer for CGB priority rules (stores BG-to-OAM priority bit)
+    /** @var array<int, bool> */
+    private array $bgPriorityBuffer = [];
+
     /** @var ColorPalette Color palette system (CGB) */
     private readonly ColorPalette $colorPalette;
 
     /** @var bool CGB mode enabled */
     private bool $cgbMode = false;
+
+    /** @var HdmaController|null HDMA controller for H-Blank DMA transfers (CGB) */
+    private ?HdmaController $hdmaController = null;
 
     public function __construct(
         private readonly Vram $vram,
@@ -209,6 +217,11 @@ final class Ppu implements DeviceInterface
         // Update STAT register mode bits
         $this->stat = ($this->stat & ~self::STAT_MODE_MASK) | $mode->getStatBits();
 
+        // Trigger HDMA H-Blank transfer if entering H-Blank mode
+        if ($mode === PpuMode::HBlank && $this->hdmaController !== null) {
+            $this->hdmaController->onHBlank();
+        }
+
         // Trigger STAT interrupt if enabled for this mode
         $statInterrupt = match ($mode) {
             PpuMode::HBlank => ($this->stat & self::STAT_MODE0_INT) !== 0,
@@ -241,6 +254,7 @@ final class Ppu implements DeviceInterface
         // Initialize scanline buffer and BG color buffer
         $this->scanlineBuffer = array_fill(0, ArrayFramebuffer::WIDTH, Color::fromDmgShade(0));
         $this->bgColorBuffer = array_fill(0, ArrayFramebuffer::WIDTH, 0);
+        $this->bgPriorityBuffer = array_fill(0, ArrayFramebuffer::WIDTH, false);
 
         // Render layers
         if (($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0) {
@@ -287,6 +301,7 @@ final class Ppu implements DeviceInterface
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
             $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+            $bgPriority = ($attributes & 0x80) !== 0; // Bit 7: BG-to-OAM priority
 
             // Apply flips
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
@@ -299,8 +314,9 @@ final class Ppu implements DeviceInterface
             // Get pixel color
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
 
-            // Store raw color for sprite priority checking
+            // Store raw color and priority for sprite priority checking
             $this->bgColorBuffer[$x] = $color;
+            $this->bgPriorityBuffer[$x] = $bgPriority;
 
             // Apply palette
             if ($this->cgbMode) {
@@ -346,6 +362,7 @@ final class Ppu implements DeviceInterface
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
             $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+            $bgPriority = ($attributes & 0x80) !== 0; // Bit 7: BG-to-OAM priority
 
             // Apply flips
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
@@ -357,8 +374,9 @@ final class Ppu implements DeviceInterface
 
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
 
-            // Store raw color for sprite priority checking
+            // Store raw color and priority for sprite priority checking
             $this->bgColorBuffer[$x] = $color;
+            $this->bgPriorityBuffer[$x] = $bgPriority;
 
             // Apply palette
             if ($this->cgbMode) {
@@ -466,9 +484,17 @@ final class Ppu implements DeviceInterface
             }
 
             // Check priority (behind BG)
-            if ($behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
-                // If BG pixel is not color 0, sprite is hidden behind BG
-                continue;
+            $bgColor = $this->bgColorBuffer[$pixelX];
+            if ($bgColor !== 0) {
+                // In CGB mode, check BG priority bit first
+                if ($this->cgbMode && $this->bgPriorityBuffer[$pixelX]) {
+                    // BG priority bit is set - BG always wins
+                    continue;
+                }
+                // Otherwise, use normal sprite priority (behindBg flag)
+                if ($behindBg) {
+                    continue;
+                }
             }
 
             if ($this->cgbMode) {
@@ -536,6 +562,14 @@ final class Ppu implements DeviceInterface
         return $this->cgbMode;
     }
 
+    /**
+     * Set the HDMA controller for H-Blank DMA transfers.
+     */
+    public function setHdmaController(HdmaController $hdmaController): void
+    {
+        $this->hdmaController = $hdmaController;
+    }
+
     // DeviceInterface implementation for I/O registers
     public function readByte(int $address): int
     {
@@ -551,10 +585,11 @@ final class Ppu implements DeviceInterface
             self::OBP1 => $this->obp1,
             self::WY => $this->wy,
             self::WX => $this->wx,
-            self::BCPS => $this->colorPalette->readBgIndex(),
-            self::BCPD => $this->colorPalette->readBgData(),
-            self::OCPS => $this->colorPalette->readObjIndex(),
-            self::OCPD => $this->colorPalette->readObjData(),
+            // CGB color palette registers - only accessible in CGB mode
+            self::BCPS => $this->cgbMode ? $this->colorPalette->readBgIndex() : 0xFF,
+            self::BCPD => $this->cgbMode ? $this->colorPalette->readBgData() : 0xFF,
+            self::OCPS => $this->cgbMode ? $this->colorPalette->readObjIndex() : 0xFF,
+            self::OCPD => $this->cgbMode ? $this->colorPalette->readObjData() : 0xFF,
             default => 0xFF,
         };
     }
@@ -573,10 +608,11 @@ final class Ppu implements DeviceInterface
             self::OBP1 => $this->obp1 = $value,
             self::WY => $this->wy = $value,
             self::WX => $this->wx = $value,
-            self::BCPS => $this->colorPalette->writeBgIndex($value),
-            self::BCPD => $this->colorPalette->writeBgData($value),
-            self::OCPS => $this->colorPalette->writeObjIndex($value),
-            self::OCPD => $this->colorPalette->writeObjData($value),
+            // CGB color palette registers - only writable in CGB mode
+            self::BCPS => $this->cgbMode ? $this->colorPalette->writeBgIndex($value) : null,
+            self::BCPD => $this->cgbMode ? $this->colorPalette->writeBgData($value) : null,
+            self::OCPS => $this->cgbMode ? $this->colorPalette->writeObjIndex($value) : null,
+            self::OCPD => $this->cgbMode ? $this->colorPalette->writeObjData($value) : null,
             default => null,
         };
 

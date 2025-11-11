@@ -131,6 +131,11 @@ final class Emulator
             $this->interruptController
         );
 
+        // Enable CGB mode if cartridge supports it
+        if ($this->cartridge->getHeader()->isCgbSupported()) {
+            $this->ppu->enableCgbMode(true);
+        }
+
         // Create APU
         $this->apu = new Apu($this->audioSink);
 
@@ -177,8 +182,11 @@ final class Emulator
         // HDMA registers: HDMA1-HDMA5
         $this->bus->attachIoDevice($this->hdma, 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55);
 
+        // Connect HDMA to PPU for H-Blank triggers
+        $this->ppu->setHdmaController($this->hdma);
+
         // Create CGB controller
-        $this->cgb = new CgbController($vram);
+        $this->cgb = new CgbController($vram, $wram);
         // CGB registers: KEY1, VBK, RP, SVBK
         $this->bus->attachIoDevice($this->cgb, 0xFF4D, 0xFF4F, 0xFF56, 0xFF70);
 
@@ -196,6 +204,9 @@ final class Emulator
 
         // Create CPU
         $this->cpu = new Cpu($this->bus, $this->interruptController);
+
+        // Set CGB controller on CPU for speed switching support
+        $this->cpu->setCgbController($this->cgb);
 
         // Optimization (Step 14): Pre-build all 512 instructions for faster dispatch
         // Expected: 1-2% performance gain by eliminating lazy initialization checks

@@ -6,6 +6,7 @@ namespace Gb\System;
 
 use Gb\Bus\DeviceInterface;
 use Gb\Memory\Vram;
+use Gb\Memory\Wram;
 
 /**
  * Game Boy Color Controller
@@ -14,7 +15,8 @@ use Gb\Memory\Vram;
  * - VBK (0xFF4F): VRAM bank select
  * - KEY1 (0xFF4D): Speed switch control
  * - RP (0xFF56): Infrared communications port (stub)
- * - HDMA1-5 (0xFF51-0xFF55): HDMA registers (future)
+ * - SVBK (0xFF70): WRAM bank select
+ * - HDMA1-5 (0xFF51-0xFF55): HDMA registers (handled by HdmaController)
  *
  * Reference: Pan Docs - CGB Registers
  */
@@ -24,6 +26,7 @@ final class CgbController implements DeviceInterface
     private const KEY1 = 0xFF4D; // Speed switch
     private const VBK = 0xFF4F;  // VRAM bank
     private const RP = 0xFF56;   // Infrared port
+    private const SVBK = 0xFF70; // WRAM bank
 
     /** @var int KEY1 register: speed switch control */
     private int $key1 = 0x00;
@@ -33,6 +36,7 @@ final class CgbController implements DeviceInterface
 
     public function __construct(
         private readonly Vram $vram,
+        private readonly Wram $wram,
     ) {
     }
 
@@ -42,6 +46,7 @@ final class CgbController implements DeviceInterface
             self::KEY1 => $this->readKey1(),
             self::VBK => $this->vram->getBank() | 0xFE, // Only bit 0 used, others return 1
             self::RP => 0xFF, // Infrared stub: always return 0xFF
+            self::SVBK => $this->wram->getBank() | 0xF8, // Only bits 0-2 used, others return 1
             default => 0xFF,
         };
     }
@@ -52,6 +57,7 @@ final class CgbController implements DeviceInterface
             self::KEY1 => $this->writeKey1($value),
             self::VBK => $this->vram->setBank($value & 0x01),
             self::RP => null, // Infrared stub: ignore writes
+            self::SVBK => $this->wram->setBank($value & 0x07),
             default => null,
         };
     }
