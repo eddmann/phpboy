@@ -64,6 +64,9 @@ final class Emulator
     private FramebufferInterface $framebuffer;
     private AudioSinkInterface $audioSink;
 
+    /** @var string|null Manual DMG palette selection (e.g., 'grayscale', 'left_b') */
+    private ?string $dmgPalette = null;
+
     // Subsystems
     private ?InterruptController $interruptController = null;
     private ?Timer $timer = null;
@@ -251,6 +254,16 @@ final class Emulator
     }
 
     /**
+     * Set the DMG colorization palette.
+     *
+     * @param string $palette Palette name or button combination (e.g., 'grayscale', 'left_b')
+     */
+    public function setDmgPalette(string $palette): void
+    {
+        $this->dmgPalette = $palette;
+    }
+
+    /**
      * Apply DMG colorization to simulate CGB boot ROM behavior.
      *
      * When a DMG-only game runs on CGB hardware, the boot ROM automatically
@@ -279,10 +292,8 @@ final class Emulator
         // Create colorizer and apply palette
         $colorizer = new DmgColorizer($colorPalette);
 
-        // Use automatic detection based on title checksum
-        // Manual palette selection via button combinations could be added
-        // by capturing joypad state during boot sequence
-        $buttonCombo = null;
+        // Use manual palette if set, otherwise use automatic detection
+        $buttonCombo = $this->dmgPalette;
 
         $colorizer->colorize($header, $buttonCombo);
     }

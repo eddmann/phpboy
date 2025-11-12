@@ -239,4 +239,25 @@ class DmgPalettes
     {
         return array_keys(self::PALETTES);
     }
+
+    /**
+     * Check if a palette name or button combo is valid
+     *
+     * @param string $nameOrCombo Palette name or button combination
+     * @return bool True if valid
+     */
+    public static function isValid(string $nameOrCombo): bool
+    {
+        // Check if it's a direct palette name
+        if (isset(self::PALETTES[$nameOrCombo])) {
+            return true;
+        }
+
+        // Check if it's a button combination
+        if (isset(self::MANUAL_PALETTES[$nameOrCombo])) {
+            return true;
+        }
+
+        return false;
+    }
 }

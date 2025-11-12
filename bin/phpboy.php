@@ -53,6 +53,9 @@ Options:
   --save=<path>          Save file location (default: <rom>.sav)
   --audio                Enable real-time audio playback (requires aplay/ffplay)
   --audio-out=<path>     WAV file to record audio output
+  --palette=<name>       DMG colorization palette (for DMG games on CGB hardware)
+                         Options: green, brown, blue, grayscale, pokemon_red, pokemon_blue,
+                                  red_yellow, pastel, inverted, or any button combo (e.g., left_b)
   --frames=<n>           Number of frames to run in headless mode (default: 60)
   --benchmark            Enable benchmark mode with FPS measurement (requires --headless)
   --memory-profile       Enable memory profiling (requires --headless)
@@ -69,6 +72,8 @@ Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
   php bin/phpboy.php tetris.gb --display-mode=ansi-color
+  php bin/phpboy.php tetris.gb --palette=grayscale
+  php bin/phpboy.php pokemon_red.gb --palette=pokemon_red
   php bin/phpboy.php tetris.gb --audio
   php bin/phpboy.php tetris.gb --debug
   php bin/phpboy.php tetris.gb --savestate-load=save.state
@@ -82,7 +87,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null, palette: string|null}
  */
 function parseArguments(array $argv): array
 {
@@ -107,6 +112,7 @@ function parseArguments(array $argv): array
         'rewind_buffer' => 60,
         'record' => null,
         'playback' => null,
+        'palette' => null,
     ];
 
     // Parse arguments
@@ -159,6 +165,8 @@ function parseArguments(array $argv): array
             $options['record'] = substr($arg, 9);
         } elseif (str_starts_with($arg, '--playback=')) {
             $options['playback'] = substr($arg, 11);
+        } elseif (str_starts_with($arg, '--palette=')) {
+            $options['palette'] = substr($arg, 10);
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -234,6 +242,19 @@ try {
 
     // Create emulator
     $emulator = new Emulator();
+
+    // Set DMG palette if specified (before loading ROM)
+    if ($options['palette'] !== null) {
+        if (!\Gb\Ppu\DmgPalettes::isValid($options['palette'])) {
+            fwrite(STDERR, "Error: Invalid palette '{$options['palette']}'\n");
+            fwrite(STDERR, "Available palettes: " . implode(', ', \Gb\Ppu\DmgPalettes::getAllPaletteNames()) . "\n");
+            fwrite(STDERR, "Available button combos: up, up_a, up_b, left, left_a, left_b, down, down_a, down_b, right, right_a, right_b\n");
+            exit(1);
+        }
+        $emulator->setDmgPalette($options['palette']);
+        echo "DMG Palette: {$options['palette']}\n";
+    }
+
     $emulator->loadRom($options['rom']);
 
     // Set speed multiplier
