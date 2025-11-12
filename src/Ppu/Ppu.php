@@ -97,6 +97,10 @@ final class Ppu implements DeviceInterface
     /** @var array<int, int> */
     private array $bgColorBuffer = [];
 
+    // Background priority buffer (stores BG-to-OAM Priority flag, bit 7 of BG attributes)
+    /** @var array<int, bool> */
+    private array $bgPriorityBuffer = [];
+
     /** @var ColorPalette Color palette system (CGB) */
     private readonly ColorPalette $colorPalette;
 
@@ -241,6 +245,7 @@ final class Ppu implements DeviceInterface
         // Initialize scanline buffer and BG color buffer
         $this->scanlineBuffer = array_fill(0, ArrayFramebuffer::WIDTH, Color::fromDmgShade(0));
         $this->bgColorBuffer = array_fill(0, ArrayFramebuffer::WIDTH, 0);
+        $this->bgPriorityBuffer = array_fill(0, ArrayFramebuffer::WIDTH, false);
 
         // Render layers
         if (($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0) {
@@ -287,6 +292,7 @@ final class Ppu implements DeviceInterface
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
             $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+            $bgPriority = ($attributes & 0x80) !== 0; // Bit 7: BG-to-OAM Priority
 
             // Apply flips
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
@@ -299,8 +305,9 @@ final class Ppu implements DeviceInterface
             // Get pixel color
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
 
-            // Store raw color for sprite priority checking
+            // Store raw color and priority flag for sprite priority checking
             $this->bgColorBuffer[$x] = $color;
+            $this->bgPriorityBuffer[$x] = $bgPriority;
 
             // Apply palette
             if ($this->cgbMode) {
@@ -346,6 +353,7 @@ final class Ppu implements DeviceInterface
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
             $yFlip = ($attributes & 0x40) !== 0; // Bit 6: vertical flip
+            $bgPriority = ($attributes & 0x80) !== 0; // Bit 7: BG-to-OAM Priority
 
             // Apply flips
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
@@ -357,8 +365,9 @@ final class Ppu implements DeviceInterface
 
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
 
-            // Store raw color for sprite priority checking
+            // Store raw color and priority flag for sprite priority checking
             $this->bgColorBuffer[$x] = $color;
+            $this->bgPriorityBuffer[$x] = $bgPriority;
 
             // Apply palette
             if ($this->cgbMode) {
@@ -435,11 +444,14 @@ final class Ppu implements DeviceInterface
         }
 
         $line = $this->ly - $spriteY;
+
+        // Apply Y-flip first (for 8x16, this swaps tiles AND flips within each)
         if ($yFlip) {
             $line = $spriteHeight - 1 - $line;
         }
 
         // For 8x16 sprites, use tile index & 0xFE for top half, | 0x01 for bottom half
+        // Bit 0 of tile index is ignored for 8x16 objects
         if ($spriteHeight === 16) {
             if ($line >= 8) {
                 $tileIndex = ($tileIndex & 0xFE) | 0x01;
@@ -465,9 +477,26 @@ final class Ppu implements DeviceInterface
                 continue;
             }
 
-            // Check priority (behind BG)
-            if ($behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
-                // If BG pixel is not color 0, sprite is hidden behind BG
+            // Priority handling for CGB mode
+            // See Pan Docs and cgb-acid2 README for priority logic
+            if ($this->cgbMode && $this->bgColorBuffer[$pixelX] !== 0) {
+                // Both sprite and BG have non-zero colors, need to check priority
+                $masterPriorityEnabled = ($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0;
+
+                if (!$masterPriorityEnabled) {
+                    // Master Priority disabled: sprites always on top
+                    // (used by cgb-acid2 nose section)
+                } elseif ($this->bgPriorityBuffer[$pixelX]) {
+                    // BG-to-OAM Priority set: BG has priority over sprites
+                    continue;
+                } elseif ($behindBg) {
+                    // OBJ-to-BG Priority set: sprite is behind BG
+                    continue;
+                }
+                // Otherwise: sprite is drawn on top
+            } elseif (!$this->cgbMode && $behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
+                // DMG mode: simple priority check
+                // If sprite has OBJ-to-BG Priority set and BG is not color 0, hide sprite
                 continue;
             }
 
