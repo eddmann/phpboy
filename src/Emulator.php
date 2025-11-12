@@ -279,15 +279,12 @@ final class Emulator
         // Create colorizer and apply palette
         $colorizer = new DmgColorizer($colorPalette);
 
-        // TODO: Support manual palette selection via button combinations
-        // For now, use automatic detection only
+        // Use automatic detection based on title checksum
+        // Manual palette selection via button combinations could be added
+        // by capturing joypad state during boot sequence
         $buttonCombo = null;
 
-        $paletteName = $colorizer->colorize($header, $buttonCombo);
-
-        // Log the applied palette for debugging
-        // (You can remove this in production or add proper logging)
-        // echo "Applied DMG colorization palette: {$paletteName}\n";
+        $colorizer->colorize($header, $buttonCombo);
     }
 
     /**
