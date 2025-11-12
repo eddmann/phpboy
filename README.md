@@ -220,6 +220,10 @@ Test ROM results:
 - 🔄 Acid Tests: Working on dmg-acid2/cgb-acid2 support
   - PPU rendering accuracy improvements in progress
 
+<p align="center">
+  <img src="cgb-acid2-result.png" alt="cgb-acid2 test result" width="320" />
+</p>
+
 See `docs/test-results.md` for detailed test results.
 
 ## License
