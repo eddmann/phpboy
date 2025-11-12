@@ -43,6 +43,7 @@ final readonly class CartridgeHeader
      * @param array<int, int> $entryPoint Entry point code (0x0100-0x0103)
      * @param array<int, int> $nintendoLogo Nintendo logo data (0x0104-0x0133)
      * @param string $title Game title (0x0134-0x0143)
+     * @param array<int, int> $titleBytes Raw title bytes (0x0134-0x0143, 16 bytes for checksum calculation)
      * @param int $cgbFlag CGB compatibility flag (0x0143)
      * @param int $newLicenseeCode New licensee code (0x0144-0x0145, as 16-bit value)
      * @param int $sgbFlag SGB compatibility flag (0x0146)
@@ -61,6 +62,7 @@ final readonly class CartridgeHeader
         public array $entryPoint,
         public array $nintendoLogo,
         public string $title,
+        public array $titleBytes,
         public int $cgbFlag,
         public int $newLicenseeCode,
         public int $sgbFlag,
@@ -97,15 +99,23 @@ final readonly class CartridgeHeader
         // Extract title (0x0134-0x0143, up to 16 bytes, null-terminated)
         // Note: In CGB mode, bytes 0x013F-0x0142 may be manufacturer code,
         // and 0x0143 is the CGB flag, so title may be shorter
-        $titleBytes = [];
+
+        // Store raw title bytes (0x0134-0x0143) for checksum calculation
+        $titleBytesRaw = [];
+        for ($i = 0x0134; $i <= 0x0143; $i++) {
+            $titleBytesRaw[] = $rom[$i] ?? 0x00;
+        }
+
+        // Extract printable title string
+        $titleChars = [];
         for ($i = 0x0134; $i < 0x0143; $i++) {
             $byte = $rom[$i] ?? 0x00;
             if ($byte === 0x00) {
                 break;
             }
-            $titleBytes[] = chr($byte);
+            $titleChars[] = chr($byte);
         }
-        $title = implode('', $titleBytes);
+        $title = implode('', $titleChars);
 
         // CGB flag (0x0143)
         $cgbFlag = $rom[0x0143] ?? 0x00;
@@ -154,6 +164,7 @@ final readonly class CartridgeHeader
             entryPoint: $entryPoint,
             nintendoLogo: $nintendoLogo,
             title: $title,
+            titleBytes: $titleBytesRaw,
             cgbFlag: $cgbFlag,
             newLicenseeCode: $newLicenseeCode,
             sgbFlag: $sgbFlag,
@@ -297,6 +308,18 @@ final readonly class CartridgeHeader
     public function isJapanese(): bool
     {
         return $this->destinationCode === 0x00;
+    }
+
+    /**
+     * Get raw title bytes for checksum calculation.
+     *
+     * Returns 16 bytes from 0x0134-0x0143 used for CGB colorization detection.
+     *
+     * @return array<int, int> Raw title bytes (16 bytes)
+     */
+    public function getTitleBytes(): array
+    {
+        return $this->titleBytes;
     }
 
     /**

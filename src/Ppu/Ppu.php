@@ -565,6 +565,16 @@ final class Ppu implements DeviceInterface
         return $this->cgbMode;
     }
 
+    /**
+     * Get the color palette object for CGB colorization.
+     *
+     * @return ColorPalette Color palette object
+     */
+    public function getColorPalette(): ColorPalette
+    {
+        return $this->colorPalette;
+    }
+
     // DeviceInterface implementation for I/O registers
     public function readByte(int $address): int
     {

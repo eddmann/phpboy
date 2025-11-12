@@ -20,6 +20,8 @@ use Gb\Memory\Hram;
 use Gb\Memory\Vram;
 use Gb\Memory\Wram;
 use Gb\Ppu\ArrayFramebuffer;
+use Gb\Ppu\ColorPalette;
+use Gb\Ppu\DmgColorizer;
 use Gb\Ppu\FramebufferInterface;
 use Gb\Ppu\Oam;
 use Gb\Ppu\Ppu;
@@ -61,6 +63,9 @@ final class Emulator
     private ?InputInterface $input = null;
     private FramebufferInterface $framebuffer;
     private AudioSinkInterface $audioSink;
+
+    /** @var string|null Manual DMG palette selection (e.g., 'grayscale', 'left_b') */
+    private ?string $dmgPalette = null;
 
     // Subsystems
     private ?InterruptController $interruptController = null;
@@ -135,8 +140,14 @@ final class Emulator
         );
 
         // Enable CGB mode in PPU if cartridge supports it
+        // OR apply DMG colorization for backward compatibility
         if ($isCgbMode) {
             $this->ppu->enableCgbMode(true);
+        } else {
+            // DMG game on CGB hardware: apply automatic colorization
+            // This simulates the CGB boot ROM's colorization system
+            $this->ppu->enableCgbMode(false); // Keep DMG mode for rendering
+            $this->applyDmgColorization();
         }
 
         // Create APU
@@ -240,6 +251,51 @@ final class Emulator
 
         // Reset clock
         $this->clock->reset();
+    }
+
+    /**
+     * Set the DMG colorization palette.
+     *
+     * @param string $palette Palette name or button combination (e.g., 'grayscale', 'left_b')
+     */
+    public function setDmgPalette(string $palette): void
+    {
+        $this->dmgPalette = $palette;
+    }
+
+    /**
+     * Apply DMG colorization to simulate CGB boot ROM behavior.
+     *
+     * When a DMG-only game runs on CGB hardware, the boot ROM automatically
+     * applies color palettes based on game detection. This method replicates
+     * that behavior.
+     */
+    private function applyDmgColorization(): void
+    {
+        if ($this->cartridge === null || $this->ppu === null) {
+            return;
+        }
+
+        $header = $this->cartridge->getHeader();
+
+        // Only colorize if it's a DMG-only game
+        if (!$header->isDmgOnly()) {
+            return;
+        }
+
+        // Get the PPU's color palette
+        $colorPalette = $this->ppu->getColorPalette();
+        if ($colorPalette === null) {
+            return;
+        }
+
+        // Create colorizer and apply palette
+        $colorizer = new DmgColorizer($colorPalette);
+
+        // Use manual palette if set, otherwise use automatic detection
+        $buttonCombo = $this->dmgPalette;
+
+        $colorizer->colorize($header, $buttonCombo);
     }
 
     /**
