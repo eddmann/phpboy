@@ -54,11 +54,18 @@ class DmgColorizer
      * @param CartridgeHeader $header Cartridge header
      * @param string|null $buttonCombo Button combination string (e.g., 'left_b')
      * @return array{name: string, bg: array<int>, obj0: array<int>, obj1: array<int>}
-     */
+ */
     public function selectPalette(CartridgeHeader $header, ?string $buttonCombo = null): array
     {
         // Priority 1: Manual override
         if ($buttonCombo !== null) {
+            // First, try as direct palette name
+            $palette = DmgPalettes::getPalette($buttonCombo);
+            if ($palette !== null) {
+                return $palette;
+            }
+
+            // Otherwise, try as button combination
             $paletteName = DmgPalettes::getPaletteNameByButtons($buttonCombo);
             if ($paletteName !== null) {
                 $palette = DmgPalettes::getPalette($paletteName);

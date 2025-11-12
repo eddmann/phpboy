@@ -141,13 +141,23 @@ final class Emulator
 
         // Enable CGB mode in PPU if cartridge supports it
         // OR apply DMG colorization for backward compatibility
-        if ($isCgbMode) {
+        //
+        // Priority:
+        // 1. Manual palette (--palette flag): Force DMG colorization even for CGB games
+        // 2. Native CGB mode: Use game's built-in CGB palettes
+        // 3. Automatic DMG colorization: Apply palette based on game detection
+        // 4. Grayscale DMG mode: No colorization
+        if ($this->dmgPalette !== null) {
+            // Manual palette specified: force DMG colorization mode
+            $paletteApplied = $this->applyDmgColorization();
+            $this->ppu->enableCgbMode($paletteApplied);
+        } elseif ($isCgbMode) {
+            // Use native CGB mode with game's built-in palettes
             $this->ppu->enableCgbMode(true);
         } else {
-            // DMG game on CGB hardware: apply automatic colorization
-            // This simulates the CGB boot ROM's colorization system
-            $this->ppu->enableCgbMode(false); // Keep DMG mode for rendering
-            $this->applyDmgColorization();
+            // DMG game: try automatic colorization
+            $paletteApplied = $this->applyDmgColorization();
+            $this->ppu->enableCgbMode($paletteApplied);
         }
 
         // Create APU
@@ -270,32 +280,46 @@ final class Emulator
      * applies color palettes based on game detection. This method replicates
      * that behavior.
      */
-    private function applyDmgColorization(): void
+    private function applyDmgColorization(): bool
     {
         if ($this->cartridge === null || $this->ppu === null) {
-            return;
+            return false;
         }
 
         $header = $this->cartridge->getHeader();
 
-        // Only colorize if it's a DMG-only game
-        if (!$header->isDmgOnly()) {
-            return;
-        }
-
         // Get the PPU's color palette
         $colorPalette = $this->ppu->getColorPalette();
-        if ($colorPalette === null) {
-            return;
-        }
 
-        // Create colorizer and apply palette
+        // Create colorizer
         $colorizer = new DmgColorizer($colorPalette);
 
-        // Use manual palette if set, otherwise use automatic detection
+        // Use manual palette if set, otherwise check for automatic detection
         $buttonCombo = $this->dmgPalette;
 
-        $colorizer->colorize($header, $buttonCombo);
+        // If manual palette is set, always apply it (even for CGB games)
+        if ($buttonCombo !== null) {
+            $colorizer->colorize($header, $buttonCombo);
+            return true;
+        }
+
+        // For automatic detection, only colorize DMG-only games
+        if (!$header->isDmgOnly()) {
+            return false;
+        }
+
+        // Check if game has an automatic palette via checksum
+        $checksum = $colorizer->calculateTitleChecksum($header);
+        $paletteName = \Gb\Ppu\DmgPalettes::getPaletteNameByChecksum($checksum);
+
+        // Only apply colorization if game is detected
+        if ($paletteName !== null) {
+            $colorizer->colorize($header, null);
+            return true;
+        }
+
+        // No palette detected, keep DMG mode (grayscale)
+        return false;
     }
 
     /**
