@@ -10,7 +10,7 @@ use Gb\Frontend\Cli\CliInput;
 use Gb\Frontend\Cli\CliRenderer;
 use Gb\Apu\Sink\WavSink;
 use Gb\Apu\Sink\NullSink;
-use Gb\Apu\Sink\PipeAudioSink;
+use Gb\Apu\Sink\SoxAudioSink;
 use Gb\Debug\Debugger;
 use Gb\Debug\Trace;
 
@@ -274,14 +274,13 @@ try {
     }
 
     if ($options['audio']) {
-        // Real-time audio playback via pipe to external player
-        $audioSink = new PipeAudioSink(48000);
+        $audioSink = new SoxAudioSink(44100);
         $emulator->setAudioSink($audioSink);
 
         if ($audioSink->isAvailable()) {
-            echo "Audio: Enabled (using {$audioSink->getPlayerName()})\n";
+            echo "Audio: Enabled (using {$audioSink->getPlayerName()} at 44100 Hz)\n";
         } else {
-            echo "Audio: Failed to start (install aplay or ffplay for audio support)\n";
+            echo "Audio: Failed to start (install SoX for audio support)\n";
         }
     } elseif ($options['audio_out'] !== null) {
         // WAV file recording

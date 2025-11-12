@@ -17,7 +17,7 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
 - ✅ Test Accuracy: Passes Blargg's CPU instruction tests (11/11)
 - ✅ Commercial ROMs: Tetris (GBC), Pokemon Red, Zelda DX run with color support
 - ✅ Browser (WASM): Renderer works but very slow due to WASM overhead
-- 🔄 Audio: APU implemented, working on output integration (CLI/SDL2/WASM)
+- ✅ Audio: Full audio support in CLI terminal frontend using SoX
 - 🔄 Mooneye Test Suite: Working on full support (10/39 currently passing)
 - 🔄 Acid Tests: Working on dmg-acid2/cgb-acid2 support
 - 🔄 SDL2 Native Desktop: Work in progress
@@ -42,8 +42,8 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
   - VRAM bank switching
   - DMG backward compatibility mode
 - Multiple Frontends:
-  - CLI Terminal ✅: ANSI color rendering, primary frontend
-  - Browser (WebAssembly) ✅: Runs via php-wasm (slow performance)
+  - CLI Terminal ✅: ANSI color rendering with audio support (SoX), primary frontend
+  - Browser (WebAssembly) ✅: Runs via php-wasm (slow performance, audio WIP)
   - SDL2 Native Desktop 🔄: WIP
 - Test Coverage: Passes Blargg's CPU instruction tests (11/11)
 - Development: Docker-based workflow with PHPUnit 10 and PHPStan level 9
@@ -54,6 +54,7 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
 - Docker
 - Docker Compose
 - Make (for convenient task automation)
+- SoX (for audio playback in CLI mode) - install via `apt-get install sox` (Linux) or `brew install sox` (macOS)
 
 ## Getting Started
 
@@ -80,7 +81,7 @@ make install
 
 ### Running Game Boy / Game Boy Color ROMs
 
-The CLI terminal frontend is the primary way to run PHPBoy. It supports both DMG (original Game Boy) and GBC (Game Boy Color) ROMs:
+The CLI terminal frontend is the primary way to run PHPBoy. It supports both DMG (original Game Boy) and GBC (Game Boy Color) ROMs with full audio support:
 
 ```bash
 # Run with CLI frontend (JIT enabled by default for 60+ FPS)
@@ -90,6 +91,8 @@ make run ROM=path/to/rom.gbc   # GBC games
 # Run without JIT for baseline performance testing (25-30 FPS)
 make run-no-jit ROM=path/to/rom.gb
 ```
+
+**Note:** Audio playback requires SoX to be installed on your system. See Requirements section above.
 
 CLI Controls:
 

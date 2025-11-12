@@ -408,6 +408,9 @@ final class Emulator
 
         // Display the rendered frame
         $this->framebuffer->present();
+
+        // Flush audio samples for this frame to maintain sync with video
+        $this->audioSink->flush();
     }
 
     /**

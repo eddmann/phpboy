@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     zip \
+    sox \
     && docker-php-ext-install zip \
     && rm -rf /var/lib/apt/lists/*
 
