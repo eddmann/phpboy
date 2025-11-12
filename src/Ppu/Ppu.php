@@ -106,6 +106,7 @@ final class Ppu implements DeviceInterface
 
     /** @var bool CGB mode enabled */
     private bool $cgbMode = false;
+    private bool $dmgCompatibilityMode = false; // DMG game with CGB colorization
 
     public function __construct(
         private readonly Vram $vram,
@@ -286,8 +287,8 @@ final class Ppu implements DeviceInterface
             $tileMapAddr = $tileMapBase + ($tileRow * 32) + $tileCol;
             $tileIndex = $vramBank0[$tileMapAddr];
 
-            // Get tile attributes from bank 1 (CGB only)
-            $attributes = $this->cgbMode ? $vramBank1[$tileMapAddr] : 0x00;
+            // Get tile attributes from bank 1 (CGB only, not in DMG compat mode)
+            $attributes = ($this->cgbMode && !$this->dmgCompatibilityMode) ? $vramBank1[$tileMapAddr] : 0x00;
             $paletteNum = $attributes & 0x07; // Bits 0-2: palette number
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
@@ -298,8 +299,8 @@ final class Ppu implements DeviceInterface
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
             $finalTileX = $xFlip ? (7 - $tileX) : $tileX;
 
-            // Get tile data from appropriate bank
-            $vramData = $this->cgbMode ? $this->vram->getData($vramBank) : $vramBank0;
+            // Get tile data from appropriate bank (always bank 0 in DMG compat mode)
+            $vramData = ($this->cgbMode && !$this->dmgCompatibilityMode) ? $this->vram->getData($vramBank) : $vramBank0;
             $tileDataAddr = $this->getTileDataAddress($tileIndex, $tileDataMode);
 
             // Get pixel color
@@ -347,8 +348,8 @@ final class Ppu implements DeviceInterface
             $tileMapAddr = $tileMapBase + ($tileRow * 32) + $tileCol;
             $tileIndex = $vramBank0[$tileMapAddr];
 
-            // Get tile attributes from bank 1 (CGB only)
-            $attributes = $this->cgbMode ? $vramBank1[$tileMapAddr] : 0x00;
+            // Get tile attributes from bank 1 (CGB only, not in DMG compat mode)
+            $attributes = ($this->cgbMode && !$this->dmgCompatibilityMode) ? $vramBank1[$tileMapAddr] : 0x00;
             $paletteNum = $attributes & 0x07; // Bits 0-2: palette number
             $vramBank = ($attributes & 0x08) !== 0 ? 1 : 0; // Bit 3: VRAM bank
             $xFlip = ($attributes & 0x20) !== 0; // Bit 5: horizontal flip
@@ -359,8 +360,8 @@ final class Ppu implements DeviceInterface
             $finalTileY = $yFlip ? (7 - $tileY) : $tileY;
             $finalTileX = $xFlip ? (7 - $tileX) : $tileX;
 
-            // Get tile data from appropriate bank
-            $vramData = $this->cgbMode ? $this->vram->getData($vramBank) : $vramBank0;
+            // Get tile data from appropriate bank (always bank 0 in DMG compat mode)
+            $vramData = ($this->cgbMode && !$this->dmgCompatibilityMode) ? $this->vram->getData($vramBank) : $vramBank0;
             $tileDataAddr = $this->getTileDataAddress($tileIndex, $tileDataMode);
 
             $color = $this->getTilePixel($vramData, $tileDataAddr, $finalTileX, $finalTileY);
@@ -435,12 +436,15 @@ final class Ppu implements DeviceInterface
 
         // CGB: bits 0-2 are palette number, bit 3 is VRAM bank
         // DMG: bit 4 selects OBP0 or OBP1
-        if ($this->cgbMode) {
+        // DMG Compat: use bit 4 like DMG, but render with CGB color palette
+        if ($this->cgbMode && !$this->dmgCompatibilityMode) {
             $paletteNum = $flags & 0x07;
             $vramBank = ($flags & 0x08) !== 0 ? 1 : 0;
             $vramData = $this->vram->getData($vramBank);
         } else {
             $palette = ($flags & 0x10) !== 0 ? $this->obp1 : $this->obp0;
+            // In DMG compat mode, map OBP0 to palette 0, OBP1 to palette 1
+            $paletteNum = ($flags & 0x10) !== 0 ? 1 : 0;
         }
 
         $line = $this->ly - $spriteY;
@@ -479,7 +483,8 @@ final class Ppu implements DeviceInterface
 
             // Priority handling for CGB mode
             // See Pan Docs and cgb-acid2 README for priority logic
-            if ($this->cgbMode && $this->bgColorBuffer[$pixelX] !== 0) {
+            if ($this->cgbMode && !$this->dmgCompatibilityMode && $this->bgColorBuffer[$pixelX] !== 0) {
+                // CGB mode: complex priority logic
                 // Both sprite and BG have non-zero colors, need to check priority
                 $masterPriorityEnabled = ($this->lcdc & self::LCDC_BG_WINDOW_ENABLE) !== 0;
 
@@ -494,8 +499,8 @@ final class Ppu implements DeviceInterface
                     continue;
                 }
                 // Otherwise: sprite is drawn on top
-            } elseif (!$this->cgbMode && $behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
-                // DMG mode: simple priority check
+            } elseif (($this->dmgCompatibilityMode || !$this->cgbMode) && $behindBg && $this->bgColorBuffer[$pixelX] !== 0) {
+                // DMG mode or DMG compat mode: simple priority check
                 // If sprite has OBJ-to-BG Priority set and BG is not color 0, hide sprite
                 continue;
             }
@@ -555,6 +560,19 @@ final class Ppu implements DeviceInterface
     public function enableCgbMode(bool $enabled): void
     {
         $this->cgbMode = $enabled;
+    }
+
+    /**
+     * Enable DMG compatibility mode (DMG game with CGB colorization).
+     * This uses CGB color palettes but interprets sprite flags as DMG.
+     */
+    public function enableDmgCompatibilityMode(bool $enabled): void
+    {
+        $this->dmgCompatibilityMode = $enabled;
+        // DMG compat mode requires CGB mode to be enabled for ColorPalette
+        if ($enabled) {
+            $this->cgbMode = true;
+        }
     }
 
     /**

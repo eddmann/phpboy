@@ -115,7 +115,7 @@ class DmgPalettes
      * Based on the CGB boot ROM lookup table.
      */
     public const CHECKSUM_MAP = [
-        0x01 => 'pokemon_red',
+        0x14 => 'pokemon_red',
         0x61 => 'pokemon_blue',
     ];
 

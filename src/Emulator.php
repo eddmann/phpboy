@@ -150,14 +150,24 @@ final class Emulator
         if ($this->dmgPalette !== null) {
             // Manual palette specified: force DMG colorization mode
             $paletteApplied = $this->applyDmgColorization();
-            $this->ppu->enableCgbMode($paletteApplied);
+            if ($paletteApplied) {
+                $this->ppu->enableDmgCompatibilityMode(true);
+            } else {
+                $this->ppu->enableCgbMode(false);
+            }
         } elseif ($isCgbMode) {
             // Use native CGB mode with game's built-in palettes
             $this->ppu->enableCgbMode(true);
         } else {
             // DMG game: try automatic colorization
             $paletteApplied = $this->applyDmgColorization();
-            $this->ppu->enableCgbMode($paletteApplied);
+            if ($paletteApplied) {
+                // Use CGB color palette with DMG sprite flag interpretation
+                $this->ppu->enableDmgCompatibilityMode(true);
+            } else {
+                // No colorization, keep grayscale DMG mode
+                $this->ppu->enableCgbMode(false);
+            }
         }
 
         // Create APU
@@ -279,6 +289,8 @@ final class Emulator
      * When a DMG-only game runs on CGB hardware, the boot ROM automatically
      * applies color palettes based on game detection. This method replicates
      * that behavior.
+     *
+     * @return bool True if colorization was applied, false otherwise
      */
     private function applyDmgColorization(): bool
     {
@@ -318,7 +330,6 @@ final class Emulator
             return true;
         }
 
-        // No palette detected, keep DMG mode (grayscale)
         return false;
     }
 
