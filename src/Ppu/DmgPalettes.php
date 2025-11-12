@@ -69,17 +69,17 @@ class DmgPalettes
         // Pokemon Red - Red tones with green sprites
         'pokemon_red' => [
             'name' => 'Pokemon Red',
-            'bg' => [0x7FFF, 0x3FE6, 0x12A4, 0x0000],    // White, Light Red, Red, Black
-            'obj0' => [0x7FFF, 0x3E1F, 0x0140, 0x0000],  // White, Light Green, Green, Black
-            'obj1' => [0x7FFF, 0x3FE6, 0x12A4, 0x0000],  // White, Light Red, Red, Black
+            'bg' => [0x7FFF, 0x421F, 0x1CF2, 0x0000],    // White, Light Red, Red, Black
+            'obj0' => [0x7FFF, 0x1BEF, 0x0200, 0x0000],  // White, Lime Green, Dark Green, Black
+            'obj1' => [0x7FFF, 0x421F, 0x1CF2, 0x0000],  // White, Light Red, Red, Black
         ],
 
-        // Pokemon Blue - Blue tones with complementary sprites
+        // Pokemon Blue - Blue tones with red sprites
         'pokemon_blue' => [
             'name' => 'Pokemon Blue',
-            'bg' => [0x7FFF, 0x329F, 0x001F, 0x0000],    // White, Light Blue, Blue, Black
-            'obj0' => [0x7FFF, 0x3E1F, 0x0140, 0x0000],  // White, Light Green, Green, Black
-            'obj1' => [0x7FFF, 0x329F, 0x001F, 0x0000],  // White, Light Blue, Blue, Black
+            'bg' => [0x7FFF, 0x7C8C, 0x7C00, 0x0000],    // White, Light Blue, Blue, Black
+            'obj0' => [0x7FFF, 0x421F, 0x1CF2, 0x0000],  // White, Light Red, Red, Black
+            'obj1' => [0x7FFF, 0x7C8C, 0x7C00, 0x0000],  // White, Light Blue, Blue, Black
         ],
 
         // Pokemon Yellow - Yellow tones
