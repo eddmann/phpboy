@@ -176,4 +176,124 @@ final class Timer implements DeviceInterface
             $this->interruptController->requestInterrupt(InterruptType::Timer);
         }
     }
+
+    /**
+     * Get the current DIV register value.
+     *
+     * @return int DIV register (0x00-0xFF)
+     */
+    public function getDiv(): int
+    {
+        return $this->div;
+    }
+
+    /**
+     * Get the internal divider counter.
+     *
+     * @return int 16-bit divider counter
+     */
+    public function getDivCounter(): int
+    {
+        return $this->divCounter;
+    }
+
+    /**
+     * Get the TIMA register value.
+     *
+     * @return int TIMA register (0x00-0xFF)
+     */
+    public function getTima(): int
+    {
+        return $this->tima;
+    }
+
+    /**
+     * Get the TMA register value.
+     *
+     * @return int TMA register (0x00-0xFF)
+     */
+    public function getTma(): int
+    {
+        return $this->tma;
+    }
+
+    /**
+     * Get the TAC register value.
+     *
+     * @return int TAC register (0x00-0x07)
+     */
+    public function getTac(): int
+    {
+        return $this->tac;
+    }
+
+    /**
+     * Get the TIMA counter accumulator.
+     *
+     * @return int TIMA counter
+     */
+    public function getTimaCounter(): int
+    {
+        return $this->timaCounter;
+    }
+
+    /**
+     * Set the DIV register value (used for savestate restoration).
+     *
+     * @param int $value DIV register value
+     */
+    public function setDiv(int $value): void
+    {
+        $this->div = $value & 0xFF;
+    }
+
+    /**
+     * Set the internal divider counter (used for savestate restoration).
+     *
+     * @param int $value 16-bit divider counter
+     */
+    public function setDivCounter(int $value): void
+    {
+        $this->divCounter = $value & 0xFFFF;
+    }
+
+    /**
+     * Set the TIMA register value (used for savestate restoration).
+     *
+     * @param int $value TIMA register value
+     */
+    public function setTima(int $value): void
+    {
+        $this->tima = $value & 0xFF;
+    }
+
+    /**
+     * Set the TMA register value (used for savestate restoration).
+     *
+     * @param int $value TMA register value
+     */
+    public function setTma(int $value): void
+    {
+        $this->tma = $value & 0xFF;
+    }
+
+    /**
+     * Set the TAC register value (used for savestate restoration).
+     *
+     * @param int $value TAC register value
+     */
+    public function setTac(int $value): void
+    {
+        $this->tac = $value & 0x07;
+    }
+
+    /**
+     * Set the TIMA counter accumulator (used for savestate restoration).
+     *
+     * @param int $value TIMA counter
+     */
+    public function setTimaCounter(int $value): void
+    {
+        $this->timaCounter = $value;
+    }
 }

@@ -155,4 +155,84 @@ final class ColorPalette
         $rgb15 = ($high << 8) | $low;
         return Color::fromGbc15bit($rgb15);
     }
+
+    /**
+     * Get background palette memory (for savestate serialization).
+     *
+     * @return array<int, int> Background palette memory (64 bytes)
+     */
+    public function getBgPaletteMemory(): array
+    {
+        return $this->bgPalette;
+    }
+
+    /**
+     * Get object palette memory (for savestate serialization).
+     *
+     * @return array<int, int> Object palette memory (64 bytes)
+     */
+    public function getObjPaletteMemory(): array
+    {
+        return $this->objPalette;
+    }
+
+    /**
+     * Get background palette index (for savestate serialization).
+     *
+     * @return int Background palette index with auto-increment flag
+     */
+    public function getBgIndexRaw(): int
+    {
+        return $this->bgIndex;
+    }
+
+    /**
+     * Get object palette index (for savestate serialization).
+     *
+     * @return int Object palette index with auto-increment flag
+     */
+    public function getObjIndexRaw(): int
+    {
+        return $this->objIndex;
+    }
+
+    /**
+     * Set background palette memory (for savestate deserialization).
+     *
+     * @param array<int, int> $palette Background palette memory (64 bytes)
+     */
+    public function setBgPaletteMemory(array $palette): void
+    {
+        $this->bgPalette = $palette;
+    }
+
+    /**
+     * Set object palette memory (for savestate deserialization).
+     *
+     * @param array<int, int> $palette Object palette memory (64 bytes)
+     */
+    public function setObjPaletteMemory(array $palette): void
+    {
+        $this->objPalette = $palette;
+    }
+
+    /**
+     * Set background palette index (for savestate deserialization).
+     *
+     * @param int $index Background palette index with auto-increment flag
+     */
+    public function setBgIndexRaw(int $index): void
+    {
+        $this->bgIndex = $index & 0xBF;
+    }
+
+    /**
+     * Set object palette index (for savestate deserialization).
+     *
+     * @param int $index Object palette index with auto-increment flag
+     */
+    public function setObjIndexRaw(int $index): void
+    {
+        $this->objIndex = $index & 0xBF;
+    }
 }

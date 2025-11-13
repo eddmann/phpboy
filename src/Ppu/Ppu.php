@@ -776,4 +776,14 @@ final class Ppu implements DeviceInterface
     {
         $this->obp1 = $obp1;
     }
+
+    /**
+     * Get the VRAM device.
+     *
+     * @return Vram VRAM device
+     */
+    public function getVram(): Vram
+    {
+        return $this->vram;
+    }
 }

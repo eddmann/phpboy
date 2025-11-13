@@ -143,4 +143,94 @@ final class CgbController implements DeviceInterface
     {
         return ($this->key1 & 0x01) !== 0;
     }
+
+    /**
+     * Get KEY0 register value (for savestate serialization).
+     *
+     * @return int KEY0 register value
+     */
+    public function getKey0(): int
+    {
+        return $this->key0;
+    }
+
+    /**
+     * Get KEY1 register value (for savestate serialization).
+     *
+     * @return int KEY1 register value
+     */
+    public function getKey1(): int
+    {
+        return $this->key1;
+    }
+
+    /**
+     * Get OPRI register value (for savestate serialization).
+     *
+     * @return int OPRI register value
+     */
+    public function getOpri(): int
+    {
+        return $this->opri;
+    }
+
+    /**
+     * Get KEY0 writable flag (for savestate serialization).
+     *
+     * @return bool True if KEY0 is writable
+     */
+    public function isKey0Writable(): bool
+    {
+        return $this->key0Writable;
+    }
+
+    /**
+     * Set KEY0 register value (for savestate deserialization).
+     *
+     * @param int $value KEY0 register value
+     */
+    public function setKey0(int $value): void
+    {
+        $this->key0 = $value;
+    }
+
+    /**
+     * Set KEY1 register value (for savestate deserialization).
+     *
+     * @param int $value KEY1 register value
+     */
+    public function setKey1(int $value): void
+    {
+        $this->key1 = $value & 0x01;
+    }
+
+    /**
+     * Set OPRI register value (for savestate deserialization).
+     *
+     * @param int $value OPRI register value
+     */
+    public function setOpri(int $value): void
+    {
+        $this->opri = $value & 0x01;
+    }
+
+    /**
+     * Set double-speed mode (for savestate deserialization).
+     *
+     * @param bool $doubleSpeed True if in double-speed mode
+     */
+    public function setDoubleSpeed(bool $doubleSpeed): void
+    {
+        $this->doubleSpeed = $doubleSpeed;
+    }
+
+    /**
+     * Set KEY0 writable flag (for savestate deserialization).
+     *
+     * @param bool $writable True if KEY0 is writable
+     */
+    public function setKey0Writable(bool $writable): void
+    {
+        $this->key0Writable = $writable;
+    }
 }

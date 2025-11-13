@@ -645,6 +645,38 @@ final class Emulator
     }
 
     /**
+     * Get the timer.
+     */
+    public function getTimer(): ?Timer
+    {
+        return $this->timer;
+    }
+
+    /**
+     * Get the interrupt controller.
+     */
+    public function getInterruptController(): ?InterruptController
+    {
+        return $this->interruptController;
+    }
+
+    /**
+     * Get the CGB controller.
+     */
+    public function getCgbController(): ?CgbController
+    {
+        return $this->cgb;
+    }
+
+    /**
+     * Get the APU.
+     */
+    public function getApu(): ?Apu
+    {
+        return $this->apu;
+    }
+
+    /**
      * Save the current emulator state to a file.
      *
      * @param string $path Path to save the savestate file
