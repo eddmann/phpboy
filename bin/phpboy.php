@@ -27,6 +27,7 @@ use Gb\Debug\Trace;
  *   --debug              Enable debugger mode with interactive shell
  *   --trace              Enable CPU instruction tracing
  *   --headless           Run without display (for testing)
+ *   --hardware-mode      Force DMG or CGB mode (dmg, cgb)
  *   --speed=<factor>     Speed multiplier (1.0 = normal, 2.0 = 2x, etc.)
  *   --save=<path>        Save file location
  *   --audio-out=<path>   WAV file to record audio output
@@ -53,6 +54,7 @@ Options:
   --save=<path>          Save file location (default: <rom>.sav)
   --audio                Enable real-time audio playback (requires aplay/ffplay)
   --audio-out=<path>     WAV file to record audio output
+  --hardware-mode=<mode> Force hardware mode: 'dmg' or 'cgb' (default: auto-detect from ROM)
   --palette=<name>       DMG colorization palette (for DMG games on CGB hardware)
                          Options: green, brown, blue, grayscale, pokemon_red, pokemon_blue,
                                   red_yellow, pastel, inverted, or any button combo (e.g., left_b)
@@ -72,6 +74,8 @@ Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
   php bin/phpboy.php tetris.gb --display-mode=ansi-color
+  php bin/phpboy.php tetris.gb --hardware-mode=dmg
+  php bin/phpboy.php pokemon_red.gb --hardware-mode=cgb
   php bin/phpboy.php tetris.gb --palette=grayscale
   php bin/phpboy.php pokemon_red.gb --palette=pokemon_red
   php bin/phpboy.php tetris.gb --audio
@@ -87,7 +91,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null, palette: string|null}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null, palette: string|null, hardware_mode: string|null}
  */
 function parseArguments(array $argv): array
 {
@@ -113,6 +117,7 @@ function parseArguments(array $argv): array
         'record' => null,
         'playback' => null,
         'palette' => null,
+        'hardware_mode' => null,
     ];
 
     // Parse arguments
@@ -167,6 +172,13 @@ function parseArguments(array $argv): array
             $options['playback'] = substr($arg, 11);
         } elseif (str_starts_with($arg, '--palette=')) {
             $options['palette'] = substr($arg, 10);
+        } elseif (str_starts_with($arg, '--hardware-mode=')) {
+            $mode = substr($arg, 16);
+            if (!in_array($mode, ['dmg', 'cgb'], true)) {
+                fwrite(STDERR, "Invalid hardware mode: $mode (must be: dmg or cgb)\n");
+                exit(1);
+            }
+            $options['hardware_mode'] = $mode;
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -242,6 +254,13 @@ try {
 
     // Create emulator
     $emulator = new Emulator();
+
+    // Set hardware mode if specified (before loading ROM)
+    if ($options['hardware_mode'] !== null) {
+        $emulator->setHardwareMode($options['hardware_mode']);
+        $modeName = strtoupper($options['hardware_mode']);
+        echo "Hardware Mode: Forced to $modeName\n";
+    }
 
     // Set DMG palette if specified (before loading ROM)
     if ($options['palette'] !== null) {

@@ -6,8 +6,6 @@ Game Boy Color emulator written in PHP 8.4. Includes CLI terminal frontend, brow
 
 ## Current Status
 
-**Note: Color support is WIP (Work in Progress)**
-
 Game Boy Color emulator with backward compatibility for DMG (original Game Boy) games:
 
 - ✅ CLI Terminal Frontend: Fully working, 25-30 FPS baseline, 60+ FPS with PHP JIT enabled
@@ -41,6 +39,7 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
   - Color palette RAM with auto-increment
   - VRAM bank switching
   - DMG backward compatibility mode
+  - DMG Colorization: Automatic colorization of original Game Boy games using hardware-defined palettes
 - Multiple Frontends:
   - CLI Terminal ✅: ANSI color rendering with audio support (SoX), primary frontend
   - Browser (WebAssembly) ✅: Runs via php-wasm (slow performance, audio WIP)

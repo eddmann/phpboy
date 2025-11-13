@@ -40,6 +40,7 @@ use Gb\Timer\Timer;
  *
  * Usage:
  *   $emulator = new Emulator();
+ *   $emulator->setHardwareMode('dmg'); // Optional: force DMG or CGB mode
  *   $emulator->loadRom('/path/to/rom.gb');
  *   $emulator->setInput($inputHandler);
  *   $emulator->run(); // or step() for single frame
@@ -66,6 +67,9 @@ final class Emulator
 
     /** @var string|null Manual DMG palette selection (e.g., 'grayscale', 'left_b') */
     private ?string $dmgPalette = null;
+
+    /** @var string|null Force hardware mode: 'dmg', 'cgb', or null for auto-detect */
+    private ?string $forcedHardwareMode = null;
 
     // Subsystems
     private ?InterruptController $interruptController = null;
@@ -119,8 +123,9 @@ final class Emulator
             throw new \RuntimeException("Cannot initialize system: no cartridge loaded");
         }
 
-        // Determine if we're running in CGB mode
-        $isCgbMode = $this->cartridge->getHeader()->isCgbSupported();
+        $isCgbMode = $this->forcedHardwareMode !== null
+            ? ($this->forcedHardwareMode === 'cgb')
+            : $this->cartridge->getHeader()->isCgbSupported();
 
         // Create interrupt controller
         $this->interruptController = new InterruptController();
@@ -139,36 +144,7 @@ final class Emulator
             $this->interruptController
         );
 
-        // Enable CGB mode in PPU if cartridge supports it
-        // OR apply DMG colorization for backward compatibility
-        //
-        // Priority:
-        // 1. Manual palette (--palette flag): Force DMG colorization even for CGB games
-        // 2. Native CGB mode: Use game's built-in CGB palettes
-        // 3. Automatic DMG colorization: Apply palette based on game detection
-        // 4. Grayscale DMG mode: No colorization
-        if ($this->dmgPalette !== null) {
-            // Manual palette specified: force DMG colorization mode
-            $paletteApplied = $this->applyDmgColorization();
-            if ($paletteApplied) {
-                $this->ppu->enableDmgCompatibilityMode(true);
-            } else {
-                $this->ppu->enableCgbMode(false);
-            }
-        } elseif ($isCgbMode) {
-            // Use native CGB mode with game's built-in palettes
-            $this->ppu->enableCgbMode(true);
-        } else {
-            // DMG game: try automatic colorization
-            $paletteApplied = $this->applyDmgColorization();
-            if ($paletteApplied) {
-                // Use CGB color palette with DMG sprite flag interpretation
-                $this->ppu->enableDmgCompatibilityMode(true);
-            } else {
-                // No colorization, keep grayscale DMG mode
-                $this->ppu->enableCgbMode(false);
-            }
-        }
+        $this->configurePpuDisplayMode($isCgbMode);
 
         // Create APU
         $this->apu = new Apu($this->audioSink);
@@ -273,14 +249,41 @@ final class Emulator
         $this->clock->reset();
     }
 
-    /**
-     * Set the DMG colorization palette.
-     *
-     * @param string $palette Palette name or button combination (e.g., 'grayscale', 'left_b')
-     */
-    public function setDmgPalette(string $palette): void
+    private function configurePpuDisplayMode(bool $isCgbMode): void
     {
-        $this->dmgPalette = $palette;
+        if ($this->ppu === null) {
+            return;
+        }
+
+        // Forced DMG hardware mode → grayscale
+        if ($this->forcedHardwareMode === 'dmg') {
+            $this->ppu->enableDmgCompatibilityMode(false);
+            $this->ppu->enableCgbMode(false);
+            return;
+        }
+
+        // Manual palette → DMG colorization
+        if ($this->dmgPalette !== null) {
+            $paletteApplied = $this->applyDmgColorization();
+            $this->ppu->enableDmgCompatibilityMode($paletteApplied);
+            if (!$paletteApplied) {
+                $this->ppu->enableCgbMode(false);
+            }
+            return;
+        }
+
+        // CGB-compatible cartridge → native CGB mode
+        if ($isCgbMode) {
+            $this->ppu->enableCgbMode(true);
+            return;
+        }
+
+        // DMG-only game → auto-detect colorization or fallback to grayscale
+        $paletteApplied = $this->applyDmgColorization();
+        $this->ppu->enableDmgCompatibilityMode($paletteApplied);
+        if (!$paletteApplied) {
+            $this->ppu->enableCgbMode(false);
+        }
     }
 
     /**
@@ -376,6 +379,26 @@ final class Emulator
     }
 
     /**
+     * Force a specific hardware mode regardless of cartridge header.
+     *
+     * @param string|null $mode 'dmg' for Game Boy, 'cgb' for Game Boy Color, null for auto-detect
+     * @throws \InvalidArgumentException If mode is not 'dmg', 'cgb', or null
+     */
+    public function setHardwareMode(?string $mode): void
+    {
+        if ($mode !== null && $mode !== 'dmg' && $mode !== 'cgb') {
+            throw new \InvalidArgumentException("Hardware mode must be 'dmg', 'cgb', or null");
+        }
+
+        $this->forcedHardwareMode = $mode;
+
+        // Re-initialize system if already loaded
+        if ($this->cartridge !== null) {
+            $this->initializeSystem();
+        }
+    }
+
+    /**
      * Run the main emulation loop.
      *
      * Runs continuously until stopped or an error occurs.
@@ -389,22 +412,33 @@ final class Emulator
 
         $this->running = true;
         $frameTime = 1.0 / (self::TARGET_FPS * $this->speedMultiplier);
-        $lastFrameTime = microtime(true);
+        $targetTime = microtime(true);
+        $maxFrameSkip = 5; // Maximum frames to skip when catching up
 
         while ($this->running) {
+            $currentTime = microtime(true);
+            $framesBehind = (int)(($currentTime - $targetTime) / $frameTime);
+
+            // Limit frame skip to prevent spiral of death
+            if ($framesBehind > $maxFrameSkip) {
+                // Reset timing if we're too far behind
+                $targetTime = $currentTime;
+                $framesBehind = 0;
+            }
+
             // Execute one frame
             $this->step();
 
+            // Advance target time for next frame
+            $targetTime += $frameTime;
+
             // Frame timing/throttling
             $currentTime = microtime(true);
-            $elapsed = $currentTime - $lastFrameTime;
-            $sleepTime = $frameTime - $elapsed;
+            $sleepTime = $targetTime - $currentTime;
 
             if ($sleepTime > 0) {
                 usleep((int)($sleepTime * 1_000_000));
             }
-
-            $lastFrameTime = microtime(true);
         }
     }
 

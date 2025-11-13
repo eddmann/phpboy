@@ -58,8 +58,8 @@ trace: ## Run emulator with CPU trace (usage: make trace ROM=path/to/rom.gb)
 	fi
 	docker compose run --rm phpboy php bin/phpboy.php $(ROM) --trace --headless
 
-clean: ## Remove vendor directory and composer.lock
-	rm -rf vendor composer.lock
+clean: ## Remove vendor directory
+	rm -rf vendor
 
 clean-docker: ## Remove Docker containers and images
 	docker compose down --rmi all --volumes

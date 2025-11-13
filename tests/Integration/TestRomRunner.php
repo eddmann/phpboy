@@ -56,6 +56,7 @@ final class TestRomRunner
 
         try {
             $this->emulator->loadRom($romPath);
+            $this->emulator->setHardwareMode('dmg'); // roms do not test PPU
         } catch (\Exception $e) {
             return new TestRomResult(
                 status: TestRomStatus::Error,
