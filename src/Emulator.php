@@ -669,6 +669,14 @@ final class Emulator
     }
 
     /**
+     * Get the APU.
+     */
+    public function getApu(): ?Apu
+    {
+        return $this->apu;
+    }
+
+    /**
      * Save the current emulator state to a file.
      *
      * @param string $path Path to save the savestate file

@@ -105,6 +105,7 @@ final class SavestateManager
         }
 
         $cgbController = $this->emulator->getCgbController();
+        $apu = $this->emulator->getApu();
 
         return [
             'magic' => self::MAGIC,
@@ -117,6 +118,7 @@ final class SavestateManager
             'timer' => $timer !== null ? $this->serializeTimer($timer) : null,
             'interrupts' => $interruptController !== null ? $this->serializeInterrupts($interruptController) : null,
             'cgb' => $cgbController !== null ? $this->serializeCgb($cgbController) : null,
+            'apu' => $apu !== null ? $this->serializeApu($apu) : null,
             'clock' => [
                 'cycles' => $clock->getCycles(),
             ],
@@ -174,6 +176,12 @@ final class SavestateManager
         $cgbController = $this->emulator->getCgbController();
         if (isset($state['cgb']) && is_array($state['cgb']) && $cgbController !== null) {
             $this->deserializeCgb($cgbController, $state['cgb']);
+        }
+
+        // Restore APU state (optional for backward compatibility)
+        $apu = $this->emulator->getApu();
+        if (isset($state['apu']) && is_array($state['apu']) && $apu !== null) {
+            $this->deserializeApu($apu, $state['apu']);
         }
 
         // Restore clock
@@ -544,6 +552,126 @@ final class SavestateManager
         $cgb->setOpri((int) ($data['opri'] ?? 0));
         $cgb->setDoubleSpeed((bool) ($data['doubleSpeed'] ?? false));
         $cgb->setKey0Writable((bool) ($data['key0Writable'] ?? true));
+    }
+
+    /**
+     * Serialize APU state.
+     *
+     * Note: This saves register state and basic APU state, but not full channel
+     * internal state (timers, counters). This provides partial audio restoration.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeApu(\Gb\Apu\Apu $apu): array
+    {
+        // Save all APU registers by reading them
+        $registers = [
+            // Channel 1
+            'nr10' => $apu->readByte(0xFF10),
+            'nr11' => $apu->readByte(0xFF11),
+            'nr12' => $apu->readByte(0xFF12),
+            'nr13' => $apu->readByte(0xFF13),
+            'nr14' => $apu->readByte(0xFF14),
+
+            // Channel 2
+            'nr21' => $apu->readByte(0xFF16),
+            'nr22' => $apu->readByte(0xFF17),
+            'nr23' => $apu->readByte(0xFF18),
+            'nr24' => $apu->readByte(0xFF19),
+
+            // Channel 3
+            'nr30' => $apu->readByte(0xFF1A),
+            'nr31' => $apu->readByte(0xFF1B),
+            'nr32' => $apu->readByte(0xFF1C),
+            'nr33' => $apu->readByte(0xFF1D),
+            'nr34' => $apu->readByte(0xFF1E),
+
+            // Channel 4
+            'nr41' => $apu->readByte(0xFF20),
+            'nr42' => $apu->readByte(0xFF21),
+            'nr43' => $apu->readByte(0xFF22),
+            'nr44' => $apu->readByte(0xFF23),
+
+            // Master control
+            'nr50' => $apu->readByte(0xFF24),
+            'nr51' => $apu->readByte(0xFF25),
+            'nr52' => $apu->readByte(0xFF26),
+        ];
+
+        return [
+            'registers' => $registers,
+            'waveRam' => base64_encode(pack('C*', ...$apu->getWaveRam())),
+            'frameSequencerCycles' => $apu->getFrameSequencerCycles(),
+            'frameSequencerStep' => $apu->getFrameSequencerStep(),
+            'sampleCycles' => $apu->getSampleCycles(),
+            'enabled' => $apu->isEnabled(),
+        ];
+    }
+
+    /**
+     * Deserialize APU state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeApu(\Gb\Apu\Apu $apu, array $data): void
+    {
+        // Restore APU registers
+        if (isset($data['registers']) && is_array($data['registers'])) {
+            $reg = $data['registers'];
+
+            // Channel 1
+            $apu->writeByte(0xFF10, (int) ($reg['nr10'] ?? 0));
+            $apu->writeByte(0xFF11, (int) ($reg['nr11'] ?? 0));
+            $apu->writeByte(0xFF12, (int) ($reg['nr12'] ?? 0));
+            $apu->writeByte(0xFF13, (int) ($reg['nr13'] ?? 0));
+            $apu->writeByte(0xFF14, (int) ($reg['nr14'] ?? 0));
+
+            // Channel 2
+            $apu->writeByte(0xFF16, (int) ($reg['nr21'] ?? 0));
+            $apu->writeByte(0xFF17, (int) ($reg['nr22'] ?? 0));
+            $apu->writeByte(0xFF18, (int) ($reg['nr23'] ?? 0));
+            $apu->writeByte(0xFF19, (int) ($reg['nr24'] ?? 0));
+
+            // Channel 3
+            $apu->writeByte(0xFF1A, (int) ($reg['nr30'] ?? 0));
+            $apu->writeByte(0xFF1B, (int) ($reg['nr31'] ?? 0));
+            $apu->writeByte(0xFF1C, (int) ($reg['nr32'] ?? 0));
+            $apu->writeByte(0xFF1D, (int) ($reg['nr33'] ?? 0));
+            $apu->writeByte(0xFF1E, (int) ($reg['nr34'] ?? 0));
+
+            // Channel 4
+            $apu->writeByte(0xFF20, (int) ($reg['nr41'] ?? 0));
+            $apu->writeByte(0xFF21, (int) ($reg['nr42'] ?? 0));
+            $apu->writeByte(0xFF22, (int) ($reg['nr43'] ?? 0));
+            $apu->writeByte(0xFF23, (int) ($reg['nr44'] ?? 0));
+
+            // Master control
+            $apu->writeByte(0xFF24, (int) ($reg['nr50'] ?? 0));
+            $apu->writeByte(0xFF25, (int) ($reg['nr51'] ?? 0));
+            $apu->writeByte(0xFF26, (int) ($reg['nr52'] ?? 0));
+        }
+
+        // Restore Wave RAM
+        if (isset($data['waveRam'])) {
+            $waveRamUnpacked = unpack('C*', base64_decode((string) $data['waveRam']));
+            if ($waveRamUnpacked !== false) {
+                $apu->setWaveRam(array_values($waveRamUnpacked));
+            }
+        }
+
+        // Restore internal state
+        if (isset($data['frameSequencerCycles'])) {
+            $apu->setFrameSequencerCycles((int) $data['frameSequencerCycles']);
+        }
+        if (isset($data['frameSequencerStep'])) {
+            $apu->setFrameSequencerStep((int) $data['frameSequencerStep']);
+        }
+        if (isset($data['sampleCycles'])) {
+            $apu->setSampleCycles((float) $data['sampleCycles']);
+        }
+        if (isset($data['enabled'])) {
+            $apu->setEnabled((bool) $data['enabled']);
+        }
     }
 
     /**

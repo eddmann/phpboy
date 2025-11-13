@@ -365,4 +365,110 @@ final class Apu implements DeviceInterface
             $this->frameSequencerStep = 0;
         }
     }
+
+    /**
+     * Get frame sequencer cycles (for savestate serialization).
+     *
+     * @return int Frame sequencer cycles
+     */
+    public function getFrameSequencerCycles(): int
+    {
+        return $this->frameSequencerCycles;
+    }
+
+    /**
+     * Get frame sequencer step (for savestate serialization).
+     *
+     * @return int Frame sequencer step (0-7)
+     */
+    public function getFrameSequencerStep(): int
+    {
+        return $this->frameSequencerStep;
+    }
+
+    /**
+     * Get sample cycles accumulator (for savestate serialization).
+     *
+     * @return float Sample cycles
+     */
+    public function getSampleCycles(): float
+    {
+        return $this->sampleCycles;
+    }
+
+    /**
+     * Get enabled state (for savestate serialization).
+     *
+     * @return bool True if APU is enabled
+     */
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    /**
+     * Set frame sequencer cycles (for savestate deserialization).
+     *
+     * @param int $cycles Frame sequencer cycles
+     */
+    public function setFrameSequencerCycles(int $cycles): void
+    {
+        $this->frameSequencerCycles = $cycles;
+    }
+
+    /**
+     * Set frame sequencer step (for savestate deserialization).
+     *
+     * @param int $step Frame sequencer step (0-7)
+     */
+    public function setFrameSequencerStep(int $step): void
+    {
+        $this->frameSequencerStep = $step & 0x07;
+    }
+
+    /**
+     * Set sample cycles accumulator (for savestate deserialization).
+     *
+     * @param float $cycles Sample cycles
+     */
+    public function setSampleCycles(float $cycles): void
+    {
+        $this->sampleCycles = $cycles;
+    }
+
+    /**
+     * Set enabled state (for savestate deserialization).
+     *
+     * @param bool $enabled True to enable APU
+     */
+    public function setEnabled(bool $enabled): void
+    {
+        $this->enabled = $enabled;
+    }
+
+    /**
+     * Get Wave RAM data (for savestate serialization).
+     *
+     * @return array<int, int> Wave RAM (16 bytes)
+     */
+    public function getWaveRam(): array
+    {
+        $waveRam = [];
+        for ($i = 0; $i < 16; $i++) {
+            $waveRam[] = $this->channel3->readWaveRam($i);
+        }
+        return $waveRam;
+    }
+
+    /**
+     * Set Wave RAM data (for savestate deserialization).
+     *
+     * @param array<int, int> $waveRam Wave RAM (16 bytes)
+     */
+    public function setWaveRam(array $waveRam): void
+    {
+        for ($i = 0; $i < min(16, count($waveRam)); $i++) {
+            $this->channel3->writeWaveRam($i, $waveRam[$i]);
+        }
+    }
 }
