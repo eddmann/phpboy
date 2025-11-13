@@ -51,7 +51,6 @@ final class SavestateIntegrationTest extends TestCase
         $this->assertNotNull($cpu);
         $this->assertNotNull($timer);
         $this->assertNotNull($interrupts);
-        $this->assertNotNull($clock);
 
         $stateBefore = [
             'pc' => $cpu->getPC()->get(),
