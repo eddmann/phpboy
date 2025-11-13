@@ -25,8 +25,20 @@ Game Boy Color emulator with backward compatibility for DMG (original Game Boy) 
 </p>
 
 <p align="center">
-  <img src="docs/pokered-1.png" alt="Pokemon Red gameplay" width="400" />
-  <img src="docs/pokered-2.png" alt="Pokemon Red gameplay" width="400" />
+  <strong>The Legend of Zelda: Link's Awakening DX</strong><br/>
+  <img src="docs/zelda-cgb-1.png" alt="Zelda DX gameplay" width="400" />
+  <img src="docs/zelda-cgb-2.png" alt="Zelda DX gameplay" width="400" />
+</p>
+
+<p align="center">
+  <strong>Pokemon Red - DMG vs CGB Colorization</strong><br/>
+  <img src="docs/pokered-dmg-1.png" alt="Pokemon Red DMG" width="400" />
+  <img src="docs/pokered-cgb-1.png" alt="Pokemon Red CGB" width="400" />
+</p>
+
+<p align="center">
+  <img src="docs/pokered-dmg-2.png" alt="Pokemon Red DMG" width="400" />
+  <img src="docs/pokered-cgb-2.png" alt="Pokemon Red CGB" width="400" />
 </p>
 
 ## Features
