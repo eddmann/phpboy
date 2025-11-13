@@ -8,10 +8,13 @@ use Gb\Apu\AudioSinkInterface;
 
 final class SoxAudioSink implements AudioSinkInterface
 {
+    /** @var resource|null */
     private $pipe = null;
     private string $playerName = 'play';
     private int $sampleRate;
+    /** @var array<float> */
     private array $leftBuffer = [];
+    /** @var array<float> */
     private array $rightBuffer = [];
     private int $bufferSize = 512;
     private int $droppedSamples = 0;
@@ -134,5 +137,15 @@ final class SoxAudioSink implements AudioSinkInterface
     public function setBufferSize(int $size): void
     {
         $this->bufferSize = max(128, $size);
+    }
+
+    public function getBufferSize(): int
+    {
+        return $this->bufferSize;
+    }
+
+    public function getDroppedSamples(): int
+    {
+        return $this->droppedSamples;
     }
 }

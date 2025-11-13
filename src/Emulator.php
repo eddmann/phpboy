@@ -153,6 +153,7 @@ final class Emulator
         $this->bus = new SystemBus();
 
         // Attach memory devices
+        assert($this->cartridge !== null);
         $this->bus->attachDevice('cartridge', $this->cartridge, 0x0000, 0x7FFF);
         $this->bus->attachDevice('cartridge', $this->cartridge, 0xA000, 0xBFFF); // External RAM
         $this->bus->attachDevice('vram', $vram, 0x8000, 0x9FFF);
@@ -162,6 +163,7 @@ final class Emulator
 
         // Attach I/O devices (PPU, APU, Timer, etc.)
         // PPU registers: LCDC, STAT, SCY, SCX, LY, LYC, BGP, OBP0, OBP1, WY, WX, BCPS, BCPD, OCPS, OCPD
+        assert($this->ppu !== null);
         $this->bus->attachIoDevice(
             $this->ppu,
             0xFF40, 0xFF41, 0xFF42, 0xFF43, 0xFF44, 0xFF45, 0xFF47, 0xFF48, 0xFF49, 0xFF4A, 0xFF4B,
@@ -180,7 +182,9 @@ final class Emulator
         $this->bus->attachIoDevice($this->apu, ...$apuRegisters);
 
         // Create timer
-        $this->timer = new Timer($this->interruptController);
+        assert($this->interruptController !== null);
+        $interruptController = $this->interruptController; // Narrow type for PHPStan
+        $this->timer = new Timer($interruptController);
         // Timer registers: DIV, TIMA, TMA, TAC
         $this->bus->attachIoDevice($this->timer, 0xFF04, 0xFF05, 0xFF06, 0xFF07);
 
@@ -198,19 +202,19 @@ final class Emulator
         $this->bus->attachIoDevice($this->cgb, 0xFF4C, 0xFF4D, 0xFF4F, 0xFF56, 0xFF6C);
 
         // Create joypad
-        $this->joypad = new Joypad($this->interruptController);
+        $this->joypad = new Joypad($interruptController);
         $this->bus->attachIoDevice($this->joypad, 0xFF00); // JOYP register
 
         // Create serial
-        $this->serial = new Serial($this->interruptController);
+        $this->serial = new Serial($interruptController);
         // Serial registers: SB, SC
         $this->bus->attachIoDevice($this->serial, 0xFF01, 0xFF02);
 
         // Attach interrupt controller
-        $this->bus->attachIoDevice($this->interruptController, 0xFF0F, 0xFFFF); // IF and IE registers
+        $this->bus->attachIoDevice($interruptController, 0xFF0F, 0xFFFF); // IF and IE registers
 
         // Create CPU
-        $this->cpu = new Cpu($this->bus, $this->interruptController);
+        $this->cpu = new Cpu($this->bus, $interruptController);
 
         // Initialize CPU registers to post-boot ROM values
         // This simulates the state after the boot ROM has finished
@@ -376,6 +380,21 @@ final class Emulator
     public function setSpeed(float $multiplier): void
     {
         $this->speedMultiplier = max(0.1, $multiplier);
+    }
+
+    /**
+     * Set the DMG palette for colorization.
+     *
+     * @param string $palette Palette name (e.g., 'grayscale', 'left_b')
+     */
+    public function setDmgPalette(string $palette): void
+    {
+        $this->dmgPalette = $palette;
+
+        // Re-initialize system if already loaded
+        if ($this->cartridge !== null) {
+            $this->initializeSystem();
+        }
     }
 
     /**

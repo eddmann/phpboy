@@ -437,6 +437,7 @@ final class Ppu implements DeviceInterface
         // CGB: bits 0-2 are palette number, bit 3 is VRAM bank
         // DMG: bit 4 selects OBP0 or OBP1
         // DMG Compat: use bit 4 like DMG, but render with CGB color palette
+        $palette = null;
         if ($this->cgbMode && !$this->dmgCompatibilityMode) {
             $paletteNum = $flags & 0x07;
             $vramBank = ($flags & 0x08) !== 0 ? 1 : 0;
@@ -508,6 +509,7 @@ final class Ppu implements DeviceInterface
             if ($this->cgbMode) {
                 $this->scanlineBuffer[$pixelX] = $this->colorPalette->getObjColor($paletteNum, $color);
             } else {
+                assert($palette !== null, 'Palette must be defined in DMG mode');
                 $this->scanlineBuffer[$pixelX] = $this->applyPalette($color, $palette);
             }
         }

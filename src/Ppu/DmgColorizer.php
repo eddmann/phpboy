@@ -87,7 +87,11 @@ class DmgColorizer
         }
 
         // Priority 3: Default palette
-        return DmgPalettes::getPalette('default');
+        $defaultPalette = DmgPalettes::getPalette('default');
+        if ($defaultPalette === null) {
+            throw new \RuntimeException('Default palette not found');
+        }
+        return $defaultPalette;
     }
 
     /**
