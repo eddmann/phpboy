@@ -97,10 +97,14 @@ final class SavestateManager
         $bus = $this->emulator->getBus();
         $cartridge = $this->emulator->getCartridge();
         $clock = $this->emulator->getClock();
+        $timer = $this->emulator->getTimer();
+        $interruptController = $this->emulator->getInterruptController();
 
         if ($cpu === null || $ppu === null || $bus === null || $cartridge === null) {
             throw new \RuntimeException("Cannot create savestate: emulator not initialized");
         }
+
+        $cgbController = $this->emulator->getCgbController();
 
         return [
             'magic' => self::MAGIC,
@@ -110,6 +114,9 @@ final class SavestateManager
             'ppu' => $this->serializePpu($ppu),
             'memory' => $this->serializeMemory($bus),
             'cartridge' => $this->serializeCartridge($cartridge),
+            'timer' => $timer !== null ? $this->serializeTimer($timer) : null,
+            'interrupts' => $interruptController !== null ? $this->serializeInterrupts($interruptController) : null,
+            'cgb' => $cgbController !== null ? $this->serializeCgb($cgbController) : null,
             'clock' => [
                 'cycles' => $clock->getCycles(),
             ],
@@ -128,6 +135,8 @@ final class SavestateManager
         $bus = $this->emulator->getBus();
         $cartridge = $this->emulator->getCartridge();
         $clock = $this->emulator->getClock();
+        $timer = $this->emulator->getTimer();
+        $interruptController = $this->emulator->getInterruptController();
 
         if ($cpu === null || $ppu === null || $bus === null || $cartridge === null) {
             throw new \RuntimeException("Cannot load savestate: emulator not initialized");
@@ -150,6 +159,22 @@ final class SavestateManager
         $this->deserializePpu($ppu, $state['ppu']);
         $this->deserializeMemory($bus, $state['memory']);
         $this->deserializeCartridge($cartridge, $state['cartridge']);
+
+        // Restore timer state (optional for backward compatibility)
+        if (isset($state['timer']) && is_array($state['timer']) && $timer !== null) {
+            $this->deserializeTimer($timer, $state['timer']);
+        }
+
+        // Restore interrupt state (optional for backward compatibility)
+        if (isset($state['interrupts']) && is_array($state['interrupts']) && $interruptController !== null) {
+            $this->deserializeInterrupts($interruptController, $state['interrupts']);
+        }
+
+        // Restore CGB controller state (optional for backward compatibility)
+        $cgbController = $this->emulator->getCgbController();
+        if (isset($state['cgb']) && is_array($state['cgb']) && $cgbController !== null) {
+            $this->deserializeCgb($cgbController, $state['cgb']);
+        }
 
         // Restore clock
         if (isset($state['clock']['cycles']) && is_int($state['clock']['cycles'])) {
@@ -201,6 +226,8 @@ final class SavestateManager
      */
     private function serializePpu(\Gb\Ppu\Ppu $ppu): array
     {
+        $colorPalette = $ppu->getColorPalette();
+
         return [
             'mode' => $ppu->getMode()->value,
             'modeClock' => $ppu->getModeClock(),
@@ -215,6 +242,12 @@ final class SavestateManager
             'bgp' => $ppu->getBGP(),
             'obp0' => $ppu->getOBP0(),
             'obp1' => $ppu->getOBP1(),
+            'cgbPalette' => [
+                'bgPalette' => base64_encode(pack('C*', ...$colorPalette->getBgPaletteMemory())),
+                'objPalette' => base64_encode(pack('C*', ...$colorPalette->getObjPaletteMemory())),
+                'bgIndex' => $colorPalette->getBgIndexRaw(),
+                'objIndex' => $colorPalette->getObjIndexRaw(),
+            ],
         ];
     }
 
@@ -238,6 +271,33 @@ final class SavestateManager
         $ppu->setBGP((int) $data['bgp']);
         $ppu->setOBP0((int) $data['obp0']);
         $ppu->setOBP1((int) $data['obp1']);
+
+        // Restore CGB color palettes (optional for backward compatibility)
+        if (isset($data['cgbPalette']) && is_array($data['cgbPalette'])) {
+            $colorPalette = $ppu->getColorPalette();
+
+            if (isset($data['cgbPalette']['bgPalette'])) {
+                $bgPaletteUnpacked = unpack('C*', base64_decode((string) $data['cgbPalette']['bgPalette']));
+                if ($bgPaletteUnpacked !== false) {
+                    $colorPalette->setBgPaletteMemory(array_values($bgPaletteUnpacked));
+                }
+            }
+
+            if (isset($data['cgbPalette']['objPalette'])) {
+                $objPaletteUnpacked = unpack('C*', base64_decode((string) $data['cgbPalette']['objPalette']));
+                if ($objPaletteUnpacked !== false) {
+                    $colorPalette->setObjPaletteMemory(array_values($objPaletteUnpacked));
+                }
+            }
+
+            if (isset($data['cgbPalette']['bgIndex'])) {
+                $colorPalette->setBgIndexRaw((int) $data['cgbPalette']['bgIndex']);
+            }
+
+            if (isset($data['cgbPalette']['objIndex'])) {
+                $colorPalette->setObjIndexRaw((int) $data['cgbPalette']['objIndex']);
+            }
+        }
     }
 
     /**
@@ -247,11 +307,17 @@ final class SavestateManager
      */
     private function serializeMemory(\Gb\Bus\SystemBus $bus): array
     {
-        // Read memory regions
-        $vram = [];
-        for ($i = 0x8000; $i <= 0x9FFF; $i++) {
-            $vram[] = $bus->readByte($i);
+        $ppu = $this->emulator->getPpu();
+        if ($ppu === null) {
+            throw new \RuntimeException("Cannot serialize memory: PPU not initialized");
         }
+
+        $vram = $ppu->getVram();
+
+        // Save both VRAM banks (CGB has 2 banks, DMG only uses bank 0)
+        $vramBank0 = $vram->getData(0);
+        $vramBank1 = $vram->getData(1);
+        $currentVramBank = $vram->getBank();
 
         $wram = [];
         for ($i = 0xC000; $i <= 0xDFFF; $i++) {
@@ -269,7 +335,9 @@ final class SavestateManager
         }
 
         return [
-            'vram' => base64_encode(pack('C*', ...$vram)),
+            'vramBank0' => base64_encode(pack('C*', ...$vramBank0)),
+            'vramBank1' => base64_encode(pack('C*', ...$vramBank1)),
+            'vramCurrentBank' => $currentVramBank,
             'wram' => base64_encode(pack('C*', ...$wram)),
             'hram' => base64_encode(pack('C*', ...$hram)),
             'oam' => base64_encode(pack('C*', ...$oam)),
@@ -283,14 +351,54 @@ final class SavestateManager
      */
     private function deserializeMemory(\Gb\Bus\SystemBus $bus, array $data): void
     {
-        // Restore VRAM
-        $vramUnpacked = unpack('C*', base64_decode((string) $data['vram']));
-        if ($vramUnpacked === false) {
-            throw new \RuntimeException('Failed to unpack VRAM data');
+        $ppu = $this->emulator->getPpu();
+        if ($ppu === null) {
+            throw new \RuntimeException("Cannot deserialize memory: PPU not initialized");
         }
-        $vram = array_values($vramUnpacked);
-        for ($i = 0; $i < count($vram); $i++) {
-            $bus->writeByte(0x8000 + $i, $vram[$i]);
+
+        $vram = $ppu->getVram();
+
+        // Restore VRAM (support both old and new formats)
+        if (isset($data['vramBank0']) && isset($data['vramBank1'])) {
+            // New format: both banks saved separately
+            $vramBank0Unpacked = unpack('C*', base64_decode((string) $data['vramBank0']));
+            if ($vramBank0Unpacked === false) {
+                throw new \RuntimeException('Failed to unpack VRAM bank 0 data');
+            }
+            $vramBank0Data = array_values($vramBank0Unpacked);
+
+            $vramBank1Unpacked = unpack('C*', base64_decode((string) $data['vramBank1']));
+            if ($vramBank1Unpacked === false) {
+                throw new \RuntimeException('Failed to unpack VRAM bank 1 data');
+            }
+            $vramBank1Data = array_values($vramBank1Unpacked);
+
+            // Restore to both banks by switching bank and writing
+            $originalBank = $vram->getBank();
+
+            $vram->setBank(0);
+            for ($i = 0; $i < count($vramBank0Data); $i++) {
+                $bus->writeByte(0x8000 + $i, $vramBank0Data[$i]);
+            }
+
+            $vram->setBank(1);
+            for ($i = 0; $i < count($vramBank1Data); $i++) {
+                $bus->writeByte(0x8000 + $i, $vramBank1Data[$i]);
+            }
+
+            // Restore original bank selection
+            $currentBank = isset($data['vramCurrentBank']) ? (int) $data['vramCurrentBank'] : 0;
+            $vram->setBank($currentBank);
+        } elseif (isset($data['vram'])) {
+            // Old format: only one bank (backward compatibility)
+            $vramUnpacked = unpack('C*', base64_decode((string) $data['vram']));
+            if ($vramUnpacked === false) {
+                throw new \RuntimeException('Failed to unpack VRAM data');
+            }
+            $vramData = array_values($vramUnpacked);
+            for ($i = 0; $i < count($vramData); $i++) {
+                $bus->writeByte(0x8000 + $i, $vramData[$i]);
+            }
         }
 
         // Restore WRAM
@@ -350,6 +458,92 @@ final class SavestateManager
         $cartridge->setCurrentRamBank((int) $data['ramBank']);
         $cartridge->setRamEnabled((bool) $data['ramEnabled']);
         $cartridge->loadRamData((string) $data['ram']);
+    }
+
+    /**
+     * Serialize Timer state.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeTimer(\Gb\Timer\Timer $timer): array
+    {
+        return [
+            'div' => $timer->getDiv(),
+            'divCounter' => $timer->getDivCounter(),
+            'tima' => $timer->getTima(),
+            'tma' => $timer->getTma(),
+            'tac' => $timer->getTac(),
+            'timaCounter' => $timer->getTimaCounter(),
+        ];
+    }
+
+    /**
+     * Deserialize Timer state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeTimer(\Gb\Timer\Timer $timer, array $data): void
+    {
+        $timer->setDiv((int) ($data['div'] ?? 0));
+        $timer->setDivCounter((int) ($data['divCounter'] ?? 0));
+        $timer->setTima((int) ($data['tima'] ?? 0));
+        $timer->setTma((int) ($data['tma'] ?? 0));
+        $timer->setTac((int) ($data['tac'] ?? 0));
+        $timer->setTimaCounter((int) ($data['timaCounter'] ?? 0));
+    }
+
+    /**
+     * Serialize Interrupt state.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeInterrupts(\Gb\Interrupts\InterruptController $interrupts): array
+    {
+        return [
+            'if' => $interrupts->readByte(0xFF0F),
+            'ie' => $interrupts->readByte(0xFFFF),
+        ];
+    }
+
+    /**
+     * Deserialize Interrupt state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeInterrupts(\Gb\Interrupts\InterruptController $interrupts, array $data): void
+    {
+        $interrupts->writeByte(0xFF0F, (int) ($data['if'] ?? 0xE0));
+        $interrupts->writeByte(0xFFFF, (int) ($data['ie'] ?? 0x00));
+    }
+
+    /**
+     * Serialize CGB controller state.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeCgb(\Gb\System\CgbController $cgb): array
+    {
+        return [
+            'key0' => $cgb->getKey0(),
+            'key1' => $cgb->getKey1(),
+            'opri' => $cgb->getOpri(),
+            'doubleSpeed' => $cgb->isDoubleSpeed(),
+            'key0Writable' => $cgb->isKey0Writable(),
+        ];
+    }
+
+    /**
+     * Deserialize CGB controller state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeCgb(\Gb\System\CgbController $cgb, array $data): void
+    {
+        $cgb->setKey0((int) ($data['key0'] ?? 0));
+        $cgb->setKey1((int) ($data['key1'] ?? 0));
+        $cgb->setOpri((int) ($data['opri'] ?? 0));
+        $cgb->setDoubleSpeed((bool) ($data['doubleSpeed'] ?? false));
+        $cgb->setKey0Writable((bool) ($data['key0Writable'] ?? true));
     }
 
     /**
