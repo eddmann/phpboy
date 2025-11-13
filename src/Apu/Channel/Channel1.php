@@ -294,4 +294,106 @@ final class Channel1 implements ChannelInterface
     {
         $this->enabled = false;
     }
+
+    // Savestate serialization methods
+
+    public function getLengthCounter(): int
+    {
+        return $this->lengthCounter;
+    }
+
+    public function getCurrentVolume(): int
+    {
+        return $this->currentVolume;
+    }
+
+    public function getEnvelopeTimer(): int
+    {
+        return $this->envelopeTimer;
+    }
+
+    public function getFrequencyTimer(): int
+    {
+        return $this->frequencyTimer;
+    }
+
+    public function getDutyPosition(): int
+    {
+        return $this->dutyPosition;
+    }
+
+    public function getEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    public function getSweepTimer(): int
+    {
+        return $this->sweepTimer;
+    }
+
+    public function getSweepShadow(): int
+    {
+        return $this->sweepShadow;
+    }
+
+    public function getSweepEnabled(): bool
+    {
+        return $this->sweepEnabled;
+    }
+
+    public function getDacEnabled(): bool
+    {
+        return $this->dacEnabled;
+    }
+
+    public function setLengthCounter(int $value): void
+    {
+        $this->lengthCounter = $value;
+    }
+
+    public function setCurrentVolume(int $value): void
+    {
+        $this->currentVolume = $value;
+    }
+
+    public function setEnvelopeTimer(int $value): void
+    {
+        $this->envelopeTimer = $value;
+    }
+
+    public function setFrequencyTimer(int $value): void
+    {
+        $this->frequencyTimer = $value;
+    }
+
+    public function setDutyPosition(int $value): void
+    {
+        $this->dutyPosition = $value;
+    }
+
+    public function setEnabled(bool $value): void
+    {
+        $this->enabled = $value;
+    }
+
+    public function setSweepTimer(int $value): void
+    {
+        $this->sweepTimer = $value;
+    }
+
+    public function setSweepShadow(int $value): void
+    {
+        $this->sweepShadow = $value;
+    }
+
+    public function setSweepEnabled(bool $value): void
+    {
+        $this->sweepEnabled = $value;
+    }
+
+    public function setDacEnabled(bool $value): void
+    {
+        $this->dacEnabled = $value;
+    }
 }

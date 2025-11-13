@@ -197,9 +197,9 @@ final class Emulator
         $this->bus->attachIoDevice($this->hdma, 0xFF51, 0xFF52, 0xFF53, 0xFF54, 0xFF55);
 
         // Create CGB controller
-        $this->cgb = new CgbController($vram, $isCgbMode);
-        // CGB registers: KEY0, KEY1, VBK, RP, OPRI
-        $this->bus->attachIoDevice($this->cgb, 0xFF4C, 0xFF4D, 0xFF4F, 0xFF56, 0xFF6C);
+        $this->cgb = new CgbController($vram, $wram, $isCgbMode);
+        // CGB registers: KEY0, KEY1, VBK, RP, OPRI, SVBK
+        $this->bus->attachIoDevice($this->cgb, 0xFF4C, 0xFF4D, 0xFF4F, 0xFF56, 0xFF6C, 0xFF70);
 
         // Create joypad
         $this->joypad = new Joypad($interruptController);
@@ -674,6 +674,22 @@ final class Emulator
     public function getApu(): ?Apu
     {
         return $this->apu;
+    }
+
+    /**
+     * Get the OAM DMA controller.
+     */
+    public function getOamDma(): ?\Gb\Dma\OamDma
+    {
+        return $this->oamDma;
+    }
+
+    /**
+     * Get the HDMA controller.
+     */
+    public function getHdma(): ?\Gb\Dma\HdmaController
+    {
+        return $this->hdma;
     }
 
     /**

@@ -13,22 +13,23 @@ use Gb\Emulator;
  * allowing users to save and restore their game progress instantly.
  *
  * Format: JSON (human-readable, debuggable)
- * Version: 1.0.0
+ * Version: 1.1.0
  *
  * Savestate includes:
  * - CPU registers (AF, BC, DE, HL, SP, PC, IME, halted, stopped)
- * - Memory: VRAM, WRAM, HRAM, OAM, cartridge RAM
+ * - Memory: VRAM (both banks), WRAM (all 8 banks), HRAM, OAM, cartridge RAM
  * - PPU state: mode, cycle count, LY, scroll registers, palettes
- * - APU state: channel registers, frame sequencer position
+ * - APU state: channel registers, frame sequencer, channel internal state
  * - Timer state: DIV, TIMA, TMA, TAC
  * - Interrupt state: IF, IE
  * - Cartridge state: current ROM/RAM banks
  * - RTC state (if MBC3)
+ * - DMA state: OAM DMA and HDMA progress
  * - Clock: total cycle count
  */
 final class SavestateManager
 {
-    private const VERSION = '1.0.0';
+    private const VERSION = '1.1.0';
     private const MAGIC = 'PHPBOY_SAVESTATE';
 
     private Emulator $emulator;
@@ -106,6 +107,8 @@ final class SavestateManager
 
         $cgbController = $this->emulator->getCgbController();
         $apu = $this->emulator->getApu();
+        $oamDma = $this->emulator->getOamDma();
+        $hdma = $this->emulator->getHdma();
 
         return [
             'magic' => self::MAGIC,
@@ -119,6 +122,8 @@ final class SavestateManager
             'interrupts' => $interruptController !== null ? $this->serializeInterrupts($interruptController) : null,
             'cgb' => $cgbController !== null ? $this->serializeCgb($cgbController) : null,
             'apu' => $apu !== null ? $this->serializeApu($apu) : null,
+            'oamDma' => $oamDma !== null ? $this->serializeOamDma($oamDma) : null,
+            'hdma' => $hdma !== null ? $this->serializeHdma($hdma) : null,
             'clock' => [
                 'cycles' => $clock->getCycles(),
             ],
@@ -182,6 +187,18 @@ final class SavestateManager
         $apu = $this->emulator->getApu();
         if (isset($state['apu']) && is_array($state['apu']) && $apu !== null) {
             $this->deserializeApu($apu, $state['apu']);
+        }
+
+        // Restore OAM DMA state (optional for backward compatibility)
+        $oamDma = $this->emulator->getOamDma();
+        if (isset($state['oamDma']) && is_array($state['oamDma']) && $oamDma !== null) {
+            $this->deserializeOamDma($oamDma, $state['oamDma']);
+        }
+
+        // Restore HDMA state (optional for backward compatibility)
+        $hdma = $this->emulator->getHdma();
+        if (isset($state['hdma']) && is_array($state['hdma']) && $hdma !== null) {
+            $this->deserializeHdma($hdma, $state['hdma']);
         }
 
         // Restore clock
@@ -327,10 +344,19 @@ final class SavestateManager
         $vramBank1 = $vram->getData(1);
         $currentVramBank = $vram->getBank();
 
-        $wram = [];
-        for ($i = 0xC000; $i <= 0xDFFF; $i++) {
-            $wram[] = $bus->readByte($i);
+        // Get WRAM from bus to save all banks
+        $wram = $bus->getDevice('wram');
+        if (!($wram instanceof \Gb\Memory\Wram)) {
+            throw new \RuntimeException("Cannot serialize memory: WRAM not found");
         }
+
+        // Save all 8 WRAM banks (32KB total)
+        $wramBanks = [];
+        $allBanks = $wram->getAllBanks();
+        foreach ($allBanks as $bankNumber => $bankData) {
+            $wramBanks["bank{$bankNumber}"] = base64_encode(pack('C*', ...$bankData));
+        }
+        $currentWramBank = $wram->getCurrentBank();
 
         $hram = [];
         for ($i = 0xFF80; $i <= 0xFFFE; $i++) {
@@ -346,7 +372,8 @@ final class SavestateManager
             'vramBank0' => base64_encode(pack('C*', ...$vramBank0)),
             'vramBank1' => base64_encode(pack('C*', ...$vramBank1)),
             'vramCurrentBank' => $currentVramBank,
-            'wram' => base64_encode(pack('C*', ...$wram)),
+            'wramBanks' => $wramBanks,
+            'wramCurrentBank' => $currentWramBank,
             'hram' => base64_encode(pack('C*', ...$hram)),
             'oam' => base64_encode(pack('C*', ...$oam)),
         ];
@@ -410,13 +437,38 @@ final class SavestateManager
         }
 
         // Restore WRAM
-        $wramUnpacked = unpack('C*', base64_decode((string) $data['wram']));
-        if ($wramUnpacked === false) {
-            throw new \RuntimeException('Failed to unpack WRAM data');
+        $wram = $bus->getDevice('wram');
+        if (!($wram instanceof \Gb\Memory\Wram)) {
+            throw new \RuntimeException("Cannot deserialize memory: WRAM not found");
         }
-        $wram = array_values($wramUnpacked);
-        for ($i = 0; $i < count($wram); $i++) {
-            $bus->writeByte(0xC000 + $i, $wram[$i]);
+
+        if (isset($data['wramBanks']) && is_array($data['wramBanks'])) {
+            // New format: all 8 banks saved separately
+            for ($bankNumber = 0; $bankNumber < 8; $bankNumber++) {
+                $bankKey = "bank{$bankNumber}";
+                if (isset($data['wramBanks'][$bankKey])) {
+                    $bankUnpacked = unpack('C*', base64_decode((string) $data['wramBanks'][$bankKey]));
+                    if ($bankUnpacked !== false) {
+                        $wram->setBankData($bankNumber, array_values($bankUnpacked));
+                    }
+                }
+            }
+
+            // Restore current bank selection
+            if (isset($data['wramCurrentBank'])) {
+                $wram->setCurrentBank((int) $data['wramCurrentBank']);
+            }
+        } elseif (isset($data['wram'])) {
+            // Old format: flat 8KB (backward compatibility)
+            // This maps to bank 0 (0xC000-0xCFFF) and bank 1 (0xD000-0xDFFF)
+            $wramUnpacked = unpack('C*', base64_decode((string) $data['wram']));
+            if ($wramUnpacked === false) {
+                throw new \RuntimeException('Failed to unpack WRAM data');
+            }
+            $wramData = array_values($wramUnpacked);
+            for ($i = 0; $i < count($wramData); $i++) {
+                $bus->writeByte(0xC000 + $i, $wramData[$i]);
+            }
         }
 
         // Restore HRAM
@@ -557,8 +609,8 @@ final class SavestateManager
     /**
      * Serialize APU state.
      *
-     * Note: This saves register state and basic APU state, but not full channel
-     * internal state (timers, counters). This provides partial audio restoration.
+     * Saves complete APU state including channel internal state for perfect audio
+     * restoration after savestate load.
      *
      * @return array<string, mixed>
      */
@@ -598,6 +650,12 @@ final class SavestateManager
             'nr52' => $apu->readByte(0xFF26),
         ];
 
+        // Save channel internal state
+        $ch1 = $apu->getChannel1();
+        $ch2 = $apu->getChannel2();
+        $ch3 = $apu->getChannel3();
+        $ch4 = $apu->getChannel4();
+
         return [
             'registers' => $registers,
             'waveRam' => base64_encode(pack('C*', ...$apu->getWaveRam())),
@@ -605,6 +663,43 @@ final class SavestateManager
             'frameSequencerStep' => $apu->getFrameSequencerStep(),
             'sampleCycles' => $apu->getSampleCycles(),
             'enabled' => $apu->isEnabled(),
+            'channel1' => [
+                'lengthCounter' => $ch1->getLengthCounter(),
+                'currentVolume' => $ch1->getCurrentVolume(),
+                'envelopeTimer' => $ch1->getEnvelopeTimer(),
+                'frequencyTimer' => $ch1->getFrequencyTimer(),
+                'dutyPosition' => $ch1->getDutyPosition(),
+                'enabled' => $ch1->getEnabled(),
+                'dacEnabled' => $ch1->getDacEnabled(),
+                'sweepTimer' => $ch1->getSweepTimer(),
+                'sweepShadow' => $ch1->getSweepShadow(),
+                'sweepEnabled' => $ch1->getSweepEnabled(),
+            ],
+            'channel2' => [
+                'lengthCounter' => $ch2->getLengthCounter(),
+                'currentVolume' => $ch2->getCurrentVolume(),
+                'envelopeTimer' => $ch2->getEnvelopeTimer(),
+                'frequencyTimer' => $ch2->getFrequencyTimer(),
+                'dutyPosition' => $ch2->getDutyPosition(),
+                'enabled' => $ch2->getEnabled(),
+                'dacEnabled' => $ch2->getDacEnabled(),
+            ],
+            'channel3' => [
+                'lengthCounter' => $ch3->getLengthCounter(),
+                'frequencyTimer' => $ch3->getFrequencyTimer(),
+                'samplePosition' => $ch3->getSamplePosition(),
+                'enabled' => $ch3->getEnabled(),
+                'dacEnabled' => $ch3->getDacEnabled(),
+            ],
+            'channel4' => [
+                'lengthCounter' => $ch4->getLengthCounter(),
+                'currentVolume' => $ch4->getCurrentVolume(),
+                'envelopeTimer' => $ch4->getEnvelopeTimer(),
+                'frequencyTimer' => $ch4->getFrequencyTimer(),
+                'enabled' => $ch4->getEnabled(),
+                'dacEnabled' => $ch4->getDacEnabled(),
+                'lfsr' => $ch4->getLfsr(),
+            ],
         ];
     }
 
@@ -672,6 +767,106 @@ final class SavestateManager
         if (isset($data['enabled'])) {
             $apu->setEnabled((bool) $data['enabled']);
         }
+
+        // Restore channel internal state (optional for backward compatibility)
+        if (isset($data['channel1']) && is_array($data['channel1'])) {
+            $ch1 = $apu->getChannel1();
+            $ch1->setLengthCounter((int) ($data['channel1']['lengthCounter'] ?? 0));
+            $ch1->setCurrentVolume((int) ($data['channel1']['currentVolume'] ?? 0));
+            $ch1->setEnvelopeTimer((int) ($data['channel1']['envelopeTimer'] ?? 0));
+            $ch1->setFrequencyTimer((int) ($data['channel1']['frequencyTimer'] ?? 0));
+            $ch1->setDutyPosition((int) ($data['channel1']['dutyPosition'] ?? 0));
+            $ch1->setEnabled((bool) ($data['channel1']['enabled'] ?? false));
+            $ch1->setDacEnabled((bool) ($data['channel1']['dacEnabled'] ?? false));
+            $ch1->setSweepTimer((int) ($data['channel1']['sweepTimer'] ?? 0));
+            $ch1->setSweepShadow((int) ($data['channel1']['sweepShadow'] ?? 0));
+            $ch1->setSweepEnabled((bool) ($data['channel1']['sweepEnabled'] ?? false));
+        }
+
+        if (isset($data['channel2']) && is_array($data['channel2'])) {
+            $ch2 = $apu->getChannel2();
+            $ch2->setLengthCounter((int) ($data['channel2']['lengthCounter'] ?? 0));
+            $ch2->setCurrentVolume((int) ($data['channel2']['currentVolume'] ?? 0));
+            $ch2->setEnvelopeTimer((int) ($data['channel2']['envelopeTimer'] ?? 0));
+            $ch2->setFrequencyTimer((int) ($data['channel2']['frequencyTimer'] ?? 0));
+            $ch2->setDutyPosition((int) ($data['channel2']['dutyPosition'] ?? 0));
+            $ch2->setEnabled((bool) ($data['channel2']['enabled'] ?? false));
+            $ch2->setDacEnabled((bool) ($data['channel2']['dacEnabled'] ?? false));
+        }
+
+        if (isset($data['channel3']) && is_array($data['channel3'])) {
+            $ch3 = $apu->getChannel3();
+            $ch3->setLengthCounter((int) ($data['channel3']['lengthCounter'] ?? 0));
+            $ch3->setFrequencyTimer((int) ($data['channel3']['frequencyTimer'] ?? 0));
+            $ch3->setSamplePosition((int) ($data['channel3']['samplePosition'] ?? 0));
+            $ch3->setEnabled((bool) ($data['channel3']['enabled'] ?? false));
+            $ch3->setDacEnabled((bool) ($data['channel3']['dacEnabled'] ?? false));
+        }
+
+        if (isset($data['channel4']) && is_array($data['channel4'])) {
+            $ch4 = $apu->getChannel4();
+            $ch4->setLengthCounter((int) ($data['channel4']['lengthCounter'] ?? 0));
+            $ch4->setCurrentVolume((int) ($data['channel4']['currentVolume'] ?? 0));
+            $ch4->setEnvelopeTimer((int) ($data['channel4']['envelopeTimer'] ?? 0));
+            $ch4->setFrequencyTimer((int) ($data['channel4']['frequencyTimer'] ?? 0));
+            $ch4->setEnabled((bool) ($data['channel4']['enabled'] ?? false));
+            $ch4->setDacEnabled((bool) ($data['channel4']['dacEnabled'] ?? false));
+            $ch4->setLfsr((int) ($data['channel4']['lfsr'] ?? 0x7FFF));
+        }
+    }
+
+    /**
+     * Serialize OAM DMA state.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeOamDma(\Gb\Dma\OamDma $dma): array
+    {
+        return [
+            'active' => $dma->getDmaActive(),
+            'progress' => $dma->getDmaProgress(),
+            'delay' => $dma->getDmaDelay(),
+            'source' => $dma->getDmaSource(),
+        ];
+    }
+
+    /**
+     * Deserialize OAM DMA state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeOamDma(\Gb\Dma\OamDma $dma, array $data): void
+    {
+        $dma->setDmaActive((bool) ($data['active'] ?? false));
+        $dma->setDmaProgress((int) ($data['progress'] ?? 0));
+        $dma->setDmaDelay((int) ($data['delay'] ?? 0));
+        $dma->setDmaSource((int) ($data['source'] ?? 0));
+    }
+
+    /**
+     * Serialize HDMA state.
+     *
+     * @return array<string, mixed>
+     */
+    private function serializeHdma(\Gb\Dma\HdmaController $hdma): array
+    {
+        return [
+            'active' => $hdma->getHdmaActive(),
+            'hblankMode' => $hdma->getHblankMode(),
+            'remainingBlocks' => $hdma->getRemainingBlocks(),
+        ];
+    }
+
+    /**
+     * Deserialize HDMA state.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function deserializeHdma(\Gb\Dma\HdmaController $hdma, array $data): void
+    {
+        $hdma->setHdmaActive((bool) ($data['active'] ?? false));
+        $hdma->setHblankMode((bool) ($data['hblankMode'] ?? false));
+        $hdma->setRemainingBlocks((int) ($data['remainingBlocks'] ?? 0));
     }
 
     /**
@@ -691,10 +886,11 @@ final class SavestateManager
         }
 
         // Version compatibility check
-        // For now, we only support exact version match
-        if ($state['version'] !== self::VERSION) {
+        // Allow loading of older versions for backward compatibility
+        $validVersions = ['1.0.0', '1.1.0'];
+        if (!in_array($state['version'], $validVersions, true)) {
             throw new \RuntimeException(
-                "Incompatible savestate version: " . (string) $state['version'] . " (expected " . self::VERSION . ")"
+                "Incompatible savestate version: " . (string) $state['version'] . " (expected " . implode(' or ', $validVersions) . ")"
             );
         }
 
