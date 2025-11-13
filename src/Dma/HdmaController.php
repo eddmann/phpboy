@@ -200,4 +200,64 @@ final class HdmaController implements DeviceInterface
             $this->hdmaActive = false;
         }
     }
+
+    /**
+     * Get HDMA active state (for savestate serialization).
+     *
+     * @return bool True if HDMA is active
+     */
+    public function getHdmaActive(): bool
+    {
+        return $this->hdmaActive;
+    }
+
+    /**
+     * Get H-Blank mode state (for savestate serialization).
+     *
+     * @return bool True if in H-Blank mode
+     */
+    public function getHblankMode(): bool
+    {
+        return $this->hblankMode;
+    }
+
+    /**
+     * Get remaining blocks (for savestate serialization).
+     *
+     * @return int Number of 16-byte blocks remaining
+     */
+    public function getRemainingBlocks(): int
+    {
+        return $this->remainingBlocks;
+    }
+
+    /**
+     * Set HDMA active state (for savestate deserialization).
+     *
+     * @param bool $active True if HDMA is active
+     */
+    public function setHdmaActive(bool $active): void
+    {
+        $this->hdmaActive = $active;
+    }
+
+    /**
+     * Set H-Blank mode state (for savestate deserialization).
+     *
+     * @param bool $mode True if in H-Blank mode
+     */
+    public function setHblankMode(bool $mode): void
+    {
+        $this->hblankMode = $mode;
+    }
+
+    /**
+     * Set remaining blocks (for savestate deserialization).
+     *
+     * @param int $blocks Number of 16-byte blocks remaining
+     */
+    public function setRemainingBlocks(int $blocks): void
+    {
+        $this->remainingBlocks = $blocks;
+    }
 }

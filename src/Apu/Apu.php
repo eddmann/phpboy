@@ -471,4 +471,44 @@ final class Apu implements DeviceInterface
             $this->channel3->writeWaveRam($i, $waveRam[$i]);
         }
     }
+
+    /**
+     * Get Channel 1 (for savestate serialization).
+     *
+     * @return Channel\Channel1
+     */
+    public function getChannel1(): Channel\Channel1
+    {
+        return $this->channel1;
+    }
+
+    /**
+     * Get Channel 2 (for savestate serialization).
+     *
+     * @return Channel\Channel2
+     */
+    public function getChannel2(): Channel\Channel2
+    {
+        return $this->channel2;
+    }
+
+    /**
+     * Get Channel 3 (for savestate serialization).
+     *
+     * @return Channel\Channel3
+     */
+    public function getChannel3(): Channel\Channel3
+    {
+        return $this->channel3;
+    }
+
+    /**
+     * Get Channel 4 (for savestate serialization).
+     *
+     * @return Channel\Channel4
+     */
+    public function getChannel4(): Channel\Channel4
+    {
+        return $this->channel4;
+    }
 }

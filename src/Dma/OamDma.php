@@ -165,4 +165,84 @@ final class OamDma implements DeviceInterface
             }
         }
     }
+
+    /**
+     * Get DMA active state (for savestate serialization).
+     *
+     * @return bool True if DMA is active
+     */
+    public function getDmaActive(): bool
+    {
+        return $this->dmaActive;
+    }
+
+    /**
+     * Get DMA progress (for savestate serialization).
+     *
+     * @return int Current byte being transferred (0-159)
+     */
+    public function getDmaProgress(): int
+    {
+        return $this->dmaProgress;
+    }
+
+    /**
+     * Get DMA delay (for savestate serialization).
+     *
+     * @return int Startup delay in M-cycles
+     */
+    public function getDmaDelay(): int
+    {
+        return $this->dmaDelay;
+    }
+
+    /**
+     * Get DMA source address (for savestate serialization).
+     *
+     * @return int Source address for DMA transfer
+     */
+    public function getDmaSource(): int
+    {
+        return $this->dmaSource;
+    }
+
+    /**
+     * Set DMA active state (for savestate deserialization).
+     *
+     * @param bool $active True if DMA is active
+     */
+    public function setDmaActive(bool $active): void
+    {
+        $this->dmaActive = $active;
+    }
+
+    /**
+     * Set DMA progress (for savestate deserialization).
+     *
+     * @param int $progress Current byte being transferred (0-159)
+     */
+    public function setDmaProgress(int $progress): void
+    {
+        $this->dmaProgress = $progress;
+    }
+
+    /**
+     * Set DMA delay (for savestate deserialization).
+     *
+     * @param int $delay Startup delay in M-cycles
+     */
+    public function setDmaDelay(int $delay): void
+    {
+        $this->dmaDelay = $delay;
+    }
+
+    /**
+     * Set DMA source address (for savestate deserialization).
+     *
+     * @param int $source Source address for DMA transfer
+     */
+    public function setDmaSource(int $source): void
+    {
+        $this->dmaSource = $source;
+    }
 }

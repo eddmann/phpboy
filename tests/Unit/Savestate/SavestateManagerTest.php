@@ -49,7 +49,7 @@ final class SavestateManagerTest extends TestCase
         $this->assertArrayHasKey('clock', $state);
 
         $this->assertEquals('PHPBOY_SAVESTATE', $state['magic']);
-        $this->assertEquals('1.0.0', $state['version']);
+        $this->assertEquals('1.1.0', $state['version']);
     }
 
     #[Test]

@@ -247,4 +247,76 @@ final class Channel4 implements ChannelInterface
     {
         $this->enabled = false;
     }
+
+    // Savestate serialization methods
+
+    public function getLengthCounter(): int
+    {
+        return $this->lengthCounter;
+    }
+
+    public function getCurrentVolume(): int
+    {
+        return $this->currentVolume;
+    }
+
+    public function getEnvelopeTimer(): int
+    {
+        return $this->envelopeTimer;
+    }
+
+    public function getFrequencyTimer(): int
+    {
+        return $this->frequencyTimer;
+    }
+
+    public function getEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    public function getDacEnabled(): bool
+    {
+        return $this->dacEnabled;
+    }
+
+    public function getLfsr(): int
+    {
+        return $this->lfsr;
+    }
+
+    public function setLengthCounter(int $value): void
+    {
+        $this->lengthCounter = $value;
+    }
+
+    public function setCurrentVolume(int $value): void
+    {
+        $this->currentVolume = $value;
+    }
+
+    public function setEnvelopeTimer(int $value): void
+    {
+        $this->envelopeTimer = $value;
+    }
+
+    public function setFrequencyTimer(int $value): void
+    {
+        $this->frequencyTimer = $value;
+    }
+
+    public function setEnabled(bool $value): void
+    {
+        $this->enabled = $value;
+    }
+
+    public function setDacEnabled(bool $value): void
+    {
+        $this->dacEnabled = $value;
+    }
+
+    public function setLfsr(int $value): void
+    {
+        $this->lfsr = $value & 0x7FFF; // Keep to 15 bits
+    }
 }
