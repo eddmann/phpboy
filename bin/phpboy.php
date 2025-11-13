@@ -70,6 +70,15 @@ Options:
   --playback=<path>      Playback TAS input from JSON file
   --help                 Show this help message
 
+Controls (during gameplay):
+  Arrow Keys / WASD:  D-pad
+  Z:                  A button
+  X:                  B button
+  Enter:              Start
+  Space:              Select
+  Ctrl+S:             Save state (creates timestamped save file)
+  Ctrl+C:             Exit
+
 Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
@@ -312,6 +321,22 @@ try {
     if (!$options['headless']) {
         $input = new CliInput();
         $emulator->setInput($input);
+
+        // Set up Ctrl+S save callback
+        $saveCounter = 0;
+        $romBaseName = pathinfo($options['rom'], PATHINFO_FILENAME);
+        $input->onSave(function () use ($emulator, &$saveCounter, $romBaseName) {
+            $saveCounter++;
+            $timestamp = date('Y-m-d_H-i-s');
+            $filename = "{$romBaseName}_save_{$saveCounter}_{$timestamp}.state";
+
+            try {
+                $emulator->saveState($filename);
+                echo "\n[Saved state to: {$filename}]\n";
+            } catch (\Throwable $e) {
+                echo "\n[Error saving state: {$e->getMessage()}]\n";
+            }
+        });
     }
 
     // Set up renderer
@@ -508,7 +533,9 @@ try {
         echo "  Z: A button\n";
         echo "  X: B button\n";
         echo "  Enter: Start\n";
-        echo "  Space: Select\n\n";
+        echo "  Space: Select\n";
+        echo "  Ctrl+S: Save state\n";
+        echo "  Ctrl+C: Exit\n\n";
 
         // Set up signal handler for graceful shutdown
         if (function_exists('pcntl_signal')) {

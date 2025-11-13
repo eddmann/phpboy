@@ -11,11 +11,13 @@ use Gb\Input\InputInterface;
  * CLI keyboard input handler for PHPBoy.
  *
  * Maps keyboard keys to Game Boy buttons:
- * - Arrow keys → D-pad (Up, Down, Left, Right)
+ * - Arrow keys / WASD → D-pad (Up, Down, Left, Right)
  * - Z → A button
  * - X → B button
  * - Enter → Start
- * - Right Shift → Select
+ * - Space → Select
+ * - Ctrl+S → Save state (via callback)
+ * - Ctrl+C → Exit emulation
  *
  * Note: Non-blocking keyboard input in PHP CLI is limited.
  * This implementation uses stream_select for non-blocking reads
@@ -28,6 +30,9 @@ final class CliInput implements InputInterface
 {
     /** Control character for Ctrl+C (ASCII 3) */
     private const CTRL_C = "\x03";
+
+    /** Control character for Ctrl+S (ASCII 19) */
+    private const CTRL_S = "\x13";
 
     /** @var array<string, Button> Keyboard key to button mapping */
     private const KEY_MAP = [
@@ -73,10 +78,23 @@ final class CliInput implements InputInterface
     /** @var bool Whether terminal mode has been set */
     private bool $terminalModeSet = false;
 
+    /** @var callable|null Callback to invoke when Ctrl+S is pressed */
+    private $onSaveCallback = null;
+
     public function __construct()
     {
         $this->stdin = STDIN;
         $this->setupTerminal();
+    }
+
+    /**
+     * Set callback to invoke when Ctrl+S is pressed.
+     *
+     * @param callable $callback Function to call when user presses Ctrl+S for save
+     */
+    public function onSave(callable $callback): void
+    {
+        $this->onSaveCallback = $callback;
     }
 
     public function __destruct()
@@ -199,6 +217,14 @@ final class CliInput implements InputInterface
             $this->restoreTerminal();
             echo "\n\nEmulation stopped.\n";
             exit(0);
+        }
+
+        // Check for Ctrl+S (in raw mode, this comes through as ASCII 19)
+        if (str_contains($input, self::CTRL_S)) {
+            if ($this->onSaveCallback !== null) {
+                ($this->onSaveCallback)();
+            }
+            // Don't return here - continue processing other input in the buffer
         }
 
         // Check for arrow key escape sequences (3 characters)
