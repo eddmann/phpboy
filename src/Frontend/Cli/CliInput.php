@@ -16,7 +16,7 @@ use Gb\Input\InputInterface;
  * - X → B button
  * - Enter → Start
  * - Space → Select
- * - Ctrl+S → Save state (via callback)
+ * - P → Save state (via callback)
  * - Ctrl+C → Exit emulation
  *
  * Note: Non-blocking keyboard input in PHP CLI is limited.
@@ -31,8 +31,8 @@ final class CliInput implements InputInterface
     /** Control character for Ctrl+C (ASCII 3) */
     private const CTRL_C = "\x03";
 
-    /** Control character for Ctrl+S (ASCII 19) */
-    private const CTRL_S = "\x13";
+    /** Character for save state trigger */
+    private const SAVE_KEY = "p";
 
     /** @var array<string, Button> Keyboard key to button mapping */
     private const KEY_MAP = [
@@ -88,9 +88,9 @@ final class CliInput implements InputInterface
     }
 
     /**
-     * Set callback to invoke when Ctrl+S is pressed.
+     * Set callback to invoke when P key is pressed.
      *
-     * @param callable $callback Function to call when user presses Ctrl+S for save
+     * @param callable $callback Function to call when user presses P for save
      */
     public function onSave(callable $callback): void
     {
@@ -219,8 +219,8 @@ final class CliInput implements InputInterface
             exit(0);
         }
 
-        // Check for Ctrl+S (in raw mode, this comes through as ASCII 19)
-        if (str_contains($input, self::CTRL_S)) {
+        // Check for P key (save state trigger)
+        if (str_contains(strtolower($input), self::SAVE_KEY)) {
             if ($this->onSaveCallback !== null) {
                 ($this->onSaveCallback)();
             }
