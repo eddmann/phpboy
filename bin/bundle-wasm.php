@@ -4,29 +4,65 @@
  * Bundle all PHPBoy source files into a single file for WASM
  */
 
-$srcDir = __DIR__ . '/../src';
+$srcDir = realpath(__DIR__ . '/../src');
 $outputFile = __DIR__ . '/../web/phpboy-wasm-full.php';
+
+if ($srcDir === false) {
+    die("Error: src directory not found\n");
+}
 
 // Find all PHP files recursively
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($srcDir, RecursiveDirectoryIterator::SKIP_DOTS)
 );
 
+// Paths to exclude from WASM bundle (not needed in browser)
+$excludePaths = [
+    'Frontend/Cli',      // CLI terminal renderer
+    'Frontend/Sdl',      // SDL2 GUI renderer
+    'Debug',             // Debugger and disassembler
+    'Tas',               // TAS input recorder
+];
+
 $phpFiles = [];
+$excludedFiles = [];
+
 foreach ($iterator as $file) {
     assert($file instanceof SplFileInfo);
     if ($file->isFile() && $file->getExtension() === 'php') {
         $realPath = $file->getRealPath();
         if ($realPath !== false) {
-            $phpFiles[] = $realPath;
+            $relativePath = str_replace($srcDir . '/', '', $realPath);
+
+            // Check if file should be excluded
+            $shouldExclude = false;
+            foreach ($excludePaths as $excludePath) {
+                if (str_starts_with($relativePath, $excludePath)) {
+                    $shouldExclude = true;
+                    $excludedFiles[] = $relativePath;
+                    break;
+                }
+            }
+
+            if (!$shouldExclude) {
+                $phpFiles[] = $realPath;
+            }
         }
     }
 }
 
 // Sort for consistent output
 sort($phpFiles);
+sort($excludedFiles);
 
-echo "Found " . count($phpFiles) . " PHP files\n";
+echo "Found " . count($phpFiles) . " PHP files to bundle\n";
+echo "Excluded " . count($excludedFiles) . " unnecessary files\n";
+if (count($excludedFiles) > 0) {
+    echo "Excluded paths:\n";
+    foreach ($excludedFiles as $excluded) {
+        echo "  - $excluded\n";
+    }
+}
 
 // Start building the bundle
 $bundle = "<?php\n";
