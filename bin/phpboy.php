@@ -8,6 +8,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use Gb\Emulator;
 use Gb\Frontend\Cli\CliInput;
 use Gb\Frontend\Cli\CliRenderer;
+use Gb\Frontend\Sdl\SdlInput;
+use Gb\Frontend\Sdl\SdlRenderer;
+use Gb\Frontend\Sdl\SdlAudioSink;
 use Gb\Apu\Sink\WavSink;
 use Gb\Apu\Sink\NullSink;
 use Gb\Apu\Sink\SoxAudioSink;
@@ -46,13 +49,19 @@ Usage:
 
 Options:
   --rom=<path>           ROM file to load (can also be first positional argument)
+  --frontend=<name>      Frontend to use: 'cli' or 'sdl' (default: cli)
+                         cli = Terminal with ANSI colors
+                         sdl = Native window with hardware acceleration
   --debug                Enable debugger mode with interactive shell
   --trace                Enable CPU instruction tracing
   --headless             Run without display (for testing)
   --display-mode=<mode>  Display mode: 'ansi-color', 'ascii', 'none' (default: ansi-color)
+                         (only applies to CLI frontend)
   --speed=<factor>       Speed multiplier (1.0 = normal, 2.0 = 2x speed, 0.5 = half speed)
   --save=<path>          Save file location (default: <rom>.sav)
-  --audio                Enable real-time audio playback (requires aplay/ffplay)
+  --audio                Enable real-time audio playback
+                         CLI: Uses SoX (install with: apt-get install sox)
+                         SDL: Uses SDL2 audio subsystem
   --audio-out=<path>     WAV file to record audio output
   --hardware-mode=<mode> Force hardware mode: 'dmg' or 'cgb' (default: auto-detect from ROM)
   --palette=<name>       DMG colorization palette (for DMG games on CGB hardware)
@@ -82,6 +91,7 @@ Controls (during gameplay):
 Examples:
   php bin/phpboy.php tetris.gb
   php bin/phpboy.php --rom=tetris.gb --speed=2.0
+  php bin/phpboy.php tetris.gb --frontend=sdl --audio
   php bin/phpboy.php tetris.gb --display-mode=ansi-color
   php bin/phpboy.php tetris.gb --hardware-mode=dmg
   php bin/phpboy.php pokemon_red.gb --hardware-mode=cgb
@@ -100,7 +110,7 @@ HELP;
 
 /**
  * @param array<int, string> $argv
- * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null, palette: string|null, hardware_mode: string|null}
+ * @return array{rom: string|null, debug: bool, trace: bool, headless: bool, display_mode: string, speed: float, save: string|null, audio: bool, audio_out: string|null, help: bool, frames: int|null, benchmark: bool, memory_profile: bool, config: string|null, savestate_save: string|null, savestate_load: string|null, enable_rewind: bool, rewind_buffer: int, record: string|null, playback: string|null, palette: string|null, hardware_mode: string|null, frontend: string}
  */
 function parseArguments(array $argv): array
 {
@@ -127,6 +137,7 @@ function parseArguments(array $argv): array
         'playback' => null,
         'palette' => null,
         'hardware_mode' => null,
+        'frontend' => 'cli',
     ];
 
     // Parse arguments
@@ -188,6 +199,13 @@ function parseArguments(array $argv): array
                 exit(1);
             }
             $options['hardware_mode'] = $mode;
+        } elseif (str_starts_with($arg, '--frontend=')) {
+            $frontend = substr($arg, 11);
+            if (!in_array($frontend, ['cli', 'sdl'], true)) {
+                fwrite(STDERR, "Invalid frontend: $frontend (must be: cli or sdl)\n");
+                exit(1);
+            }
+            $options['frontend'] = $frontend;
         } elseif (!str_starts_with($arg, '--')) {
             // Positional argument (ROM file)
             if ($options['rom'] === null) {
@@ -302,13 +320,27 @@ try {
     }
 
     if ($options['audio']) {
-        $audioSink = new SoxAudioSink(44100);
-        $emulator->setAudioSink($audioSink);
+        if ($options['frontend'] === 'sdl') {
+            // Use SDL2 audio for SDL frontend
+            $audioSink = new SdlAudioSink(44100);
+            $emulator->setAudioSink($audioSink);
 
-        if ($audioSink->isAvailable()) {
-            echo "Audio: Enabled (using {$audioSink->getPlayerName()} at 44100 Hz)\n";
+            if ($audioSink->isAvailable()) {
+                echo "Audio: Enabled (SDL2 at 44100 Hz)\n";
+            } else {
+                echo "Audio: Failed to start (SDL2 audio not available)\n";
+                echo "       Install SDL2 extension: pecl install sdl-beta\n";
+            }
         } else {
-            echo "Audio: Failed to start (install SoX for audio support)\n";
+            // Use SoX audio for CLI frontend
+            $audioSink = new SoxAudioSink(44100);
+            $emulator->setAudioSink($audioSink);
+
+            if ($audioSink->isAvailable()) {
+                echo "Audio: Enabled (using {$audioSink->getPlayerName()} at 44100 Hz)\n";
+            } else {
+                echo "Audio: Failed to start (install SoX for audio support)\n";
+            }
         }
     } elseif ($options['audio_out'] !== null) {
         // WAV file recording
@@ -317,38 +349,61 @@ try {
         echo "Audio: Recording to {$options['audio_out']}\n";
     }
 
-    // Set up input
-    if (!$options['headless']) {
-        $input = new CliInput();
-        $emulator->setInput($input);
+    // Set up input and renderer based on frontend
+    if ($options['frontend'] === 'sdl') {
+        // SDL2 frontend
+        if (!extension_loaded('sdl')) {
+            fwrite(STDERR, "Error: SDL extension not loaded\n");
+            fwrite(STDERR, "Install SDL2 extension: pecl install sdl-beta\n");
+            exit(1);
+        }
 
-        // Set up Ctrl+S save callback
-        $saveCounter = 0;
-        $romBaseName = pathinfo($options['rom'], PATHINFO_FILENAME);
-        $input->onSave(function () use ($emulator, &$saveCounter, $romBaseName) {
-            $saveCounter++;
-            $timestamp = date('Y-m-d_H-i-s');
-            $filename = "{$romBaseName}_save_{$saveCounter}_{$timestamp}.state";
+        if (!$options['headless']) {
+            $input = new SdlInput();
+            $emulator->setInput($input);
+        }
 
-            try {
-                $emulator->saveState($filename);
-                echo "\n[Saved state to: {$filename}]\n";
-            } catch (\Throwable $e) {
-                echo "\n[Error saving state: {$e->getMessage()}]\n";
-            }
-        });
-    }
-
-    // Set up renderer
-    $renderer = new CliRenderer();
-    if ($options['headless']) {
-        // Headless mode - disable display
-        $renderer->setDisplayMode('none');
+        $renderer = new SdlRenderer(
+            scale: 4,
+            vsync: true,
+            windowTitle: 'PHPBoy - ' . basename($options['rom'])
+        );
+        $emulator->setFramebuffer($renderer);
+        echo "Frontend: SDL2 (hardware accelerated)\n";
     } else {
-        // Use the specified display mode
-        $renderer->setDisplayMode($options['display_mode']);
+        // CLI frontend
+        if (!$options['headless']) {
+            $input = new CliInput();
+            $emulator->setInput($input);
+
+            // Set up Ctrl+S save callback
+            $saveCounter = 0;
+            $romBaseName = pathinfo($options['rom'], PATHINFO_FILENAME);
+            $input->onSave(function () use ($emulator, &$saveCounter, $romBaseName) {
+                $saveCounter++;
+                $timestamp = date('Y-m-d_H-i-s');
+                $filename = "{$romBaseName}_save_{$saveCounter}_{$timestamp}.state";
+
+                try {
+                    $emulator->saveState($filename);
+                    echo "\n[Saved state to: {$filename}]\n";
+                } catch (\Throwable $e) {
+                    echo "\n[Error saving state: {$e->getMessage()}]\n";
+                }
+            });
+        }
+
+        $renderer = new CliRenderer();
+        if ($options['headless']) {
+            // Headless mode - disable display
+            $renderer->setDisplayMode('none');
+        } else {
+            // Use the specified display mode
+            $renderer->setDisplayMode($options['display_mode']);
+        }
+        $emulator->setFramebuffer($renderer);
+        echo "Frontend: CLI (terminal)\n";
     }
-    $emulator->setFramebuffer($renderer);
 
     // Set up tracing
     $trace = null;
