@@ -21,6 +21,10 @@ parameters:
 
         # SDL extension types (optional runtime dependency)
         - '#(Constant|Function|Class) SDL_.*not found#'
+        - '#(Constant|Function) sdl_.*not found#'
+        - '#Constant AUDIO_.*not found#'
+        - '#Call to static method .* on an unknown class SDL#'
+        - '#Call to function method_exists\(\) with .SDL. .* will always evaluate to false#'
         - '#Parameter \$event .* has invalid type (\\)?SDL_Event#'
         - '#Access to property .* on an unknown class (\\)?SDL_Event#'
         - '#Instantiated class (\\)?SDL_Event not found#'
