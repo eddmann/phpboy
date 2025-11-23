@@ -103,34 +103,59 @@ memory-profile: ## Run with memory profiling (usage: make memory-profile ROM=pat
 	fi
 	docker compose run --rm -it phpboy php -d memory_limit=512M bin/phpboy.php $(ROM) --headless --frames=$(or $(FRAMES),1000) --memory-profile
 
-build-wasm: ## Build WASM distribution for browser
-	@echo "Building PHPBoy for WebAssembly..."
-	@if [ ! -d "vendor" ]; then \
-		echo "Error: vendor directory not found. Run 'make install' first."; \
+build-wasm: ## Build WASM distribution for browser (using em)
+	@echo "Building PHPBoy for WebAssembly with em..."
+	@echo ""
+	@echo "Step 1: Bundling PHP source files..."
+	@docker compose run --rm phpboy php bin/bundle-wasm.php
+	@echo ""
+	@echo "Step 2: Checking for php-em.js and php-em.wasm..."
+	@if [ ! -f "web/php-em.js" ] || [ ! -f "web/php-em.wasm" ]; then \
+		echo ""; \
+		echo "❌ Error: php-em.js and/or php-em.wasm not found in web/ directory!"; \
+		echo ""; \
+		echo "You need to build em first. Run:"; \
+		echo "  1. Install emscripten: https://emscripten.org/docs/getting_started/downloads.html"; \
+		echo "  2. Clone em: git clone https://github.com/krakjoe/em.git /tmp/em"; \
+		echo "  3. Clone PHP source: git clone https://github.com/php/php-src.git -b PHP-8.4 /tmp/php-src"; \
+		echo "  4. Build em: cd /tmp/em && make -f em.mk EM_PHP_DIR=/tmp/php-src with=\"bcmath ctype mbstring tokenizer\""; \
+		echo "  5. Copy artifacts: cp /tmp/em/php-em.* web/"; \
+		echo ""; \
+		echo "Or use pre-built em binaries if available."; \
+		echo ""; \
 		exit 1; \
 	fi
-	@mkdir -p dist/php
-	@echo "Copying web files..."
+	@echo "✓ Found em artifacts"
+	@echo ""
+	@echo "Step 3: Copying files to dist/..."
+	@mkdir -p dist
 	@cp -r web/* dist/
-	@echo "Copying PHP source..."
-	@cp -r src dist/php/
-	@cp composer.json dist/php/
-	@echo "Copying vendor directory..."
-	@cp -r vendor dist/php/
-	@echo "Build complete! Output in dist/"
+	@echo ""
+	@echo "✓ Build complete! Output in dist/"
+	@echo ""
+	@echo "File sizes:"
+	@ls -lh dist/php-em.js dist/php-em.wasm dist/phpboy-wasm-full.php | awk '{print "  " $$9 ": " $$5}'
 	@echo ""
 	@echo "To serve locally:"
-	@echo "  cd dist && python3 -m http.server 8080"
+	@echo "  make serve-wasm"
 	@echo "  or"
-	@echo "  npm install && npm run serve"
+	@echo "  cd dist && python3 -m http.server 8080"
 
 serve-wasm: ## Serve WASM build locally (requires Python 3)
-	@if [ ! -d "dist" ]; then \
-		echo "Error: dist directory not found. Run 'make build-wasm' first."; \
+	@if [ ! -d "web" ]; then \
+		echo "Error: web directory not found."; \
+		exit 1; \
+	fi
+	@if [ ! -f "web/php-em.js" ] || [ ! -f "web/php-em.wasm" ]; then \
+		echo ""; \
+		echo "❌ Error: php-em.js and/or php-em.wasm not found!"; \
+		echo "Run 'make build-wasm' first to see build instructions."; \
+		echo ""; \
 		exit 1; \
 	fi
 	@echo "Starting HTTP server on http://localhost:8080"
-	@cd dist && python3 -m http.server 8080
+	@echo "Press Ctrl+C to stop"
+	@cd web && python3 -m http.server 8080
 
 # SDL2 Native Frontend Targets
 

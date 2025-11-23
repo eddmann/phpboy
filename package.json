@@ -1,16 +1,13 @@
 {
   "name": "phpboy-wasm",
-  "version": "1.0.0",
-  "description": "PHPBoy - Game Boy Color Emulator in PHP + WebAssembly",
+  "version": "2.0.0",
+  "description": "PHPBoy - Game Boy Color Emulator in PHP + WebAssembly (em)",
   "type": "module",
   "scripts": {
     "build": "npm run copy-files",
-    "copy-files": "mkdir -p dist && cp -r web/* dist/ && cp -r src dist/php/src && cp composer.json dist/php/ && cp vendor dist/php/vendor -r",
-    "serve": "npx http-server dist -p 8080 -c-1",
-    "dev": "npm run build && npm run serve"
-  },
-  "dependencies": {
-    "php-wasm": "^0.0.9"
+    "copy-files": "mkdir -p dist && cp -r web/* dist/",
+    "serve": "npx http-server web -p 8080 -c-1 --cors",
+    "dev": "npm run serve"
   },
   "devDependencies": {
     "http-server": "^14.1.1"
@@ -21,12 +18,18 @@
     "php",
     "webassembly",
     "wasm",
-    "gameboy-color"
+    "gameboy-color",
+    "em",
+    "krakjoe"
   ],
   "author": "PHPBoy Contributors",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/eddmann/phpboy.git"
+  },
+  "notes": {
+    "em-build": "This project uses krakjoe/em for PHP WebAssembly. Build with: make build-wasm",
+    "dependencies": "php-em.js and php-em.wasm must be present in web/ directory"
   }
 }

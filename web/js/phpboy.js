@@ -1,36 +1,26 @@
 /**
  * PHPBoy - Game Boy Color Emulator in the Browser
  *
- * JavaScript bridge between PHP-WASM and the browser.
+ * JavaScript bridge between em (PHP WebAssembly) and the browser.
  * Handles ROM loading, rendering, audio, and input.
+ *
+ * Uses krakjoe/em instead of php-wasm for better performance.
  */
 
 class PHPBoy {
     constructor() {
-        this.php = null;
+        this.Module = null;
         this.emulator = null;
         this.canvas = null;
         this.ctx = null;
         this.audioContext = null;
-        this.audioWorklet = null;
         this.isRunning = false;
         this.isPaused = false;
         this.animationFrameId = null;
         this.fps = 0;
         this.frameCount = 0;
         this.lastFpsUpdate = 0;
-
-        // Button state tracking
-        this.buttons = {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-            a: false,
-            b: false,
-            start: false,
-            select: false
-        };
+        this.emulatorInitialized = false;
 
         // Key mappings (keyboard key => Game Boy button code)
         this.keyMap = {
@@ -48,59 +38,81 @@ class PHPBoy {
     }
 
     /**
-     * Initialize PHP-WASM and load the emulator
+     * Initialize em and load the emulator
      */
     async init() {
-        console.log('Initializing PHPBoy...');
+        console.log('Initializing PHPBoy with em...');
 
-        // Import php-wasm
-        const { PhpWeb } = await import('https://cdn.jsdelivr.net/npm/php-wasm/PhpWeb.mjs');
+        try {
+            // Wait for Module to be ready (loaded by php-em.js)
+            await this.waitForModule();
 
-        console.log('Loading PHP runtime...');
-        this.php = new PhpWeb({
-            persist: true,
-            ini: {
-                'opcache.enable': '1',
-                'opcache.jit': '1255',
-                'opcache.jit_buffer_size': '100M'
+            console.log('Module loaded, starting up PHP runtime...');
+
+            // Start up PHP (MINIT)
+            const startupResult = this.Module.startup();
+            if (!startupResult) {
+                throw new Error('PHP startup failed');
             }
+
+            console.log('PHP runtime started successfully');
+
+            // Set up canvas
+            this.canvas = document.getElementById('screen');
+            this.ctx = this.canvas.getContext('2d', { alpha: false });
+
+            // Set canvas size (Game Boy resolution: 160x144)
+            this.canvas.width = 160;
+            this.canvas.height = 144;
+
+            // Set up input handlers
+            this.setupInput();
+
+            // Set up UI controls
+            this.setupControls();
+
+            console.log('PHPBoy initialized');
+            this.updateStatus('Ready. Load a ROM to start.');
+
+        } catch (error) {
+            console.error('Error initializing PHPBoy:', error);
+            this.updateStatus(\`Error: \${error.message}\`);
+        }
+    }
+
+    /**
+     * Wait for the Module to be ready
+     */
+    async waitForModule() {
+        if (typeof Module !== 'undefined' && Module.ready) {
+            this.Module = Module;
+            return;
+        }
+
+        // Wait for Module to be defined and ready
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Timeout waiting for em Module to load'));
+            }, 30000); // 30 second timeout
+
+            const checkModule = () => {
+                if (typeof Module !== 'undefined') {
+                    this.Module = Module;
+
+                    // Wait for Module to be fully ready
+                    if (Module.ready) {
+                        clearTimeout(timeout);
+                        resolve();
+                    } else {
+                        setTimeout(checkModule, 100);
+                    }
+                } else {
+                    setTimeout(checkModule, 100);
+                }
+            };
+
+            checkModule();
         });
-
-        // Set up error/output listeners
-        this.php.addEventListener('output', (event) => {
-            console.log('[PHP stdout]:', event.detail);
-        });
-        this.php.addEventListener('error', (event) => {
-            console.error('[PHP stderr]:', event.detail);
-        });
-
-        // Wait for PHP to be ready
-        await new Promise((resolve) => {
-            this.php.addEventListener('ready', () => {
-                console.log('PHP runtime ready');
-                resolve();
-            });
-        });
-
-        await this.php.binary;
-        console.log('PHP runtime loaded');
-
-        // Set up canvas
-        this.canvas = document.getElementById('screen');
-        this.ctx = this.canvas.getContext('2d', { alpha: false });
-
-        // Set canvas size (Game Boy resolution: 160x144, scaled 4x)
-        this.canvas.width = 160;
-        this.canvas.height = 144;
-
-        // Set up input handlers
-        this.setupInput();
-
-        // Set up UI controls
-        this.setupControls();
-
-        console.log('PHPBoy initialized');
-        this.updateStatus('Ready. Load a ROM to start.');
     }
 
     /**
@@ -108,80 +120,49 @@ class PHPBoy {
      */
     async loadROM(file) {
         try {
-            console.log(`Loading ROM: ${file.name}`);
-            this.updateStatus(`Loading ${file.name}...`);
+            console.log(\`Loading ROM: \${file.name}\`);
+            this.updateStatus(\`Loading \${file.name}...\`);
 
             // Read ROM file as array buffer
             const arrayBuffer = await file.arrayBuffer();
             const romData = new Uint8Array(arrayBuffer);
 
-            // Write ROM to PHP filesystem using Emscripten FS API
-            const phpInstance = await this.php.binary;
-            phpInstance.FS.writeFile('/rom.gb', romData);
-            console.log(`ROM written to filesystem: ${romData.length} bytes`);
+            // Write ROM to VFS using em's VFS API
+            console.log(\`Writing ROM to VFS: \${romData.length} bytes\`);
+            this.Module.vfs.put('/rom.gb', romData);
 
-            // First, let's test if PHP is working at all
-            console.log('Testing PHP execution...');
+            console.log('ROM written to VFS successfully');
 
-            // Capture output via event listener
-            let testOutput = '';
-            const outputHandler = (e) => { testOutput += e.detail; };
-            this.php.addEventListener('output', outputHandler);
+            // Load the emulator PHP code if not already loaded
+            if (!this.emulatorInitialized) {
+                console.log('Loading PHPBoy emulator code...');
 
-            await this.php.run(`<?php echo "PHP is working!\\n"; `);
-            console.log('PHP test result:', testOutput);
+                // Fetch the bundled emulator code
+                const response = await fetch('/phpboy-wasm-full.php');
+                const phpCode = await response.text();
 
-            // Try to check what files exist
-            let filesOutput = '';
-            const filesHandler = (e) => { filesOutput += e.detail; };
-            this.php.removeEventListener('output', outputHandler);
-            this.php.addEventListener('output', filesHandler);
+                // Write to VFS
+                const encoder = new TextEncoder();
+                this.Module.vfs.put('/phpboy-wasm.php', encoder.encode(phpCode));
 
-            await this.php.run(`<?php
-                echo "Checking filesystem...\\n";
-                echo "CWD: " . getcwd() . "\\n";
-                echo "ROM exists: " . (file_exists('/rom.gb') ? 'YES' : 'NO') . "\\n";
-                if (file_exists('/rom.gb')) {
-                    echo "ROM size: " . filesize('/rom.gb') . " bytes\\n";
-                }
-            `);
-            console.log('Filesystem check:', filesOutput);
-            this.php.removeEventListener('output', filesHandler);
+                console.log('Emulator code written to VFS');
 
-            // Now we need to fetch and mount the PHP files into the WASM filesystem
-            console.log('Mounting PHP files into WASM filesystem...');
+                // Include the emulator (this initializes everything)
+                console.log('Initializing emulator...');
+                const initOutput = await this.Module.include('/phpboy-wasm.php');
+                console.log('Emulator init output:', initOutput);
 
-            // Fetch the full bundled emulator (all 69 source files)
-            const phpboyResponse = await fetch('/phpboy-wasm-full.php');
-            const phpboyCode = await phpboyResponse.text();
-            console.log(`Loaded ${phpboyCode.length} bytes of PHP code`);
+                this.emulatorInitialized = true;
+            }
 
-            // Write file to WASM FS
-            phpInstance.FS.writeFile('/phpboy-wasm.php', phpboyCode);
-
-            console.log('PHP files mounted successfully');
-
-            // Now load the actual emulator
-            console.log('Loading emulator...');
-            let initOutput = '';
-            const initHandler = (e) => { initOutput += e.detail; };
-            this.php.addEventListener('output', initHandler);
-
-            await this.php.run(`<?php
-                require_once '/phpboy-wasm.php';
-            `);
-
-            console.log('Emulator init result:', initOutput);
-            this.php.removeEventListener('output', initHandler);
-
-            this.updateStatus(`Running ${file.name}`);
+            this.updateStatus(\`Running \${file.name}\`);
 
             // Start emulation loop
             this.start();
 
         } catch (error) {
             console.error('Error loading ROM:', error);
-            this.updateStatus(`Error: ${error.message}`);
+            this.updateStatus(\`Error: \${error.message}\`);
         }
     }
 
@@ -213,19 +194,15 @@ class PHPBoy {
 
         try {
             // Run multiple frames per render to improve performance
-            const framesPerRender = 4; // Render every 4 frames
+            // This reduces PHP-JS bridge overhead significantly
+            const framesPerRender = 4;
 
-            // Capture frame output
-            let frameOutput = '';
-            const frameHandler = (e) => { frameOutput += e.detail; };
-            this.php.addEventListener('output', frameHandler);
-
-            // Execute multiple frames in PHP to reduce overhead
-            await this.php.run(`<?php
+            // Execute frames and get output
+            const output = await this.Module.invoke(\`<?php
                 global $emulator;
 
                 // Step the emulator multiple times
-                for ($i = 0; $i < ${framesPerRender}; $i++) {
+                for ($i = 0; $i < \${framesPerRender}; $i++) {
                     $emulator->step();
                 }
 
@@ -242,11 +219,9 @@ class PHPBoy {
                     'pixels' => $pixels,
                     'audio' => $audioSamples
                 ]);
-            `);
+            ?>\`);
 
-            this.php.removeEventListener('output', frameHandler);
-
-            const data = JSON.parse(frameOutput);
+            const data = JSON.parse(output);
 
             // Render frame
             if (data.pixels && data.pixels.length > 0) {
@@ -263,7 +238,7 @@ class PHPBoy {
 
         } catch (error) {
             console.error('Error in emulation loop:', error);
-            this.updateStatus(`Error: ${error.message}`);
+            this.updateStatus(\`Error: \${error.message}\`);
             this.stop();
             return;
         }
@@ -332,12 +307,13 @@ class PHPBoy {
         if (!this.isRunning) return;
 
         try {
-            await this.php.run(`<?php
+            await this.Module.invoke(\`<?php
+                global $emulator;
                 $input = $emulator->getInput();
-                if ($input instanceof Gb\\Frontend\\Wasm\\WasmInput) {
-                    $input->setButtonState(${buttonCode}, true);
+                if ($input instanceof Gb\\\\Frontend\\\\Wasm\\\\WasmInput) {
+                    $input->setButtonState(\${buttonCode}, true);
                 }
-            `);
+            ?>\`);
         } catch (error) {
             console.error('Error handling key down:', error);
         }
@@ -355,12 +331,13 @@ class PHPBoy {
         if (!this.isRunning) return;
 
         try {
-            await this.php.run(`<?php
+            await this.Module.invoke(\`<?php
+                global $emulator;
                 $input = $emulator->getInput();
-                if ($input instanceof Gb\\Frontend\\Wasm\\WasmInput) {
-                    $input->setButtonState(${buttonCode}, false);
+                if ($input instanceof Gb\\\\Frontend\\\\Wasm\\\\WasmInput) {
+                    $input->setButtonState(\${buttonCode}, false);
                 }
-            `);
+            ?>\`);
         } catch (error) {
             console.error('Error handling key up:', error);
         }
@@ -450,9 +427,10 @@ class PHPBoy {
         if (!this.isRunning) return;
 
         try {
-            await this.php.run(`<?php
+            await this.Module.invoke(\`<?php
+                global $emulator;
                 $emulator->reset();
-            `);
+            ?>\`);
             console.log('Emulator reset');
         } catch (error) {
             console.error('Error resetting emulator:', error);
@@ -464,10 +442,11 @@ class PHPBoy {
      */
     async setSpeed(multiplier) {
         try {
-            await this.php.run(`<?php
-                $emulator->setSpeed(${multiplier});
-            `);
-            console.log(`Speed set to ${multiplier}x`);
+            await this.Module.invoke(\`<?php
+                global $emulator;
+                $emulator->setSpeed(\${multiplier});
+            ?>\`);
+            console.log(\`Speed set to \${multiplier}x\`);
         } catch (error) {
             console.error('Error setting speed:', error);
         }
@@ -479,7 +458,7 @@ class PHPBoy {
     setVolume(volume) {
         if (this.audioContext) {
             // TODO: Implement volume control when audio is working
-            console.log(`Volume set to ${volume}`);
+            console.log(\`Volume set to \${volume}\`);
         }
     }
 
@@ -494,16 +473,15 @@ class PHPBoy {
 
         try {
             // Serialize the emulator state
-            const result = await this.php.exec(`<?php
-                $manager = new \\Gb\\Savestate\\SavestateManager($emulator);
+            const stateJson = await this.Module.invoke(\`<?php
+                global $emulator;
+                $manager = new \\\\Gb\\\\Savestate\\\\SavestateManager($emulator);
                 $state = $manager->serialize();
                 echo json_encode($state);
-            `);
-
-            const state = JSON.parse(result);
+            ?>\`);
 
             // Save to localStorage
-            localStorage.setItem('phpboy_savestate', JSON.stringify(state));
+            localStorage.setItem('phpboy_savestate', stateJson);
 
             this.updateSavestateInfo('State saved!');
             setTimeout(() => this.updateSavestateInfo(''), 3000);
@@ -533,14 +511,16 @@ class PHPBoy {
                 return;
             }
 
-            const state = JSON.parse(savedState);
-
             // Deserialize the state into the emulator
-            await this.php.run(`<?php
-                $manager = new \\Gb\\Savestate\\SavestateManager($emulator);
-                $stateData = json_decode('${JSON.stringify(state).replace(/'/g, "\\'")}', true);
+            // Need to escape the JSON properly for PHP
+            const escapedState = savedState.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
+
+            await this.Module.invoke(\`<?php
+                global $emulator;
+                $manager = new \\\\Gb\\\\Savestate\\\\SavestateManager($emulator);
+                $stateData = json_decode('\${escapedState}', true);
                 $manager->deserialize($stateData);
-            `);
+            ?>\`);
 
             this.updateSavestateInfo('State loaded!');
             setTimeout(() => this.updateSavestateInfo(''), 3000);
@@ -565,7 +545,7 @@ class PHPBoy {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `phpboy-screenshot-${Date.now()}.png`;
+            a.download = \`phpboy-screenshot-\${Date.now()}.png\`;
             a.click();
             URL.revokeObjectURL(url);
 

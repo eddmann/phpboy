@@ -129,9 +129,10 @@
                     <li>Full Game Boy and Game Boy Color emulation</li>
                     <li>Cycle-accurate CPU, PPU, and APU emulation</li>
                     <li>Support for multiple MBC cartridge types</li>
-                    <li>Runs entirely in the browser via php-wasm</li>
+                    <li>Runs entirely in the browser via WebAssembly (em)</li>
                     <li>Keyboard controls for gameplay</li>
                     <li>Speed control and save states</li>
+                    <li>Optimized performance with krakjoe/em</li>
                 </ul>
                 <p>
                     <strong>Note:</strong> This is a demonstration project. Load your own legally obtained
@@ -142,7 +143,7 @@
 
         <footer>
             <p>
-                PHPBoy - Built with <a href="https://github.com/seanmorris/php-wasm" target="_blank">php-wasm</a>
+                PHPBoy - Built with <a href="https://github.com/krakjoe/em" target="_blank">em (PHP WebAssembly)</a>
             </p>
             <p>
                 <a href="https://github.com/eddmann/phpboy" target="_blank">View on GitHub</a>
@@ -150,7 +151,10 @@
         </footer>
     </div>
 
-    <!-- Load PHPBoy JavaScript (as ES module) -->
-    <script type="module" src="js/phpboy.js"></script>
+    <!-- Load em PHP WebAssembly runtime -->
+    <script src="php-em.js"></script>
+
+    <!-- Load PHPBoy JavaScript after em is loaded -->
+    <script src="js/phpboy.js"></script>
 </body>
 </html>
